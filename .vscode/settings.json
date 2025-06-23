@@ -1,0 +1,4 @@
+{
+    "python.analysis.typeCheckingMode": "basic",
+    "postman.settings.dotenv-detection-notification-visibility": false
+}

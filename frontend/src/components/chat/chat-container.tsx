@@ -1,6 +1,6 @@
-import { Button, Container, Input, Stack} from "@chakra-ui/react";
+import { Button, Container, Input, Stack } from "@chakra-ui/react";
 import { useState } from "react";
-import { FaPaperPlane } from "react-icons/fa";
+import { FaPaperclip, FaPaperPlane } from "react-icons/fa";
 import { ChatMessage } from "./chat-message";
 
 export const ChatContainer = () => {
@@ -11,33 +11,42 @@ export const ChatContainer = () => {
     ]);
 
     const handleSendMessage = async () => {
-      if (!input.trim()) return;
+        if (!input.trim()) return;
 
-      setMessages((prev) => [...prev, { role: "user", content: input }]);
-      setInput("");
+        setMessages((prev) => [...prev, { role: "user", content: input }]);
+        setInput("");
 
-      // Fetch
-    }
-    
+        // Fetch
+    };
+
     return (
         <Stack>
             <Container
                 maxW="100vh"
-                height="80vh"
+                maxH="100vh"
+                height="100vh"
                 display="flex"
                 flexDirection="column"
                 justifyContent="space-between"
-                alignContent={"center"}
             >
                 <Stack spaceX={3} align="stretch" overflowY="auto" p={4}>
                     {messages.map((msg, idx) => (
-                        <ChatMessage key={idx} content={msg.content} role={msg.role} />
+                        <ChatMessage
+                            key={idx}
+                            content={msg.content}
+                            role={msg.role}
+                        />
                     ))}
                 </Stack>
 
                 <Stack flexDirection={"row"} mt={4} alignItems={"center"}>
+                    <Button bg={"none"} color={"white"}>
+                        <FaPaperclip size={"3rem"} />
+                    </Button>
+
                     <Input
-                        placeholder="Message AI Assistant..."
+                        size={"2xl"}
+                        placeholder="What do you want to say..."
                         value={input}
                         onChange={(e) => setInput(e.target.value)}
                         onKeyDown={(e) => {
@@ -46,7 +55,8 @@ export const ChatContainer = () => {
                                 handleSendMessage();
                             }
                         }}
-                        borderRadius="md"
+                        border={"none"}
+                        focusRing={"none"}
                     />
                     <Button
                         alignItems="center"
@@ -55,13 +65,15 @@ export const ChatContainer = () => {
                         transition="all 0.3s ease"
                         _hover={{
                             transform: "scale(1.1)",
+                            bgColor: "teal.500",
                             boxShadow: "0px 4px 10px rgba(0, 0, 0, 0.1)",
                         }}
+                        onClick={() => handleSendMessage()}
                     >
-                        <FaPaperPlane size="2rem" />
+                        <FaPaperPlane size="3rem" />
                     </Button>
                 </Stack>
             </Container>
         </Stack>
-    )
-}
+    );
+};

@@ -1,0 +1,33 @@
+from langchain.chat_models import init_chat_model
+from langchain_core.language_models.chat_models import BaseChatModel
+from app.classes.chat import ChatRequest, ChatResponse
+from app.core.config import settings
+from app.utils.chat import chat_utils
+from app.core.constants import LLMModel, OPENAI_MODELS, GEMINI_MODELS, CLAUDE_MODELS, GROK_MODELS, MISTRAL_MODELS, NVIDIA_MODELS
+
+GPT_DEFAULT_MODEL = LLMModel.GPT_4O_MINI
+
+def _get_chat_model(model_name) -> BaseChatModel:
+    if model_name in OPENAI_MODELS:
+        return init_chat_model(model=model_name, model_provider="openai", api_key=settings.openai_api_key)
+    if model_name in GEMINI_MODELS:
+        return init_chat_model(model=model_name, model_provider="google_genai", api_key=settings.gemini_api_key)
+    if model_name in CLAUDE_MODELS:
+        return init_chat_model(model=model_name, model_provider="anthropic", api_key=settings.anthropic_api_key)
+    if model_name in GROK_MODELS:
+        return init_chat_model(model=model_name, model_provider="xai", api_key=settings.xai_api_key)
+    if model_name in MISTRAL_MODELS:
+        return init_chat_model(model=model_name, model_provider="mistralai", api_key=settings.mistral_api_key)
+    if model_name in NVIDIA_MODELS:
+        return init_chat_model(model=model_name, model_provider="nvidia", api_key=settings.nvidia_api_key)
+    
+    return init_chat_model(model=GPT_DEFAULT_MODEL, model_provider="openai", api_key=settings.openai_api_key)
+
+async def generate_chat_response(request: ChatRequest) -> ChatResponse:
+    model = _get_chat_model(request.model)
+    
+    lc_messages = chat_utils.convert_chat_messages(request.messages)
+    response = model.invoke(lc_messages)
+    return ChatResponse(response=str(response.content))
+
+
