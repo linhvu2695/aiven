@@ -18,7 +18,7 @@ export const ChatMessage = (msg: ChatMessageInfo) => {
         >
             <Avatar.Root size={"sm"}>
                 <Avatar.Image
-                    src={msg.role === "user" ? "" : "/astronaut2.webp"}
+                    src={msg.role === "user" ? "/astronaut2.webp" : "/anonymous.webp"}
                     borderWidth="1px"
                     borderColor="white"
                     _hover={{

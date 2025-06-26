@@ -48,6 +48,10 @@ class LLMModel(str, Enum):
     NVIDIA_LLAMA_3_1_NEMOTRON_NANO_4B_V1_1 = "nvidia/llama-3.1-nemotron-nano-4b-v1.1"
 
 OPENAI_MODELS = {
+    LLMModel.O3,
+    LLMModel.O3_MINI,
+    LLMModel.O1,
+    LLMModel.O1_MINI,
     LLMModel.GPT_4,
     LLMModel.GPT_4O,
     LLMModel.GPT_4O_MINI,

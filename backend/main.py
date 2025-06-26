@@ -7,7 +7,7 @@ app = FastAPI()
 # Allow React frontend access (adjust this in production!)
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000"],  # React's default port
+    allow_origins=["http://localhost:3000"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
