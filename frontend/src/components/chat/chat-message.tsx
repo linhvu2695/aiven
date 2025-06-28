@@ -1,4 +1,7 @@
 import { Avatar, Box, HStack, Text } from "@chakra-ui/react";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
+import remarkBreaks from "remark-breaks";
 
 interface ChatMessageInfo {
     content: string;
@@ -36,7 +39,32 @@ export const ChatMessage = (msg: ChatMessageInfo) => {
                 borderRadius={14}
                 maxWidth="70%"
             >
-                <Text whiteSpace="pre-wrap">{msg.content}</Text>
+                <ReactMarkdown
+                    remarkPlugins={[remarkGfm, remarkBreaks]}
+                    components={{
+                        p: ({ children }) => <Text mb={2}>{children}</Text>,
+                        h1: ({ children }) => <Text as="h1" fontSize="2xl" fontWeight="bold" mb={2}>{children}</Text>,
+                        h2: ({ children }) => <Text as="h2" fontSize="xl" fontWeight="semibold" mb={2}>{children}</Text>,
+                        code: ({ children }) => (
+                            <Box
+                                as="code"
+                                bg="gray.700"
+                                color="teal.200"
+                                px={2}
+                                py={1}
+                                borderRadius="md"
+                                fontSize="sm"
+                                fontFamily="mono"
+                                display="inline-block"
+                                mb={2}
+                            >
+                                {children}
+                            </Box>
+                        ),
+                    }}
+                >
+                    {msg.content}
+                </ReactMarkdown>
             </Box>
         </HStack>
     );
