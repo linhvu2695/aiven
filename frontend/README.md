@@ -1,54 +1,62 @@
-# React + TypeScript + Vite
+# Quickstart
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+This project consists of a **backend** (FastAPI, Python) and a **frontend** (React, Vite).
 
-Currently, two official plugins are available:
+---
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+## Backend (FastAPI)
 
-## Expanding the ESLint configuration
+1. **Create and activate the virtual environment** (if not already created):
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+   ```sh
+   cd backend
+   python3 -m venv venv
+   source venv/bin/activate
+   ```
 
-```js
-export default tseslint.config({
-  extends: [
-    // Remove ...tseslint.configs.recommended and replace with this
-    ...tseslint.configs.recommendedTypeChecked,
-    // Alternatively, use this for stricter rules
-    ...tseslint.configs.strictTypeChecked,
-    // Optionally, add this for stylistic rules
-    ...tseslint.configs.stylisticTypeChecked,
-  ],
-  languageOptions: {
-    // other options...
-    parserOptions: {
-      project: ['./tsconfig.node.json', './tsconfig.app.json'],
-      tsconfigRootDir: import.meta.dirname,
-    },
-  },
-})
-```
+2. **Install dependencies:**
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+   ```sh
+   pip install -r requirements.txt
+   ```
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+3. **Set up environment variables:**
 
-export default tseslint.config({
-  plugins: {
-    // Add the react-x and react-dom plugins
-    'react-x': reactX,
-    'react-dom': reactDom,
-  },
-  rules: {
-    // other rules...
-    // Enable its recommended typescript rules
-    ...reactX.configs['recommended-typescript'].rules,
-    ...reactDom.configs.recommended.rules,
-  },
-})
-```
+   - Copy or edit `.env` in the `backend/` directory with your API keys and secrets.
+
+4. **Run the backend server:**
+
+   ```sh
+   make run
+   ```
+   The FastAPI server will start at [http://localhost:8000](http://localhost:8000).
+
+---
+
+## Frontend (React + Vite)
+
+1. **Install dependencies:**
+
+   ```sh
+   cd frontend
+   npm install
+   ```
+
+2. **Set up environment variables:**
+
+   - Edit `.env.development` if you need to change the API base URL (default is `http://localhost:8000`).
+
+3. **Run the frontend dev server:**
+
+   ```sh
+   npm run dev
+   ```
+   The app will be available at [http://localhost:3000](http://localhost:3000).
+
+---
+
+## Notes
+
+- The frontend expects the backend to be running at `http://localhost:8000` by default.
+- Make sure to activate the Python virtual environment each time you work on the backend.
+- For production, update `.env.production` in the frontend and deploy the backend accordingly.

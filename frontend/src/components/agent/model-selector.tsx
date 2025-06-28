@@ -1,4 +1,5 @@
 import { BASE_URL } from "@/App";
+import { useChatModel } from "@/context/chat-model-ctx";
 import {
     RadioCard,
     Wrap,
@@ -22,9 +23,9 @@ export const LLM_PROVIDERS = [
 
 export const ModelSelector = () => {
     const [provider, setProvider] = useState("google_genai");
-    const [model, setModel] = useState("");
     const [providerOptions, setProviderOptions] = useState<Record<string, { value: string; label: string }[]>>({});
     const [loading, setLoading] = useState(true);
+    const { chatModel, setChatModel } = useChatModel();
 
     // Fetch model options on mount
     useEffect(() => {
@@ -44,7 +45,7 @@ export const ModelSelector = () => {
 
                 // Set initial model if available
                 if (data[provider] && data[provider][0]) {
-                    setModel(data[provider][0].value);
+                    setChatModel(data[provider][0].value);
                 }
             } catch (e) {
                 console.log(e);
@@ -58,9 +59,9 @@ export const ModelSelector = () => {
     const handleProviderChange = (value: string) => {
         setProvider(value);
         if (providerOptions[value] && providerOptions[value][0]) {
-            setModel(providerOptions[value][0].value);
+            setChatModel(providerOptions[value][0].value);
         } else {
-            setModel("");
+            setChatModel("");
         }
     };
 
@@ -107,8 +108,8 @@ export const ModelSelector = () => {
                 collection={createListCollection({
                     items: providerOptions[provider] || [],
                 })}
-                value={[model]}
-                onValueChange={(items) => setModel(items.value[0])}
+                value={[chatModel ?? ""]}
+                onValueChange={(items) => setChatModel(items.value[0])}
                 disabled={loading || !providerOptions[provider]}
             >
                 <Select.HiddenSelect />

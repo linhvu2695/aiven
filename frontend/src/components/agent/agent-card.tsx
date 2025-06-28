@@ -1,5 +1,6 @@
-import { Avatar, Card } from "@chakra-ui/react";
+import { Avatar, Card, VStack } from "@chakra-ui/react";
 import { ModelSelector } from "./model-selector";
+import { useChatModel } from "@/context/chat-model-ctx";
 
 interface AgentCardProps {
     name: string;
@@ -8,19 +9,22 @@ interface AgentCardProps {
 }
 
 export const AgentCard = ({ name, description, avatarUrl }: AgentCardProps) => {
-    
+    const { chatModel, setChatModel } = useChatModel();
 
     return (
         <Card.Root>
             {/* Header */}
             <Card.Header flexDir={"row"} spaceX={5}>
-                <Avatar.Root size="lg" shape="rounded">
+                <Avatar.Root size="2xl" shape="rounded">
                     <Avatar.Image src={avatarUrl} />
                     <Avatar.Fallback name={name} />
                 </Avatar.Root>
-                <Card.Title mt={2} fontSize={"2xl"}>
-                    {name}
-                </Card.Title>
+                <VStack align="flex-start">
+                    <Card.Title mt={2} fontSize={"2xl"}>
+                        {name}
+                    </Card.Title>
+                    <Card.Description fontSize={"x-small"}>{chatModel}</Card.Description>
+                </VStack>
             </Card.Header>
 
             {/* Body */}
