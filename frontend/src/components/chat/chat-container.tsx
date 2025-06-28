@@ -3,8 +3,10 @@ import { useRef, useState } from "react";
 import { FaPaperclip, FaPaperPlane } from "react-icons/fa";
 import { ChatMessage } from "./chat-message";
 import { BASE_URL } from "@/App";
+import { useAgent } from "@/context/agent-ctx";
 
 export const ChatContainer = () => {
+    const { agent, setAgent } = useAgent();
     const messagesEndRef = useRef<HTMLDivElement | null>(null);
     const [input, setInput] = useState("");
     const [messages, setMessages] = useState([
@@ -41,7 +43,7 @@ export const ChatContainer = () => {
                             content: input,
                         },
                     ],
-                    model: "gemini-2.0-flash",
+                    agent: agent?.id,
                 }),
             });
             const data = await response.json();

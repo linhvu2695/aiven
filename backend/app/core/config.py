@@ -9,6 +9,12 @@ class Settings(BaseSettings):
     mistral_api_key: str
     nvidia_api_key: str
 
+    mongodb_host: str
+    mongodb_port: str
+    mongodb_db_name: str
+    mongodb_root_username: str
+    mongodb_root_password: str
+
     class Config:
         env_file = ".env"
 

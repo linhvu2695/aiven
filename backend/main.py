@@ -1,8 +1,15 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from app.api import chat
+from app.api import chat, agent
+from app.core.database import check_mongodb_health
+from contextlib import asynccontextmanager
 
-app = FastAPI()
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    await check_mongodb_health()
+    yield
+
+app = FastAPI(lifespan=lifespan)
 
 # Allow React frontend access (adjust this in production!)
 app.add_middleware(
@@ -13,13 +20,10 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# Controllers
 app.include_router(chat.router, prefix="/api/chat", tags=["Chat"])
+app.include_router(agent.router, prefix="/api/agent", tags=["Agent"])
 
-
-@app.get("/api/hello")
-def read_root():
-    return {"message": "Hello from FastAPI!"}
-
-@app.post("/api/echo")
-def echo(data: dict):
-    return {"you_sent": data}
+@app.get("/api/ping")
+def ping():
+    return {"message": "Pong from Aiven!"}

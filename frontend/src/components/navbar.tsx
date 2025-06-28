@@ -1,5 +1,7 @@
-import { Box, Container, Flex, Text } from "@chakra-ui/react";
+import { Box, Container, Flex, Text, IconButton } from "@chakra-ui/react";
 import { ColorModeButton } from "@/components/ui/color-mode";
+import { FaComments } from "react-icons/fa";
+import { Tooltip } from "@/components/ui/tooltip";
 
 function Navbar() {
     return (
@@ -27,6 +29,20 @@ function Navbar() {
                             <Text fontSize={"18px"} fontWeight={"bold"}>
                                 aiven
                             </Text>
+                        </Flex>
+
+                        {/* Right side */}
+                        <Flex gap={3} alignItems={"center"}>
+                            <Tooltip content="New chat" showArrow>
+                                <IconButton
+                                    aria-label="Open chat"
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => window.location.reload()}
+                                >
+                                    <FaComments />
+                                </IconButton>
+                            </Tooltip>
                         </Flex>
                     </Flex>
                 </Box>

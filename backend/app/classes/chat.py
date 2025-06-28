@@ -7,7 +7,7 @@ class ChatMessage(BaseModel):
 
 class ChatRequest(BaseModel):
     messages: List[ChatMessage]
-    model: Optional[str] = "gemini-2.0-flash"
+    agent: str
 
 class ChatResponse(BaseModel):
     response: str

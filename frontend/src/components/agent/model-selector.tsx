@@ -1,5 +1,5 @@
 import { BASE_URL } from "@/App";
-import { useChatModel } from "@/context/chat-model-ctx";
+import { useAgent } from "@/context/agent-ctx";
 import {
     RadioCard,
     Wrap,
@@ -21,11 +21,22 @@ export const LLM_PROVIDERS = [
     { value: "nvidia", title: "NVIDIA", icon: Nvidia.Color },
 ];
 
+var defaultAgentInfo = {
+    id: "",
+    name: "",
+    description: "",
+    model: "",
+    persona: "",
+    tone: "",
+};
+
 export const ModelSelector = () => {
-    const [provider, setProvider] = useState("google_genai");
-    const [providerOptions, setProviderOptions] = useState<Record<string, { value: string; label: string }[]>>({});
+    const { agent, setAgent } = useAgent();
+    const [provider, setProvider] = useState("openai");
+    const [providerOptions, setProviderOptions] = useState<
+        Record<string, { value: string; label: string }[]>
+    >({});
     const [loading, setLoading] = useState(true);
-    const { chatModel, setChatModel } = useChatModel();
 
     // Fetch model options on mount
     useEffect(() => {
@@ -43,9 +54,24 @@ export const ModelSelector = () => {
                 // Expecting data to be in the format: { [provider: string]: { value, label }[] }
                 setProviderOptions(data);
 
-                // Set initial model if available
-                if (data[provider] && data[provider][0]) {
-                    setChatModel(data[provider][0].value);
+                // If agent.model is set, find the provider that contains it
+                let initialProvider = "google_genai";
+                if (agent?.model) {
+                    for (const [prov, models] of Object.entries(data) as [string, { value: string; label: string }[]][]) {
+                        if (models.some((m) => m.value === agent.model)) {
+                            initialProvider = prov;
+                            break;
+                        }
+                    }
+                }
+                setProvider(initialProvider);
+
+                // Set initial model if available and not already set
+                if (!agent?.model && data[initialProvider] && data[initialProvider][0]) {
+                    setAgent({
+                        ...(agent || defaultAgentInfo),
+                        model: data[initialProvider][0].value,
+                    });
                 }
             } catch (e) {
                 console.log(e);
@@ -59,9 +85,15 @@ export const ModelSelector = () => {
     const handleProviderChange = (value: string) => {
         setProvider(value);
         if (providerOptions[value] && providerOptions[value][0]) {
-            setChatModel(providerOptions[value][0].value);
+            setAgent({
+                ...(agent || defaultAgentInfo),
+                model: providerOptions[value][0].value,
+            });
         } else {
-            setChatModel("");
+            setAgent({
+                ...(agent || defaultAgentInfo),
+                model: "",
+            });
         }
     };
 
@@ -72,7 +104,7 @@ export const ModelSelector = () => {
                 colorPalette="teal"
                 value={provider}
                 onValueChange={(val) =>
-                    handleProviderChange(val.value ?? "google_genai")
+                    handleProviderChange(val.value ?? "openai")
                 }
             >
                 <Wrap align="stretch">
@@ -108,8 +140,13 @@ export const ModelSelector = () => {
                 collection={createListCollection({
                     items: providerOptions[provider] || [],
                 })}
-                value={[chatModel ?? ""]}
-                onValueChange={(items) => setChatModel(items.value[0])}
+                value={[agent?.model ?? ""]}
+                onValueChange={(items: { value: string[] }) =>
+                    setAgent({
+                        ...(agent || defaultAgentInfo),
+                        model: items.value[0],
+                    })
+                }
                 disabled={loading || !providerOptions[provider]}
             >
                 <Select.HiddenSelect />
@@ -125,15 +162,17 @@ export const ModelSelector = () => {
                 <Portal>
                     <Select.Positioner>
                         <Select.Content>
-                            {(providerOptions[provider] || []).map((modelItem) => (
-                                <Select.Item
-                                    item={modelItem}
-                                    key={modelItem.value}
-                                >
-                                    {modelItem.label}
-                                    <Select.ItemIndicator />
-                                </Select.Item>
-                            ))}
+                            {(providerOptions[provider] || []).map(
+                                (modelItem) => (
+                                    <Select.Item
+                                        item={modelItem}
+                                        key={modelItem.value}
+                                    >
+                                        {modelItem.label}
+                                        <Select.ItemIndicator />
+                                    </Select.Item>
+                                )
+                            )}
                         </Select.Content>
                     </Select.Positioner>
                 </Portal>

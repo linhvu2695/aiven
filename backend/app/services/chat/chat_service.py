@@ -4,10 +4,18 @@ from app.classes.chat import ChatRequest, ChatResponse
 from app.core.config import settings
 from app.utils.chat import chat_utils
 from app.core.constants import LLMModel, OPENAI_MODELS, GEMINI_MODELS, CLAUDE_MODELS, GROK_MODELS, MISTRAL_MODELS, NVIDIA_MODELS
+from app.services.agent.agent_service import AgentService
 
 GPT_DEFAULT_MODEL = LLMModel.GPT_4O_MINI
 
 class ChatService:
+    _instance = None
+
+    def __new__(cls, *args, **kwargs):
+        if not hasattr(cls, '_instance') or cls._instance is None:
+            cls._instance = super(ChatService, cls).__new__(cls)
+        return cls._instance
+    
     def _get_chat_model(self, model_name) -> BaseChatModel:
         if model_name in OPENAI_MODELS:
             return init_chat_model(model=model_name, model_provider="openai", api_key=settings.openai_api_key)
@@ -25,7 +33,8 @@ class ChatService:
         return init_chat_model(model=GPT_DEFAULT_MODEL, model_provider="openai", api_key=settings.openai_api_key)
 
     async def generate_chat_response(self, request: ChatRequest) -> ChatResponse:
-        model = self._get_chat_model(request.model)
+        agent = await AgentService().get_agent(request.agent)
+        model = self._get_chat_model(agent.model)
         
         lc_messages = chat_utils.convert_chat_messages(request.messages)
         response = model.invoke(lc_messages)
