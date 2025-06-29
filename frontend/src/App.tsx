@@ -8,7 +8,7 @@ import { useEffect } from "react";
 export const BASE_URL = import.meta.env.VITE_API_BASE_URL;
 
 function App() {
-    const { agent, setAgent } = useAgent();
+    const { setAgent, setAgentDraft } = useAgent();
 
     useEffect(() => {
         const fetchAgent = async () => {
@@ -26,6 +26,7 @@ function App() {
                 if (!response.ok) throw new Error("Failed to fetch agent info");
                 const data = await response.json();
                 setAgent(data);
+                setAgentDraft(data);
             } catch (error) {
                 console.error("Error fetching agent info:", error);
             }

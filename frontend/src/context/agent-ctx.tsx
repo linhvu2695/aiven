@@ -12,6 +12,9 @@ export type Agent = {
 type AgentContextType = {
   agent: Agent | null;
   setAgent: (agent: Agent) => void;
+  agentDraft: Agent | null;
+  setAgentDraft: (agent: Agent | null) => void;
+  updateAgentDraft: <K extends keyof Agent>(field: K, value: Agent[K]) => void;
 };
 
 const AgentContext = createContext<AgentContextType | undefined>(undefined);
@@ -26,9 +29,16 @@ export const useAgent = () => {
 
 export const AgentProvider = ({ children }: { children: ReactNode }) => {
   const [agent, setAgent] = useState<Agent | null>(null);
+  const [agentDraft, setAgentDraft] = useState<Agent | null>(null);
+
+  const updateAgentDraft = <K extends keyof Agent>(field: K, value: Agent[K]) => {
+    setAgentDraft((prev) =>
+      prev ? { ...prev, [field]: value } : null
+    );
+  };
 
   return (
-    <AgentContext.Provider value={{ agent, setAgent }}>
+    <AgentContext.Provider value={{ agent, setAgent, agentDraft, setAgentDraft, updateAgentDraft }}>
       {children}
     </AgentContext.Provider>
   );

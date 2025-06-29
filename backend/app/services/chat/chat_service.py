@@ -44,8 +44,6 @@ class ChatService:
         agent_executor = create_react_agent(model, [])
         response = agent_executor.invoke({"messages": lc_messages})
 
-        print(response)
-
         return ChatResponse(response=response["messages"][-1].content)
     
     async def get_models(self) -> dict[str, list[dict[str, str]]]:

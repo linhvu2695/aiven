@@ -44,3 +44,11 @@ async def insert_document(collection_name: str, document: dict) -> str:
     result = await db[collection_name].insert_one(document)
     return str(result.inserted_id)
     
+async def update_document(collection_name: str, id: str, document: dict) -> str | None:
+    db = _get_mongodb_conn()
+    result = await db[collection_name].update_one(
+        {"_id": ObjectId(id)},
+        {"$set": document},
+        upsert=True
+    )
+    return result.upserted_id

@@ -9,14 +9,15 @@ class AgentInfo(BaseModel):
     persona: str
     tone: str
 
-class CreateAgentRequest(BaseModel):
+class CreateOrUpdateAgentRequest(BaseModel):
+    id: str
     name: str
     description: str
     model: LLMModel
     persona: str
     tone: str
 
-class CreateAgentResponse(BaseModel):
+class CreateOrUpdateAgentResponse(BaseModel):
     success: bool
     id: str
     message: str

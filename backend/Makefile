@@ -1,7 +1,7 @@
 .PHONY: run
 
 run:
-	python -m uvicorn main:app --reload
+	source venv/bin/activate && python -m uvicorn main:app --reload
 
 test:
 	PYTHONPATH=. pytest

@@ -6,7 +6,7 @@ import { BASE_URL } from "@/App";
 import { useAgent } from "@/context/agent-ctx";
 
 export const ChatContainer = () => {
-    const { agent, setAgent } = useAgent();
+    const { agent } = useAgent();
     const messagesEndRef = useRef<HTMLDivElement | null>(null);
     const [input, setInput] = useState("");
     const [messages, setMessages] = useState([

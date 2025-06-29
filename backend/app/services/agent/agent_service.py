@@ -1,20 +1,27 @@
 import logging
 from fastapi import logger
-from app.classes.agent import CreateAgentRequest, CreateAgentResponse, AgentInfo
-from app.core.database import insert_document, get_document
+from app.classes.agent import (
+    CreateOrUpdateAgentRequest,
+    CreateOrUpdateAgentResponse,
+    AgentInfo,
+)
+from app.core.database import insert_document, get_document, update_document
 from bson import ObjectId
 
 AGENT_COLLECTION_NAME = "agents"
+
 
 class AgentService:
     _instance = None
 
     def __new__(cls, *args, **kwargs):
-        if not hasattr(cls, '_instance') or cls._instance is None:
+        if not hasattr(cls, "_instance") or cls._instance is None:
             cls._instance = super(AgentService, cls).__new__(cls)
         return cls._instance
-    
-    def _validate_create_agent_request(self, request: CreateAgentRequest) -> tuple[bool, str]:
+
+    def _validate_create_agent_request(
+        self, request: CreateOrUpdateAgentRequest
+    ) -> tuple[bool, str]:
         warning = ""
 
         # Required fields
@@ -26,35 +33,52 @@ class AgentService:
                 return False, warning
 
         return True, warning
-        
+
     async def get_agent(self, id: str) -> AgentInfo:
         data = await get_document(AGENT_COLLECTION_NAME, id)
-        
+
         return AgentInfo(
             id=str(data.get("_id", "")),
             name=data.get("name", ""),
             description=data.get("description", ""),
             model=data.get("model", ""),
             persona=data.get("persona", ""),
-            tone=data.get("tone", "")
+            tone=data.get("tone", ""),
         )
 
-    async def create_agent(self, request: CreateAgentRequest) -> CreateAgentResponse:
+    async def create_or_update_agent(
+        self, request: CreateOrUpdateAgentRequest
+    ) -> CreateOrUpdateAgentResponse:
         valid, warning = self._validate_create_agent_request(request)
         if not valid:
             logging.getLogger("uvicorn.error").warn(warning)
-            return CreateAgentResponse(success=False, id="", message=warning)
-        
+            return CreateOrUpdateAgentResponse(success=False, id="", message=warning)
+
         try:
             document = {
                 "name": request.name,
                 "description": request.description,
                 "model": request.model,
                 "persona": request.persona,
-                "tone": request.tone
+                "tone": request.tone,
             }
-            inserted_id = await insert_document(AGENT_COLLECTION_NAME, document)
+            
+            if getattr(request, "id", None):  # Update if id is present
+                updated_id = await update_document(
+                    AGENT_COLLECTION_NAME, request.id, document
+                )
+                if updated_id is not None:
+                    raise Exception(f"Agent update failed for id {request.id}")
 
-            return CreateAgentResponse(success=True, id=inserted_id, message="Agent created successfully.")
+                return CreateOrUpdateAgentResponse(
+                    success=True,
+                    id=str(updated_id),
+                    message="Agent updated successfully.",
+                )
+            else:  # Insert new
+                inserted_id = await insert_document(AGENT_COLLECTION_NAME, document)
+                return CreateOrUpdateAgentResponse(
+                    success=True, id=inserted_id, message="Agent created successfully."
+                )
         except Exception as e:
-            return CreateAgentResponse(success=False, id="", message=str(e))
+            return CreateOrUpdateAgentResponse(success=False, id="", message=str(e))

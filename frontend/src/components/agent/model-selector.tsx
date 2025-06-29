@@ -21,17 +21,8 @@ export const LLM_PROVIDERS = [
     { value: "nvidia", title: "NVIDIA", icon: Nvidia.Color },
 ];
 
-var defaultAgentInfo = {
-    id: "",
-    name: "",
-    description: "",
-    model: "",
-    persona: "",
-    tone: "",
-};
-
 export const ModelSelector = () => {
-    const { agent, setAgent } = useAgent();
+    const { agentDraft, updateAgentDraft } = useAgent();
     const [provider, setProvider] = useState("openai");
     const [providerOptions, setProviderOptions] = useState<
         Record<string, { value: string; label: string }[]>
@@ -54,25 +45,17 @@ export const ModelSelector = () => {
                 // Expecting data to be in the format: { [provider: string]: { value, label }[] }
                 setProviderOptions(data);
 
-                // If agent.model is set, find the provider that contains it
+                // If agentDraft.model is set, find the provider that contains it
                 let initialProvider = "google_genai";
-                if (agent?.model) {
+                if (agentDraft?.model) {
                     for (const [prov, models] of Object.entries(data) as [string, { value: string; label: string }[]][]) {
-                        if (models.some((m) => m.value === agent.model)) {
+                        if (models.some((m) => m.value === agentDraft.model)) {
                             initialProvider = prov;
                             break;
                         }
                     }
                 }
                 setProvider(initialProvider);
-
-                // Set initial model if available and not already set
-                if (!agent?.model && data[initialProvider] && data[initialProvider][0]) {
-                    setAgent({
-                        ...(agent || defaultAgentInfo),
-                        model: data[initialProvider][0].value,
-                    });
-                }
             } catch (e) {
                 console.log(e);
             } finally {
@@ -80,20 +63,14 @@ export const ModelSelector = () => {
             }
         };
         fetchOptions();
-    }, []);
+    }, [agentDraft]);
 
     const handleProviderChange = (value: string) => {
         setProvider(value);
         if (providerOptions[value] && providerOptions[value][0]) {
-            setAgent({
-                ...(agent || defaultAgentInfo),
-                model: providerOptions[value][0].value,
-            });
+            updateAgentDraft("model", providerOptions[value][0].value);
         } else {
-            setAgent({
-                ...(agent || defaultAgentInfo),
-                model: "",
-            });
+            updateAgentDraft("model", "");
         }
     };
 
@@ -140,12 +117,9 @@ export const ModelSelector = () => {
                 collection={createListCollection({
                     items: providerOptions[provider] || [],
                 })}
-                value={[agent?.model ?? ""]}
+                value={[agentDraft?.model ?? ""]}
                 onValueChange={(items: { value: string[] }) =>
-                    setAgent({
-                        ...(agent || defaultAgentInfo),
-                        model: items.value[0],
-                    })
+                    updateAgentDraft("model", items.value[0])
                 }
                 disabled={loading || !providerOptions[provider]}
             >

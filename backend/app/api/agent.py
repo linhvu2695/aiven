@@ -1,5 +1,5 @@
 from fastapi import APIRouter
-from app.classes.agent import CreateAgentRequest, CreateAgentResponse
+from app.classes.agent import CreateOrUpdateAgentRequest, CreateOrUpdateAgentResponse
 from app.services.agent.agent_service import AgentService
 
 router = APIRouter()
@@ -8,9 +8,9 @@ router = APIRouter()
 async def get_agent(id: str):
     return await AgentService().get_agent(id)
 
-@router.post("/", response_model=CreateAgentResponse)
-async def create_agent(request: CreateAgentRequest):
-    return await AgentService().create_agent(request)
+@router.post("/", response_model=CreateOrUpdateAgentResponse)
+async def create_or_update_agent(request: CreateOrUpdateAgentRequest):
+    return await AgentService().create_or_update_agent(request)
 
 
 
