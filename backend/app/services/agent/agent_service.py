@@ -4,8 +4,9 @@ from app.classes.agent import (
     CreateOrUpdateAgentRequest,
     CreateOrUpdateAgentResponse,
     AgentInfo,
+    SearchAgentsResponse,
 )
-from app.core.database import insert_document, get_document, update_document
+from app.core.database import insert_document, get_document, update_document, list_documents
 from bson import ObjectId
 
 AGENT_COLLECTION_NAME = "agents"
@@ -65,7 +66,7 @@ class AgentService:
             
             if getattr(request, "id", None):  # Update if id is present
                 updated_id = await update_document(
-                    AGENT_COLLECTION_NAME, request.id, document
+                    AGENT_COLLECTION_NAME, str(request.id), document
                 )
                 if updated_id is not None:
                     raise Exception(f"Agent update failed for id {request.id}")
@@ -82,3 +83,18 @@ class AgentService:
                 )
         except Exception as e:
             return CreateOrUpdateAgentResponse(success=False, id="", message=str(e))
+
+    async def search_agents(self) -> SearchAgentsResponse:
+        documents = await list_documents(AGENT_COLLECTION_NAME)
+        agents = [
+            AgentInfo(
+                id=str(doc.get("_id", "")),
+                name=doc.get("name", ""),
+                description=doc.get("description", ""),
+                model=doc.get("model", ""),
+                persona=doc.get("persona", ""),
+                tone=doc.get("tone", ""),
+            )
+            for doc in documents
+        ]
+        return SearchAgentsResponse(agents=agents)

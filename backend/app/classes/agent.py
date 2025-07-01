@@ -1,8 +1,9 @@
+from typing import Optional
 from pydantic import BaseModel
 from app.core.constants import LLMModel
 
 class AgentInfo(BaseModel):
-    id: str
+    id: str | None
     name: str
     description: str
     model: LLMModel
@@ -10,7 +11,7 @@ class AgentInfo(BaseModel):
     tone: str
 
 class CreateOrUpdateAgentRequest(BaseModel):
-    id: str
+    id: Optional[str] = None
     name: str
     description: str
     model: LLMModel
@@ -21,3 +22,6 @@ class CreateOrUpdateAgentResponse(BaseModel):
     success: bool
     id: str
     message: str
+
+class SearchAgentsResponse(BaseModel):
+    agents: list[AgentInfo]

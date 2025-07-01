@@ -52,3 +52,11 @@ async def update_document(collection_name: str, id: str, document: dict) -> str 
         upsert=True
     )
     return result.upserted_id
+
+async def list_documents(collection_name: str) -> list[dict]:
+    db = _get_mongodb_conn()
+    cursor = db[collection_name].find()
+    documents = []
+    async for document in cursor:
+        documents.append(document)
+    return documents
