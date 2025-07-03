@@ -9,19 +9,43 @@ import {
     Button,
     Text,
     Input,
+    IconButton,
 } from "@chakra-ui/react";
 import { ModelSelector } from "./model-selector";
-import { useAgent, type Agent } from "@/context/agent-ctx";
-import { useState } from "react";
+import { useAgent } from "@/context/agent-ctx";
+import { useState, useRef } from "react";
 import { BASE_URL } from "@/App";
+import { FaPencilAlt } from "react-icons/fa";
 
 const missingAgentFieldWarning = (field: string) => (
     <span style={{ color: "#888" }}>No {field} set.</span>
 );
 
 export const AgentCard = () => {
-    const { agent, setAgent, agentDraft, setAgentDraft, updateAgentDraft } = useAgent();
+    const { agent, setAgent, agentDraft, setAgentDraft, updateAgentDraft } =
+        useAgent();
     const [isEditing, setIsEditing] = useState(false);
+    const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
+    const fileInputRef = useRef<HTMLInputElement | null>(null);
+
+    const handleAvatarClick = () => {
+        if (isEditing && fileInputRef.current) {
+            fileInputRef.current.click();
+        }
+    };
+
+    const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (file) {
+            const reader = new FileReader();
+            reader.onloadend = () => {
+                setAvatarPreview(reader.result as string);
+                // Optionally, update agentDraft with the image data here
+                // updateAgentDraft("avatar", reader.result as string);
+            };
+            reader.readAsDataURL(file);
+        }
+    };
 
     const handleSaveAgent = async () => {
         if (agentDraft) {
@@ -41,7 +65,7 @@ export const AgentCard = () => {
                 if (data.success) {
                     setAgent(agentDraft);
                 }
-                
+
                 setIsEditing(false);
             } catch (error) {
                 console.error("Error saving agent:", error);
@@ -53,10 +77,43 @@ export const AgentCard = () => {
         <Card.Root>
             {/* Header */}
             <Card.Header flexDir={"row"} spaceX={5}>
-                <Avatar.Root size="2xl" shape="rounded">
-                    <Avatar.Image src={"/dinosaur.jpg"} />
-                    <Avatar.Fallback name={agent?.name} />
-                </Avatar.Root>
+                <div style={{ position: "relative", display: "inline-block" }}>
+                    <Avatar.Root
+                        size="2xl"
+                        shape="rounded"
+                        style={{ cursor: isEditing ? "pointer" : "default" }}
+                        onClick={handleAvatarClick}
+                    >
+                        <Avatar.Image src={avatarPreview || agentDraft?.avatar} />
+                        <Avatar.Fallback name={agent?.name} />
+                    </Avatar.Root>
+                    {isEditing && (
+                        <IconButton
+                            pos={"absolute"}
+                            bottom={-2}
+                            right={-2}
+                            bg={"white"}
+                            borderRadius={"50%"}
+                            boxShadow={"0 1px 4px rgba(0,0,0,0.15)"}
+                            zIndex={2}
+                            display={"flex"}
+                            alignItems={"center"}
+                            justifyContent={"center"}
+                            onClick={handleAvatarClick}
+                        >
+                            <FaPencilAlt color="teal" />
+                        </IconButton>
+                    )}
+                    {isEditing && (
+                        <input
+                            type="file"
+                            accept="image/*"
+                            style={{ display: "none" }}
+                            ref={fileInputRef}
+                            onChange={handleAvatarChange}
+                        />
+                    )}
+                </div>
                 <VStack align="flex-start">
                     {/* Name */}
                     {isEditing ? (
@@ -201,6 +258,7 @@ export const AgentCard = () => {
                         onClick={() => {
                             setIsEditing(false);
                             setAgentDraft(agent);
+                            setAvatarPreview(null);
                         }}
                     >
                         Cancel

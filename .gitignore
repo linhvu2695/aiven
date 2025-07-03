@@ -1,0 +1,45 @@
+# Python
+__pycache__/
+
+*.py[cod]
+*.pyo
+*.pyd
+*.so
+
+# Environment
+.env
+.pytest_cache
+.vscode
+*.key
+*.pem
+backend/venv/
+secrets.json
+backend/keys/*
+
+# Jupyter Notebook
+.ipynb_checkpoints/
+
+# macOS
+.DS_Store
+
+# Logs
+*.log
+
+# Coverage reports
+htmlcov/
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+*.py,cover
+
+# Test output
+test-results/
+
+# Build
+build/
+dist/
+*.egg-info/
+.eggs/

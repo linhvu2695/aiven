@@ -7,9 +7,10 @@ from app.classes.agent import (
     SearchAgentsResponse,
 )
 from app.core.database import insert_document, get_document, update_document, list_documents
-from bson import ObjectId
+from app.core.storage import FirebaseStorageRepository
 
 AGENT_COLLECTION_NAME = "agents"
+AGENT_AVATAR_PRESIGNED_URL_EXPIRATION = 60 * 60
 
 
 class AgentService:
@@ -35,6 +36,11 @@ class AgentService:
 
         return True, warning
 
+    async def _get_avatar_url(self, avatar: str) -> str:
+        if avatar:
+            return await FirebaseStorageRepository().get_presigned_url(avatar, AGENT_AVATAR_PRESIGNED_URL_EXPIRATION)
+        return ""
+    
     async def get_agent(self, id: str) -> AgentInfo:
         data = await get_document(AGENT_COLLECTION_NAME, id)
 
@@ -42,6 +48,7 @@ class AgentService:
             id=str(data.get("_id", "")),
             name=data.get("name", ""),
             description=data.get("description", ""),
+            avatar=await self._get_avatar_url(data.get("avatar", "")),
             model=data.get("model", ""),
             persona=data.get("persona", ""),
             tone=data.get("tone", ""),
@@ -91,6 +98,7 @@ class AgentService:
                 id=str(doc.get("_id", "")),
                 name=doc.get("name", ""),
                 description=doc.get("description", ""),
+                avatar=await self._get_avatar_url(doc.get("avatar", "")),
                 model=doc.get("model", ""),
                 persona=doc.get("persona", ""),
                 tone=doc.get("tone", ""),

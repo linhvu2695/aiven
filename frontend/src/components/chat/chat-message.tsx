@@ -2,6 +2,7 @@ import { Avatar, Box, HStack, Text } from "@chakra-ui/react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import remarkBreaks from "remark-breaks";
+import { useAgent } from "@/context/agent-ctx";
 
 interface ChatMessageInfo {
     content: string;
@@ -14,14 +15,17 @@ const roleBgColor: Record<string, string> = {
 };
 
 export const ChatMessage = (msg: ChatMessageInfo) => {
+    const { agent } = useAgent();
+
     return (
         <HStack
             flexDirection={msg.role === "user" ? "row-reverse" : "row"}
             spaceX={4}
+            alignItems="flex-start"
         >
             <Avatar.Root size={"sm"}>
                 <Avatar.Image
-                    src={msg.role === "user" ? "/astronaut2.webp" : "/dinosaur.jpg"}
+                    src={msg.role === "user" ? "/astronaut2.webp" : agent?.avatar}
                     borderWidth="1px"
                     borderColor="white"
                     _hover={{

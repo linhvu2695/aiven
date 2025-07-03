@@ -12,5 +12,17 @@ services:
       MONGO_INITDB_DATABASE: ${MONGODB_DB_NAME:-aiven}
     volumes:
       - mongo_data:/data/db
+  redis:
+    image: redis:7.2
+    container_name: aiven-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+      - ./backend/redis.conf:/usr/local/etc/redis/redis.conf
+    command: ["redis-server", "/usr/local/etc/redis/redis.conf"]
 volumes:
   mongo_data: 
+  redis_data:
+  

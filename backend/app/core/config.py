@@ -9,13 +9,22 @@ class Settings(BaseSettings):
     mistral_api_key: str
     nvidia_api_key: str
 
+    google_application_credentials: str
+    firebase_storage_bucket: str
+
     mongodb_host: str
     mongodb_port: str
     mongodb_db_name: str
     mongodb_root_username: str
     mongodb_root_password: str
 
+    redis_host: str
+    redis_port: str
+    redis_password: str
+    redis_username: str
+    redis_database: str
+
     class Config:
         env_file = ".env"
 
-settings = Settings()
+settings = Settings() # type: ignore
