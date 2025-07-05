@@ -16,7 +16,7 @@ interface AgentGridItemInfo {
     id: string;
     name: string;
     description: string;
-    imageUrl: string;
+    avatar: string;
 }
 
 const AGENTS_PER_PAGE = 5;
@@ -98,7 +98,7 @@ export const AgentManagementPage = () => {
                                 key={agent.id}
                                 name={agent.name}
                                 description={agent.description}
-                                imageUrl={agent.imageUrl}
+                                avatar={agent.avatar}
                             />
                         ))}
                     </SimpleGrid>

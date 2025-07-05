@@ -3,16 +3,16 @@ import { Box, Text, VStack } from "@chakra-ui/react";
 export interface AgentGridItemProps {
     name: string;
     description: string;
-    imageUrl: string;
+    avatar: string;
 }
 
-export const AgentGridItem = ({ name, description, imageUrl }: AgentGridItemProps) => {
+export const AgentGridItem = ({ name, description, avatar }: AgentGridItemProps) => {
     return (
         <Box
             borderRadius="lg"
             overflow="hidden"
             position="relative"
-            bgImage={`url(${imageUrl})`}
+            bgImage={`url(${avatar})`}
             bgSize="cover"
             bgPos="center"
             h="300px"

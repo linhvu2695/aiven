@@ -12,7 +12,7 @@ export const AgentChatPage = () => {
         const fetchAgent = async () => {
             try {
                 const response = await fetch(
-                    BASE_URL + "/api/agent/id=685fff58d3367dc42c178987",
+                    BASE_URL + "/api/agent/id=686406f9e4750e95e035ad2d",
                     {
                         method: "GET",
                         headers: {
@@ -23,7 +23,6 @@ export const AgentChatPage = () => {
 
                 if (!response.ok) throw new Error("Failed to fetch agent info");
                 const data = await response.json();
-                console.log(data);
                 setAgent(data);
                 setAgentDraft(data);
             } catch (error) {

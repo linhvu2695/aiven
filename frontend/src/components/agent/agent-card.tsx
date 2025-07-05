@@ -10,10 +10,11 @@ import {
     Text,
     Input,
     IconButton,
+    Spinner,
 } from "@chakra-ui/react";
 import { ModelSelector } from "./model-selector";
 import { useAgent } from "@/context/agent-ctx";
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { BASE_URL } from "@/App";
 import { FaPencilAlt } from "react-icons/fa";
 
@@ -26,7 +27,15 @@ export const AgentCard = () => {
         useAgent();
     const [isEditing, setIsEditing] = useState(false);
     const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
+    const [avatarFile, setAvatarFile] = useState<File | null>(null);
+    const [isAvatarLoading, setIsAvatarLoading] = useState(false);
     const fileInputRef = useRef<HTMLInputElement | null>(null);
+
+    useEffect(() => {
+        if (agentDraft?.avatar) {
+            setIsAvatarLoading(true);
+        }
+    }, [agentDraft?.avatar]);
 
     const handleAvatarClick = () => {
         if (isEditing && fileInputRef.current) {
@@ -37,6 +46,7 @@ export const AgentCard = () => {
     const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (file) {
+            setAvatarFile(file);
             const reader = new FileReader();
             reader.onloadend = () => {
                 setAvatarPreview(reader.result as string);
@@ -71,12 +81,39 @@ export const AgentCard = () => {
                 console.error("Error saving agent:", error);
             }
         }
+
+        // Upload agent avatar if a new avatar is set
+        if (avatarFile) {
+            try {
+                const formData = new FormData();
+                formData.append("avatar", avatarFile);
+                const response = await fetch(
+                    BASE_URL + `/api/agent/avatar?id=${agentDraft?.id}`,
+                    {
+                        method: "POST",
+                        body: formData,
+                    }
+                );
+
+                if (!response.ok) {
+                    throw new Error("Failed to upload avatar");
+                }
+                // Optionally, update agentDraft/avatar with the returned URL
+                const result = await response.json();
+                updateAgentDraft("avatar", result.url);
+                setAvatarFile(null);
+                setAvatarPreview(null);
+            } catch (error) {
+                console.error("Error uploading avatar:", error);
+            }
+        }
     };
 
     return (
         <Card.Root>
             {/* Header */}
             <Card.Header flexDir={"row"} spaceX={5}>
+                {/* Avatar */}
                 <div style={{ position: "relative", display: "inline-block" }}>
                     <Avatar.Root
                         size="2xl"
@@ -84,8 +121,18 @@ export const AgentCard = () => {
                         style={{ cursor: isEditing ? "pointer" : "default" }}
                         onClick={handleAvatarClick}
                     >
-                        <Avatar.Image src={avatarPreview || agentDraft?.avatar} />
-                        <Avatar.Fallback name={agent?.name} />
+                        <Avatar.Image
+                            src={avatarPreview || agentDraft?.avatar}
+                            onLoad={() => setIsAvatarLoading(false)}
+                            onError={() => setIsAvatarLoading(false)}
+                        />
+                        {isAvatarLoading ? (
+                            <Avatar.Fallback>
+                                <Spinner size="sm" color="teal.500" />
+                            </Avatar.Fallback>
+                        ) : (
+                            <Avatar.Fallback name={agent?.name} />
+                        )}
                     </Avatar.Root>
                     {isEditing && (
                         <IconButton
@@ -114,6 +161,7 @@ export const AgentCard = () => {
                         />
                     )}
                 </div>
+
                 <VStack align="flex-start">
                     {/* Name */}
                     {isEditing ? (
@@ -131,6 +179,8 @@ export const AgentCard = () => {
                             {agentDraft?.name}
                         </Card.Title>
                     )}
+
+                    {/* Model */}
                     <Card.Description fontSize={"x-small"}>
                         {agentDraft?.model}
                     </Card.Description>

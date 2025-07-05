@@ -1,7 +1,10 @@
-.PHONY: run
+.PHONY: run run-dev
 
 run:
-	source venv/bin/activate && python -m uvicorn main:app --reload
+	set -a && source venv/bin/activate && [ -f .env.prod ] && source .env.prod; set +a && python -m uvicorn main:app --reload
+
+run-dev:
+	set -a && source venv/bin/activate && [ -f .env.dev ] && source .env.dev; set +a && python -m uvicorn main:app --reload
 
 test:
 	PYTHONPATH=. pytest --trace-config

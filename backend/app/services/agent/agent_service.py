@@ -10,6 +10,7 @@ from app.core.database import insert_document, get_document, update_document, li
 from app.core.storage import FirebaseStorageRepository
 
 AGENT_COLLECTION_NAME = "agents"
+AVATAR_STORAGE_FOLDER = "avatar"
 AGENT_AVATAR_PRESIGNED_URL_EXPIRATION = 60 * 60
 
 
@@ -106,3 +107,13 @@ class AgentService:
             for doc in documents
         ]
         return SearchAgentsResponse(agents=agents)
+
+    async def update_agent_avatar(self, agent_id: str, file_obj, filename: str) -> str:
+        # Upload avatar to storage
+        avatar_path = f"{AVATAR_STORAGE_FOLDER}/{agent_id}/{filename}"
+        url = await FirebaseStorageRepository().upload(file_obj, avatar_path)
+
+        # Update agent document with avatar path
+        await update_document(AGENT_COLLECTION_NAME, agent_id, {"avatar": avatar_path})
+        
+        return await self._get_avatar_url(avatar_path)
