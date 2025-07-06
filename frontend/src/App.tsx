@@ -21,7 +21,14 @@ function App() {
                             </AgentProvider>
                         }
                     />
-                    <Route path="/agent" element={<AgentManagementPage />} />
+                    <Route
+                        path="/agent"
+                        element={
+                            <AgentProvider>
+                                <AgentManagementPage />
+                            </AgentProvider>
+                        }
+                    />
                 </Routes>
             </BrowserRouter>
         </Container>

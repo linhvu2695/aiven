@@ -52,7 +52,7 @@ export const AgentCard = ({
         }
     }, [agentDraft?.avatar]);
 
-    // Setup Edit Mode
+    // Setup Modes
     useEffect(() => {
         if (mode === "create") {
             setIsEditing(true);

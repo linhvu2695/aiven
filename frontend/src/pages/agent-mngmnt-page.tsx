@@ -17,7 +17,7 @@ import { useState, useMemo, useEffect } from "react";
 import { BASE_URL } from "@/App";
 import { useColorMode } from "@/components/ui/color-mode";
 import { Tooltip } from "@/components/ui/tooltip";
-import { AgentProvider } from "@/context/agent-ctx";
+import { AgentProvider, useAgent } from "@/context/agent-ctx";
 import { AgentCard } from "@/components/agent/agent-card";
 
 interface AgentGridItemInfo {
@@ -31,29 +31,31 @@ const AGENTS_PER_PAGE = 5;
 
 export const AgentManagementPage = () => {
     const { colorMode } = useColorMode();
+    const { agent, setAgent, setAgentDraft } = useAgent();
     const [searchQuery, setSearchQuery] = useState("");
     const [currentPage, setCurrentPage] = useState(1);
     const [agents, setAgents] = useState<AgentGridItemInfo[]>([]);
     const { open, onOpen, onClose } = useDisclosure();
 
-    useEffect(() => {
-        const fetchAgent = async () => {
-            try {
-                const response = await fetch(BASE_URL + "/api/agent/search", {
-                    method: "GET",
-                    headers: {
-                        "Content-Type": "application/json",
-                    },
-                });
+    const fetchAgents = async () => {
+        try {
+            const response = await fetch(BASE_URL + "/api/agent/search", {
+                method: "GET",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+            });
 
-                if (!response.ok) throw new Error("Failed to fetch agent info");
-                const data = await response.json();
-                setAgents(data.agents);
-            } catch (error) {
-                console.error("Error fetching agent info:", error);
-            }
-        };
-        fetchAgent();
+            if (!response.ok) throw new Error("Failed to fetch agent info");
+            const data = await response.json();
+            setAgents(data.agents);
+        } catch (error) {
+            console.error("Error fetching agent info:", error);
+        }
+    };
+
+    useEffect(() => {
+        fetchAgents();
     }, []);
 
     const filteredAgents = useMemo(() => {
@@ -70,8 +72,9 @@ export const AgentManagementPage = () => {
 
     const totalPages = Math.ceil(filteredAgents.length / AGENTS_PER_PAGE);
 
-    const handleAgentCreated = (newAgent: AgentGridItemInfo) => {
-        setAgents((prev) => [newAgent, ...prev]);
+    const handleDialogClose = () => {
+        setAgent(null as any);
+        setAgentDraft(null);
         onClose();
     };
 
@@ -140,6 +143,39 @@ export const AgentManagementPage = () => {
                                     name={agent.name}
                                     description={agent.description}
                                     avatar={agent.avatar}
+                                    onClick={() => {
+                                        const fetchAgent = async () => {
+                                            try {
+                                                const response = await fetch(
+                                                    BASE_URL +
+                                                        `/api/agent/id=${agent.id}`,
+                                                    {
+                                                        method: "GET",
+                                                        headers: {
+                                                            "Content-Type":
+                                                                "application/json",
+                                                        },
+                                                    }
+                                                );
+
+                                                if (!response.ok)
+                                                    throw new Error(
+                                                        "Failed to fetch agent info"
+                                                    );
+                                                const data =
+                                                    await response.json();
+                                                setAgent(data);
+                                                setAgentDraft(data);
+                                            } catch (error) {
+                                                console.error(
+                                                    "Error fetching agent info:",
+                                                    error
+                                                );
+                                            }
+                                        };
+                                        fetchAgent();
+                                        onOpen();
+                                    }}
                                 />
                             ))}
                         </SimpleGrid>
@@ -181,26 +217,71 @@ export const AgentManagementPage = () => {
             </Box>
 
             {/* Add Agent Dialog */}
-            <Dialog.Root open={open} onOpenChange={e => { if (!e.open) onClose(); }} size="lg" placement="center">
+            <Dialog.Root
+                open={open}
+                onOpenChange={(e) => {
+                    if (!e.open) handleDialogClose();
+                }}
+                size="lg"
+                placement="center"
+            >
                 <Portal>
                     <Dialog.Backdrop />
                     <Dialog.Positioner>
                         <Dialog.Content maxW="700px" maxH={"1200px"}>
-                            <Dialog.Header>
-                                <Dialog.Title>Create New Agent</Dialog.Title>
-                            </Dialog.Header>
-                            <Dialog.Body>
-                                <AgentProvider>
-                                    <AgentCard
-                                        mode="create"
-                                        onSave={handleAgentCreated}
-                                        onCancel={onClose}
-                                        inDialog={true}
-                                    />
-                                </AgentProvider>
-                            </Dialog.Body>
+                            {/* Create agent dialog */}
+                            {!agent?.id && (
+                                <>
+                                    <Dialog.Header>
+                                        <Dialog.Title>
+                                            Create New Agent
+                                        </Dialog.Title>
+                                    </Dialog.Header>
+                                    <Dialog.Body>
+                                        <AgentProvider>
+                                            <AgentCard
+                                                mode="create"
+                                                onSave={() => {
+                                                    fetchAgents();
+                                                    handleDialogClose();
+                                                }}
+                                                onCancel={handleDialogClose}
+                                                inDialog={true}
+                                            />
+                                        </AgentProvider>
+                                    </Dialog.Body>
+                                </>
+                            )}
+
+                            {/* Update agent dialog */}
+                            {agent?.id && (
+                                <>
+                                    <Dialog.Header>
+                                        <Dialog.Title>
+                                            Update Agent
+                                        </Dialog.Title>
+                                    </Dialog.Header>
+                                    <Dialog.Body>
+                                        <AgentCard
+                                            mode="edit"
+                                            onSave={() => {
+                                                fetchAgents();
+                                                handleDialogClose();
+                                            }}
+                                            onCancel={handleDialogClose}
+                                            inDialog={true}
+                                        />
+                                    </Dialog.Body>
+                                </>
+                            )}
+
                             <Dialog.CloseTrigger asChild>
-                                <CloseButton size="sm" position="absolute" top={2} right={2} />
+                                <CloseButton
+                                    size="sm"
+                                    position="absolute"
+                                    top={2}
+                                    right={2}
+                                />
                             </Dialog.CloseTrigger>
                         </Dialog.Content>
                     </Dialog.Positioner>

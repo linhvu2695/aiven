@@ -4,14 +4,17 @@ export interface AgentGridItemProps {
     name: string;
     description: string;
     avatar: string;
+
+    onClick?: () => void;
 }
 
-export const AgentGridItem = ({ name, description, avatar }: AgentGridItemProps) => {
+export const AgentGridItem = ({ name, description, avatar, onClick }: AgentGridItemProps) => {
     return (
         <Box
             borderRadius="lg"
             overflow="hidden"
             position="relative"
+            cursor={"pointer"}
             bgImage={`url(${avatar})`}
             bgSize="cover"
             bgPos="center"
@@ -20,6 +23,7 @@ export const AgentGridItem = ({ name, description, avatar }: AgentGridItemProps)
                 transform: "scale(1.05)",
                 transition: "transform 0.2s ease-in-out",
             }}
+            onClick={onClick}
         >
             <VStack
                 position="absolute"
