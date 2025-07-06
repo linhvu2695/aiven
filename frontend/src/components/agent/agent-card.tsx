@@ -22,20 +22,55 @@ const missingAgentFieldWarning = (field: string) => (
     <span style={{ color: "#888" }}>No {field} set.</span>
 );
 
-export const AgentCard = () => {
+export interface AgentCardProps {
+    mode?: "view" | "edit" | "create";
+    onSave?: (agent: any) => void;
+    onCancel?: () => void;
+    inDialog?: boolean;
+}
+
+export const AgentCard = ({
+    mode = "view",
+    onSave,
+    onCancel,
+    inDialog = false,
+}: AgentCardProps) => {
     const { agent, setAgent, agentDraft, setAgentDraft, updateAgentDraft } =
         useAgent();
-    const [isEditing, setIsEditing] = useState(false);
+    const [isEditing, setIsEditing] = useState(
+        mode === "edit" || mode === "create"
+    );
     const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
     const [avatarFile, setAvatarFile] = useState<File | null>(null);
     const [isAvatarLoading, setIsAvatarLoading] = useState(false);
     const fileInputRef = useRef<HTMLInputElement | null>(null);
 
+    // Load avatar
     useEffect(() => {
-        if (agentDraft?.avatar) {
+        if (agentDraft?.avatar && agentDraft.avatar.trim() !== "") {
             setIsAvatarLoading(true);
         }
     }, [agentDraft?.avatar]);
+
+    // Setup Edit Mode
+    useEffect(() => {
+        if (mode === "create") {
+            setIsEditing(true);
+            setAgentDraft({
+                id: "",
+                name: "",
+                description: "",
+                avatar: "",
+                model: "",
+                persona: "",
+                tone: "",
+            });
+        } else if (mode === "edit") {
+            setIsEditing(true);
+        } else {
+            setIsEditing(false);
+        }
+    }, [mode]);
 
     const handleAvatarClick = () => {
         if (isEditing && fileInputRef.current) {
@@ -50,15 +85,33 @@ export const AgentCard = () => {
             const reader = new FileReader();
             reader.onloadend = () => {
                 setAvatarPreview(reader.result as string);
-                // Optionally, update agentDraft with the image data here
-                // updateAgentDraft("avatar", reader.result as string);
             };
             reader.readAsDataURL(file);
         }
     };
 
+    // Validate agent
+    const validateAgent = (agentDraft: any) => {
+        if (!agentDraft?.name || agentDraft.name.trim() === "")
+            return { valid: false, message: "Agent name is required." };
+        if (!agentDraft?.persona || agentDraft.persona.trim() === "")
+            return { valid: false, message: "Agent persona is required." };
+        if (!agentDraft?.model || agentDraft.model.trim() === "")
+            return { valid: false, message: "Agent model is required." };
+        return { valid: true };
+    };
+
     const handleSaveAgent = async () => {
+        // Variable to store Agent ID in creation mode
+        var agentId = agentDraft?.id;
+
         if (agentDraft) {
+            const validation = validateAgent(agentDraft);
+            if (!validation.valid) {
+                alert(validation.message);
+                return;
+            }
+
             try {
                 const response = await fetch(BASE_URL + "/api/agent/", {
                     method: "POST",
@@ -73,7 +126,12 @@ export const AgentCard = () => {
 
                 const data = await response.json();
                 if (data.success) {
+                    if (!agentDraft.id) {
+                        updateAgentDraft("id", data.id);
+                        agentId = data.id;
+                    }
                     setAgent(agentDraft);
+                    if (onSave) onSave({ ...agentDraft, id: data.id });
                 }
 
                 setIsEditing(false);
@@ -88,7 +146,8 @@ export const AgentCard = () => {
                 const formData = new FormData();
                 formData.append("avatar", avatarFile);
                 const response = await fetch(
-                    BASE_URL + `/api/agent/avatar?id=${agentDraft?.id}`,
+                    BASE_URL +
+                        `/api/agent/avatar?id=${agentDraft?.id || agentId}`,
                     {
                         method: "POST",
                         body: formData,
@@ -122,7 +181,9 @@ export const AgentCard = () => {
                         onClick={handleAvatarClick}
                     >
                         <Avatar.Image
-                            src={avatarPreview || agentDraft?.avatar}
+                            src={
+                                avatarPreview || agentDraft?.avatar || undefined
+                            }
                             onLoad={() => setIsAvatarLoading(false)}
                             onError={() => setIsAvatarLoading(false)}
                         />
@@ -207,7 +268,7 @@ export const AgentCard = () => {
                     </Card.Description>
                 )}
 
-                <ModelSelector />
+                <ModelSelector inDialog={inDialog} />
 
                 <Separator />
 
@@ -247,7 +308,7 @@ export const AgentCard = () => {
                 </Field.Root>
 
                 {/* Tone */}
-                <Field.Root required={isEditing}>
+                <Field.Root>
                     <Field.Label>
                         Tone <Field.RequiredIndicator />
                     </Field.Label>
@@ -291,14 +352,16 @@ export const AgentCard = () => {
                     mt={4}
                 >
                     {/* Edit */}
-                    <Button
-                        variant="outline"
-                        colorScheme="gray"
-                        bgColor={isEditing ? "teal" : ""}
-                        onClick={() => setIsEditing(true)}
-                    >
-                        Edit
-                    </Button>
+                    {mode != "create" && (
+                        <Button
+                            variant="outline"
+                            colorScheme="gray"
+                            bgColor={isEditing ? "teal" : ""}
+                            onClick={() => setIsEditing(true)}
+                        >
+                            Edit
+                        </Button>
+                    )}
 
                     {/* Cancel */}
                     <Button
@@ -309,6 +372,7 @@ export const AgentCard = () => {
                             setIsEditing(false);
                             setAgentDraft(agent);
                             setAvatarPreview(null);
+                            if (onCancel) onCancel();
                         }}
                     >
                         Cancel

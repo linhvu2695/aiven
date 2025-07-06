@@ -11,6 +11,7 @@
   },
   "dependencies": {
     "@ai-sdk/react": "^1.2.12",
+    "@chakra-ui/modal": "^2.3.1",
     "@chakra-ui/react": "^3.21.0",
     "@emotion/react": "^11.14.0",
     "@lobehub/icons": "^2.7.0",

@@ -21,7 +21,11 @@ export const LLM_PROVIDERS = [
     { value: "nvidia", title: "NVIDIA", icon: Nvidia.Color },
 ];
 
-export const ModelSelector = () => {
+export interface ModelSelectorProps {
+    inDialog?: boolean;
+}
+
+export const ModelSelector = ({ inDialog = false }: ModelSelectorProps) => {
     const { agentDraft, updateAgentDraft } = useAgent();
     const [provider, setProvider] = useState("openai");
     const [providerOptions, setProviderOptions] = useState<
@@ -48,7 +52,10 @@ export const ModelSelector = () => {
                 // If agentDraft.model is set, find the provider that contains it
                 let initialProvider = "google_genai";
                 if (agentDraft?.model) {
-                    for (const [prov, models] of Object.entries(data) as [string, { value: string; label: string }[]][]) {
+                    for (const [prov, models] of Object.entries(data) as [
+                        string,
+                        { value: string; label: string }[]
+                    ][]) {
                         if (models.some((m) => m.value === agentDraft.model)) {
                             initialProvider = prov;
                             break;
@@ -133,7 +140,7 @@ export const ModelSelector = () => {
                         <Select.Indicator />
                     </Select.IndicatorGroup>
                 </Select.Control>
-                <Portal>
+                {inDialog ? (
                     <Select.Positioner>
                         <Select.Content>
                             {(providerOptions[provider] || []).map(
@@ -149,7 +156,25 @@ export const ModelSelector = () => {
                             )}
                         </Select.Content>
                     </Select.Positioner>
-                </Portal>
+                ) : (
+                    <Portal>
+                        <Select.Positioner>
+                            <Select.Content>
+                                {(providerOptions[provider] || []).map(
+                                    (modelItem) => (
+                                        <Select.Item
+                                            item={modelItem}
+                                            key={modelItem.value}
+                                        >
+                                            {modelItem.label}
+                                            <Select.ItemIndicator />
+                                        </Select.Item>
+                                    )
+                                )}
+                            </Select.Content>
+                        </Select.Positioner>
+                    </Portal>
+                )}
             </Select.Root>
         </VStack>
     );
