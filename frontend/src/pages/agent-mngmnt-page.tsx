@@ -19,13 +19,7 @@ import { useColorMode } from "@/components/ui/color-mode";
 import { Tooltip } from "@/components/ui/tooltip";
 import { AgentProvider, useAgent } from "@/context/agent-ctx";
 import { AgentCard } from "@/components/agent/agent-card";
-
-interface AgentGridItemInfo {
-    id: string;
-    name: string;
-    description: string;
-    avatar: string;
-}
+import type { AgentItemInfo } from "@/components/agent/agent-item-info";
 
 const AGENTS_PER_PAGE = 5;
 
@@ -34,7 +28,7 @@ export const AgentManagementPage = () => {
     const { agent, setAgent, setAgentDraft } = useAgent();
     const [searchQuery, setSearchQuery] = useState("");
     const [currentPage, setCurrentPage] = useState(1);
-    const [agents, setAgents] = useState<AgentGridItemInfo[]>([]);
+    const [agents, setAgents] = useState<AgentItemInfo[]>([]);
     const { open, onOpen, onClose } = useDisclosure();
 
     const fetchAgent = async (id: string) => {
@@ -158,10 +152,7 @@ export const AgentManagementPage = () => {
                             {paginatedAgents.map((agent) => (
                                 <AgentGridItem
                                     key={agent.id}
-                                    id={agent.id}
-                                    name={agent.name}
-                                    description={agent.description}
-                                    avatar={agent.avatar}
+                                    agentInfo={agent}
                                     onClick={() => {
                                         fetchAgent(agent.id);
                                         onOpen();

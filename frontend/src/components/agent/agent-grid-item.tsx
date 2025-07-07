@@ -12,22 +12,16 @@ import {
 import { toaster } from "@/components/ui/toaster";
 import { FaTrash } from "react-icons/fa";
 import { BASE_URL } from "@/App";
+import type { AgentItemInfo } from "./agent-item-info";
 
 export interface AgentGridItemProps {
-    id: string;
-    name: string;
-    description: string;
-    avatar: string;
-
+    agentInfo: AgentItemInfo
     onClick?: () => void;
     onDelete?: () => void;
 }
 
 export const AgentGridItem = ({
-    id,
-    name,
-    description,
-    avatar,
+    agentInfo,
     onClick,
     onDelete
 }: AgentGridItemProps) => {
@@ -71,7 +65,7 @@ export const AgentGridItem = ({
                 overflow="hidden"
                 position="relative"
                 cursor={"pointer"}
-                bgImage={`url(${avatar})`}
+                bgImage={`url(${agentInfo.avatar})`}
                 bgSize="cover"
                 bgPos="center"
                 h="300px"
@@ -119,10 +113,10 @@ export const AgentGridItem = ({
                     spaceY={1}
                 >
                     <Text fontWeight="bold" fontSize="xl" color="white">
-                        {name}
+                        {agentInfo.name}
                     </Text>
                     <Text fontSize="sm" color="gray.200" lineClamp={2}>
-                        {description}
+                        {agentInfo.description}
                     </Text>
                 </VStack>
             </Box>
@@ -144,7 +138,7 @@ export const AgentGridItem = ({
                                 <Dialog.Title>Delete Agent</Dialog.Title>
                             </Dialog.Header>
                             <Dialog.Body>
-                                Do you want to delete Agent <b>{name}</b>?
+                                Do you want to delete Agent <b>{agentInfo.name}</b>?
                             </Dialog.Body>
                             <Dialog.Footer>
                                 <Dialog.ActionTrigger asChild>
@@ -152,7 +146,7 @@ export const AgentGridItem = ({
                                 </Dialog.ActionTrigger>
                                 <Button
                                     variant={"outline"}
-                                    onClick={() => handleDelete(id)}
+                                    onClick={() => handleDelete(agentInfo.id)}
                                 >
                                     Delete
                                 </Button>

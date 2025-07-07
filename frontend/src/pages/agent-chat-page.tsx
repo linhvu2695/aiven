@@ -6,13 +6,14 @@ import { Box, HStack } from "@chakra-ui/react";
 import { useEffect } from "react";
 
 export const AgentChatPage = () => {
-    const { setAgent, setAgentDraft } = useAgent();
+    const { agent, setAgent, setAgentDraft } = useAgent();
 
     useEffect(() => {
         const fetchAgent = async () => {
+            console.log("abc")
             try {
                 const response = await fetch(
-                    BASE_URL + "/api/agent/id=686406f9e4750e95e035ad2d",
+                    BASE_URL + `/api/agent/id=${agent?.id ?? "685fff58d3367dc42c178987"}`,
                     {
                         method: "GET",
                         headers: {
@@ -30,7 +31,7 @@ export const AgentChatPage = () => {
             }
         };
         fetchAgent();
-    }, [setAgent]);
+    }, [agent?.id]);
 
     return (
         <HStack>
