@@ -16,6 +16,10 @@ async def create_or_update_agent(request: CreateOrUpdateAgentRequest):
 async def search_agents():
     return await AgentService().search_agents()
 
+@router.post("/delete")
+async def delete_agent(id: str):
+    return await AgentService().delete_agent(id)
+
 @router.post("/avatar")
 async def update_agent_avatar(id: str, avatar: UploadFile = File(...)):
     try:

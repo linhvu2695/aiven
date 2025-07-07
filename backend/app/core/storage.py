@@ -58,3 +58,7 @@ class FirebaseStorageRepository:
         )
         await RedisCache().set(cache_key, url, expiration=exp)
         return url
+
+    async def delete(self, filename: str) -> None:
+        blob = self.bucket.blob(filename)
+        blob.delete()

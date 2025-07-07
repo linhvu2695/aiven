@@ -352,7 +352,7 @@ export const AgentCard = ({
                     mt={4}
                 >
                     {/* Edit */}
-                    {mode != "create" && (
+                    {mode != "create" && !inDialog && (
                         <Button
                             variant="outline"
                             colorScheme="gray"

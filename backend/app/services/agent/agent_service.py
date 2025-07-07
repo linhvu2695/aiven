@@ -6,7 +6,7 @@ from app.classes.agent import (
     AgentInfo,
     SearchAgentsResponse,
 )
-from app.core.database import insert_document, get_document, update_document, list_documents
+from app.core.database import insert_document, get_document, update_document, list_documents, delete_document
 from app.core.storage import FirebaseStorageRepository
 
 AGENT_COLLECTION_NAME = "agents"
@@ -107,6 +107,21 @@ class AgentService:
             for doc in documents
         ]
         return SearchAgentsResponse(agents=agents)
+    
+    async def delete_agent(self, id: str) -> bool:
+        try:
+            # Retrieve agent document to get avatar path
+            data = await get_document(AGENT_COLLECTION_NAME, id)
+            avatar_path = data.get("avatar", "") if data else ""
+            if avatar_path:
+                try:
+                    await FirebaseStorageRepository().delete(avatar_path)
+                except Exception as avatar_exc:
+                    logging.getLogger("uvicorn.error").warning(f"Failed to delete avatar for agent {id}: {avatar_exc}")
+            return await delete_document(AGENT_COLLECTION_NAME, id)
+        except Exception as e:
+            logging.getLogger("uvicorn.error").error(f"Failed to delete agent {id}: {e}")
+            return False
 
     async def update_agent_avatar(self, agent_id: str, file_obj, filename: str) -> str:
         # Upload avatar to storage

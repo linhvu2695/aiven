@@ -60,3 +60,8 @@ async def list_documents(collection_name: str) -> list[dict]:
     async for document in cursor:
         documents.append(document)
     return documents
+
+async def delete_document(collection_name: str, id: str) -> bool:
+    db = _get_mongodb_conn()
+    result = await db[collection_name].delete_one({"_id": ObjectId(id)})
+    return result.deleted_count > 0
