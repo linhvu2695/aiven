@@ -1,12 +1,14 @@
 import { Box, Container, Flex, Text, IconButton } from "@chakra-ui/react";
 import { ColorModeButton } from "@/components/ui/color-mode";
-import { FaComment, FaComments } from "react-icons/fa";
+import { FaComment } from "react-icons/fa";
 import { Tooltip } from "@/components/ui/tooltip";
 import { useNavigate } from "react-router-dom";
 import { FaRobot } from "react-icons/fa6";
+import { useChat } from "@/context/chat-ctx";
 
 function Navbar() {
     const navigate = useNavigate();
+    const { resetMessages } = useChat();
     
     return (
         <>
@@ -41,12 +43,15 @@ function Navbar() {
                         <Flex gap={3} alignItems={"center"}>
 
                             {/* Chat */}
-                            <Tooltip content="New chat" showArrow>
+                            <Tooltip content="Start new chat" showArrow>
                                 <IconButton
-                                    aria-label="Open chat"
+                                    aria-label="Start new chat"
                                     variant="ghost"
                                     size="xl"
-                                    onClick={() => navigate("/chat")}
+                                    onClick={() => {
+                                        resetMessages();
+                                        navigate("/chat");
+                                    }}
                                 >
                                     <FaComment />
                                 </IconButton>

@@ -13,6 +13,7 @@ import { FaPaperclip, FaPaperPlane } from "react-icons/fa";
 import { ChatMessage } from "./chat-message";
 import { BASE_URL } from "@/App";
 import { useAgent } from "@/context/agent-ctx";
+import { useChat } from "@/context/chat-ctx";
 import type { ChatMessageInfo } from "./chat-message-info";
 import { LuX, LuFile, LuFileAudio, LuFileText } from "react-icons/lu";
 
@@ -30,11 +31,9 @@ export const ChatContainer = () => {
 
 const ChatContainerContent = () => {
     const { agent } = useAgent();
+    const { messages, setMessages } = useChat();
     const messagesEndRef = useRef<HTMLDivElement | null>(null);
     const [input, setInput] = useState("");
-    const [messages, setMessages] = useState<ChatMessageInfo[]>([
-        { role: "assistant", content: "Hello. What can I do for you?" },
-    ]);
     const [isLoading, setIsLoading] = useState(false);
     const fileUpload = useFileUploadContext();
 

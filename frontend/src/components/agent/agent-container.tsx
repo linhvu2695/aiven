@@ -8,9 +8,16 @@ import {
 } from "@chakra-ui/react";
 import { AgentCard } from "./agent-card";
 import { AgentSelectionGrid } from "./agent-selection-grid";
+import { useChat } from "@/context/chat-ctx";
 
 export const AgentContainer = () => {
     const { open, onOpen, onClose } = useDisclosure();
+    const { resetMessages } = useChat();
+
+    const handleAgentSelect = () => {
+        resetMessages();
+        onClose();
+    };
     return (
         <>
             <Container
@@ -52,7 +59,7 @@ export const AgentContainer = () => {
                             </Dialog.Header>
 
                             <Dialog.Body>
-                                <AgentSelectionGrid onSelect={onClose} />
+                                <AgentSelectionGrid onSelect={handleAgentSelect} />
                             </Dialog.Body>
 
                             <Dialog.CloseTrigger asChild>
