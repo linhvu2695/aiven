@@ -33,11 +33,11 @@ export const AgentChatPage = () => {
     }, [agent?.id]);
 
     return (
-        <HStack>
-            <Box flex={1} height={"88vh"}>
+        <HStack as="main">
+            <Box as="aside" flex={1} height={"88vh"}>
                 <AgentContainer />
             </Box>
-            <Box flex={2} height={"88vh"}>
+            <Box as="section" flex={2} height={"88vh"}>
                 <ChatContainer />
             </Box>
         </HStack>

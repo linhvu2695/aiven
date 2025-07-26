@@ -148,6 +148,7 @@ const ChatContainerContent = () => {
             display="flex"
             flexDirection="column"
             justifyContent="space-between"
+            data-testid="chat-container"
         >
             {/* Messages */}
             <Stack spaceY={3} align="stretch" overflowY="auto" p={4}>

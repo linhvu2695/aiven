@@ -26,6 +26,7 @@ export const AgentContainer = () => {
                 flexDirection="column"
                 alignItems="center"
                 gap={4}
+                data-testid="agent-container"
             >
                 <AgentCard />
                 <Button
@@ -36,6 +37,7 @@ export const AgentContainer = () => {
                         boxShadow: "0px 4px 10px rgba(0, 0, 0, 0.1)",
                     }}
                     onClick={onOpen}
+                    data-testid="select-agent-button"
                 >
                     Select Agent
                 </Button>

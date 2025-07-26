@@ -92,10 +92,10 @@ export const AgentManagementPage = () => {
 
     return (
         <>
-            <Box p={5}>
+            <Box as="main" p={5}>
                 <VStack gap={4} align="stretch">
                     {/* Search */}
-                    <HStack gap={4}>
+                    <HStack as="header" gap={4}>
                         <Input
                             borderRadius={18}
                             width={"40vh"}
@@ -111,6 +111,7 @@ export const AgentManagementPage = () => {
                     {/* Grid */}
                     {paginatedAgents.length === 0 ? (
                         <VStack
+                            as="section"
                             align="center"
                             justify="center"
                             minH="30vh"
@@ -123,7 +124,7 @@ export const AgentManagementPage = () => {
                             </Text>
                         </VStack>
                     ) : (
-                        <SimpleGrid columns={{ sm: 2, md: 3, lg: 5 }} gap={6}>
+                        <SimpleGrid as="section" columns={{ sm: 2, md: 3, lg: 5 }} gap={6}>
                             {/* Add Agent Button as first cell */}
                             <Tooltip content="Create new agent">
                                 <Box
@@ -165,7 +166,7 @@ export const AgentManagementPage = () => {
 
                     {/* Paging */}
                     {totalPages > 0 && (
-                        <HStack justify="center" gap={4} mt={4}>
+                        <HStack as="nav" justify="center" gap={4} mt={4}>
                             <IconButton
                                 variant={"ghost"}
                                 aria-label="Previous page"
@@ -214,12 +215,12 @@ export const AgentManagementPage = () => {
                             {/* Create agent dialog */}
                             {!agent?.id && (
                                 <>
-                                    <Dialog.Header>
+                                    <Dialog.Header as="header">
                                         <Dialog.Title>
                                             Create New Agent
                                         </Dialog.Title>
                                     </Dialog.Header>
-                                    <Dialog.Body>
+                                    <Dialog.Body as="main">
                                         <AgentProvider>
                                             <AgentCard
                                                 mode="create"
@@ -238,12 +239,12 @@ export const AgentManagementPage = () => {
                             {/* Update agent dialog */}
                             {agent?.id && (
                                 <>
-                                    <Dialog.Header>
+                                    <Dialog.Header as="header">
                                         <Dialog.Title>
                                             Update Agent
                                         </Dialog.Title>
                                     </Dialog.Header>
-                                    <Dialog.Body>
+                                    <Dialog.Body as="main">
                                         <AgentCard
                                             mode="edit"
                                             onSave={() => {

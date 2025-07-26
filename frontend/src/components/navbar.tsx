@@ -12,7 +12,7 @@ function Navbar() {
     
     return (
         <>
-            <Container maxW={"1800px"} paddingTop={1}>
+            <Container as="nav" maxW={"1800px"} paddingTop={1}>
                 <Box
                     px={4}
                     my={4}
