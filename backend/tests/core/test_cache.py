@@ -31,11 +31,11 @@ async def test_set_success(redis_cache_mock):
     redis_cache_mock.redis.set.return_value = True
     result = await redis_cache_mock.set("key", "value")
     assert result is True
-    redis_cache_mock.redis.set.assert_awaited_once_with("key", "value", ex=60*60*24)
+    redis_cache_mock.redis.set.assert_awaited_once_with("key", "value", ex=60)
 
 @pytest.mark.asyncio
 async def test_set_failure(redis_cache_mock):
     redis_cache_mock.redis.set.return_value = False
     result = await redis_cache_mock.set("key", "value")
     assert result is False
-    redis_cache_mock.redis.set.assert_awaited_once_with("key", "value", ex=60*60*24)
+    redis_cache_mock.redis.set.assert_awaited_once_with("key", "value", ex=60)

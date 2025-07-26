@@ -1,11 +1,15 @@
+from fastapi import UploadFile
 from langchain.chat_models import init_chat_model
 from langchain_core.language_models.chat_models import BaseChatModel
-from langgraph.prebuilt import create_react_agent
-from app.classes.chat import ChatMessage, ChatRequest, ChatResponse
+from langchain_core.messages import HumanMessage
+from app.classes.chat import ChatFileContent, ChatFileUrl, ChatMessage, ChatRequest, ChatResponse
 from app.core.config import settings
 from app.utils.chat import chat_utils
 from app.core.constants import LLMModel, OPENAI_MODELS, GEMINI_MODELS, CLAUDE_MODELS, GROK_MODELS, MISTRAL_MODELS, NVIDIA_MODELS
 from app.services.agent.agent_service import AgentService
+import base64
+import mimetypes
+from typing import Optional
 
 GPT_DEFAULT_MODEL = LLMModel.GPT_4O_MINI
 
@@ -33,6 +37,53 @@ class ChatService:
         
         return init_chat_model(model=GPT_DEFAULT_MODEL, model_provider="openai", api_key=settings.openai_api_key)
 
+    def _get_file_type_category(self, mime_type: str) -> str:
+        """Determine the file type category based on mime type."""
+        if not mime_type:
+            return "file"
+        
+        if mime_type.startswith("image/"):
+            return "image"
+        elif mime_type.startswith("audio/"):
+            return "audio"
+        elif mime_type.startswith("video/"):
+            return "video"
+        elif mime_type.startswith("text/"):
+            return "text"
+        elif mime_type in ["application/pdf"]:
+            return "document"
+        elif mime_type.startswith("application/"):
+            return "application"
+        else:
+            return "file"
+
+    async def _get_file_content(self, file: UploadFile) -> Optional[ChatFileContent]:
+        """Convert uploaded file to ChatFileContent with base64 encoding."""
+        if not file or not file.filename:
+            return None
+        
+        try:
+            content = await file.read()
+            mime_type = mimetypes.guess_type(file.filename)[0] or "application/octet-stream"
+            file_type = self._get_file_type_category(mime_type)
+            
+            # Convert to base64
+            base64_data = base64.b64encode(content).decode('utf-8')
+            
+            # Reset file pointer for potential future reads
+            await file.seek(0)
+            
+            return ChatFileContent(
+                type=file_type,
+                source_type="base64",
+                data=base64_data,
+                mime_type=mime_type
+            )
+            
+        except Exception as e:
+            print(f"Error processing file {file.filename}: {str(e)}")
+            return None
+
     async def generate_chat_response(self, request: ChatRequest) -> ChatResponse:
         agent = await AgentService().get_agent(request.agent)
         model = self._get_chat_model(agent.model)
@@ -40,11 +91,21 @@ class ChatService:
         messages = [ChatMessage(role="system", content=agent.persona)]
         messages.extend(request.messages)
         lc_messages = chat_utils.convert_chat_messages(messages)
+        
+        # Process uploaded files if any
+        if request.files:
+            file = request.files[0] # expect only one file
+            file_content = await self._get_file_content(file)
+                
+            if file_content:
+                file_message = HumanMessage(content=[
+                    file_content.model_dump()
+                ])
+                lc_messages.append(file_message)
 
-        agent_executor = create_react_agent(model, [])
-        response = agent_executor.invoke({"messages": lc_messages})
+        response = model.invoke(lc_messages)
 
-        return ChatResponse(response=response["messages"][-1].content)
+        return ChatResponse(response=str(response.content))
     
     async def get_models(self) -> dict[str, list[dict[str, str]]]:
         def model_info(model: LLMModel) -> dict[str, str]: return {"value": model.value, "label": model.value}

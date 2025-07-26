@@ -1,0 +1,323 @@
+import pytest
+import json
+import io
+from httpx import AsyncClient, ASGITransport
+from fastapi import FastAPI
+from unittest.mock import patch, AsyncMock
+from app.api.chat import router
+from app.classes.chat import ChatRequest, ChatResponse
+
+app = FastAPI()
+app.include_router(router, prefix="/chat")
+
+
+@pytest.fixture
+def sample_chat_messages():
+    return [
+        {"role": "user", "content": "Hello"},
+        {"role": "assistant", "content": "Hi there!"},
+        {"role": "user", "content": "How are you?"}
+    ]
+
+
+@pytest.fixture
+def sample_chat_response():
+    return ChatResponse(response="I'm doing well, thank you for asking!")
+
+
+@pytest.fixture
+def sample_models_response():
+    return {
+        "openai": [
+            {"value": "gpt-3.5-turbo", "label": "gpt-3.5-turbo"},
+            {"value": "gpt-4", "label": "gpt-4"}
+        ],
+        "google_genai": [
+            {"value": "gemini-pro", "label": "gemini-pro"}
+        ],
+        "anthropic": [
+            {"value": "claude-3-haiku", "label": "claude-3-haiku"}
+        ]
+    }
+
+
+class TestChatEndpointJSON:
+    """Test cases for the chat endpoint with JSON payload"""
+
+    @pytest.mark.asyncio
+    async def test_chat_endpoint_json_success(self, sample_chat_messages, sample_chat_response):
+        """Test successful chat endpoint with JSON payload"""
+        with patch("app.services.chat.chat_service.ChatService.generate_chat_response", new=AsyncMock(return_value=sample_chat_response)):
+            transport = ASGITransport(app=app)
+            async with AsyncClient(transport=transport, base_url="http://test") as ac:
+                payload = {
+                    "messages": sample_chat_messages,
+                    "agent": "test-agent-123"
+                }
+                response = await ac.post("/chat/", json=payload)
+                
+                assert response.status_code == 200
+                data = response.json()
+                assert "response" in data
+                assert data["response"] == "I'm doing well, thank you for asking!"
+
+    @pytest.mark.asyncio
+    async def test_chat_endpoint_json_missing_messages(self):
+        """Test chat endpoint with missing messages in JSON payload"""
+        transport = ASGITransport(app=app)
+        async with AsyncClient(transport=transport, base_url="http://test") as ac:
+            payload = {"agent": "test-agent-123"}
+            response = await ac.post("/chat/", json=payload)
+            
+            assert response.status_code == 400
+            data = response.json()
+            assert "Messages and agent are required" in data["detail"]
+
+    @pytest.mark.asyncio
+    async def test_chat_endpoint_json_missing_agent(self, sample_chat_messages):
+        """Test chat endpoint with missing agent in JSON payload"""
+        transport = ASGITransport(app=app)
+        async with AsyncClient(transport=transport, base_url="http://test") as ac:
+            payload = {"messages": sample_chat_messages}
+            response = await ac.post("/chat/", json=payload)
+            
+            assert response.status_code == 400
+            data = response.json()
+            assert "Messages and agent are required" in data["detail"]
+
+    @pytest.mark.asyncio
+    async def test_chat_endpoint_json_empty_messages(self):
+        """Test chat endpoint with empty messages array"""
+        transport = ASGITransport(app=app)
+        async with AsyncClient(transport=transport, base_url="http://test") as ac:
+            payload = {
+                "messages": [],
+                "agent": "test-agent-123"
+            }
+            response = await ac.post("/chat/", json=payload)
+            
+            assert response.status_code == 400
+            data = response.json()
+            assert "Messages and agent are required" in data["detail"]
+
+
+class TestChatEndpointFormData:
+    """Test cases for the chat endpoint with FormData (multipart/form-data)"""
+
+    @pytest.mark.asyncio
+    async def test_chat_endpoint_formdata_success(self, sample_chat_messages, sample_chat_response):
+        """Test successful chat endpoint with FormData including file upload"""
+        with patch("app.services.chat.chat_service.ChatService.generate_chat_response", new=AsyncMock(return_value=sample_chat_response)):
+            transport = ASGITransport(app=app)
+            async with AsyncClient(transport=transport, base_url="http://test") as ac:
+                # Create a test file
+                test_file_content = b"This is a test file content"
+                test_file = io.BytesIO(test_file_content)
+                
+                files = {"files": ("test.txt", test_file, "text/plain")}
+                data = {
+                    "messages": json.dumps(sample_chat_messages),
+                    "agent": "test-agent-123"
+                }
+                
+                response = await ac.post("/chat/", files=files, data=data)
+                
+                assert response.status_code == 200
+                response_data = response.json()
+                assert "response" in response_data
+                assert response_data["response"] == "I'm doing well, thank you for asking!"
+
+    @pytest.mark.asyncio
+    async def test_chat_endpoint_formdata_missing_messages(self):
+        """Test chat endpoint FormData with missing messages"""
+        transport = ASGITransport(app=app)
+        async with AsyncClient(transport=transport, base_url="http://test") as ac:
+            # Use a real file to trigger multipart/form-data
+            test_file_content = b"This is a test file"
+            test_file = io.BytesIO(test_file_content)
+            
+            files = {"files": ("test.txt", test_file, "text/plain")}
+            data = {"agent": "test-agent-123"}  # Missing messages
+            
+            response = await ac.post("/chat/", files=files, data=data)
+            
+            assert response.status_code == 400
+            response_data = response.json()
+            assert "Messages and agent are required" in response_data["detail"]
+
+    @pytest.mark.asyncio
+    async def test_chat_endpoint_formdata_missing_agent(self, sample_chat_messages):
+        """Test chat endpoint FormData with missing agent"""
+        transport = ASGITransport(app=app)
+        async with AsyncClient(transport=transport, base_url="http://test") as ac:
+            # Use a real file to trigger multipart/form-data
+            test_file_content = b"This is a test file"
+            test_file = io.BytesIO(test_file_content)
+            
+            files = {"files": ("test.txt", test_file, "text/plain")}
+            data = {"messages": json.dumps(sample_chat_messages)}  # Missing agent
+            
+            response = await ac.post("/chat/", files=files, data=data)
+            
+            assert response.status_code == 400
+            response_data = response.json()
+            assert "Messages and agent are required" in response_data["detail"]
+
+    @pytest.mark.asyncio
+    async def test_chat_endpoint_formdata_invalid_json(self):
+        """Test chat endpoint FormData with invalid JSON in messages"""
+        transport = ASGITransport(app=app)
+        async with AsyncClient(transport=transport, base_url="http://test") as ac:
+            # Use a real file to trigger multipart/form-data
+            test_file_content = b"This is a test file"
+            test_file = io.BytesIO(test_file_content)
+            
+            files = {"files": ("test.txt", test_file, "text/plain")}
+            data = {
+                "messages": "invalid json {",
+                "agent": "test-agent-123"
+            }
+            
+            response = await ac.post("/chat/", files=files, data=data)
+            
+            assert response.status_code == 400
+            response_data = response.json()
+            assert "Invalid messages format" in response_data["detail"]
+
+
+class TestChatEndpointErrorHandling:
+    """Test cases for error handling scenarios"""
+
+    @pytest.mark.asyncio
+    async def test_chat_endpoint_unsupported_content_type(self, sample_chat_messages):
+        """Test chat endpoint with unsupported content type"""
+        transport = ASGITransport(app=app)
+        async with AsyncClient(transport=transport, base_url="http://test") as ac:
+            response = await ac.post(
+                "/chat/",
+                content=json.dumps({"messages": sample_chat_messages, "agent": "test-agent"}),
+                headers={"content-type": "text/plain"}
+            )
+            
+            assert response.status_code == 400
+            data = response.json()
+            assert "Invalid request format" in data["detail"]
+
+    @pytest.mark.asyncio
+    async def test_chat_endpoint_service_exception(self, sample_chat_messages):
+        """Test chat endpoint when ChatService raises an exception"""
+        with patch("app.services.chat.chat_service.ChatService.generate_chat_response", new=AsyncMock(side_effect=Exception("Service error"))):
+            transport = ASGITransport(app=app)
+            async with AsyncClient(transport=transport, base_url="http://test") as ac:
+                payload = {
+                    "messages": sample_chat_messages,
+                    "agent": "test-agent-123"
+                }
+                # Expect the exception to be raised (FastAPI's default behavior)
+                with pytest.raises(Exception, match="Service error"):
+                    await ac.post("/chat/", json=payload)
+
+
+class TestModelsEndpoint:
+    """Test cases for the /models endpoint"""
+
+    @pytest.mark.asyncio
+    async def test_get_models_success(self, sample_models_response):
+        """Test successful retrieval of available models"""
+        with patch("app.services.chat.chat_service.ChatService.get_models", new=AsyncMock(return_value=sample_models_response)):
+            transport = ASGITransport(app=app)
+            async with AsyncClient(transport=transport, base_url="http://test") as ac:
+                response = await ac.get("/chat/models")
+                
+                assert response.status_code == 200
+                data = response.json()
+                
+                assert "openai" in data
+                assert "google_genai" in data
+                assert "anthropic" in data
+                
+                assert len(data["openai"]) == 2
+                assert data["openai"][0]["value"] == "gpt-3.5-turbo"
+                assert data["openai"][0]["label"] == "gpt-3.5-turbo"
+                
+                assert len(data["google_genai"]) == 1
+                assert data["google_genai"][0]["value"] == "gemini-pro"
+
+    @pytest.mark.asyncio
+    async def test_get_models_service_exception(self):
+        """Test models endpoint when ChatService raises an exception"""
+        with patch("app.services.chat.chat_service.ChatService.get_models", new=AsyncMock(side_effect=Exception("Service error"))):
+            transport = ASGITransport(app=app)
+            async with AsyncClient(transport=transport, base_url="http://test") as ac:
+                # Expect the exception to be raised (FastAPI's default behavior)
+                with pytest.raises(Exception, match="Service error"):
+                    await ac.get("/chat/models")
+
+
+class TestChatRequestValidation:
+    """Test cases for ChatRequest validation and message parsing"""
+
+    @pytest.mark.asyncio
+    async def test_chat_messages_validation_success(self, sample_chat_response):
+        """Test that ChatMessage objects are properly created from request data"""
+        messages_data = [
+            {"role": "user", "content": "Hello"},
+            {"role": "assistant", "content": "Hi there!"}
+        ]
+        
+        # Mock ChatService to capture the ChatRequest that was passed
+        captured_request = None
+        async def capture_request(request):
+            nonlocal captured_request
+            captured_request = request
+            return sample_chat_response
+        
+        with patch("app.services.chat.chat_service.ChatService.generate_chat_response", new=AsyncMock(side_effect=capture_request)):
+            transport = ASGITransport(app=app)
+            async with AsyncClient(transport=transport, base_url="http://test") as ac:
+                payload = {
+                    "messages": messages_data,
+                    "agent": "test-agent-123"
+                }
+                response = await ac.post("/chat/", json=payload)
+                
+                assert response.status_code == 200
+                assert captured_request is not None
+                assert isinstance(captured_request, ChatRequest)
+                assert len(captured_request.messages) == 2
+                assert captured_request.messages[0].role == "user"
+                assert captured_request.messages[0].content == "Hello"
+                assert captured_request.messages[1].role == "assistant"
+                assert captured_request.messages[1].content == "Hi there!"
+                assert captured_request.agent == "test-agent-123"
+                assert captured_request.files is None
+
+    @pytest.mark.asyncio
+    async def test_chat_request_with_files(self, sample_chat_messages, sample_chat_response):
+        """Test that files are properly included in ChatRequest"""
+        captured_request = None
+        async def capture_request(request):
+            nonlocal captured_request
+            captured_request = request
+            return sample_chat_response
+        
+        with patch("app.services.chat.chat_service.ChatService.generate_chat_response", new=AsyncMock(side_effect=capture_request)):
+            transport = ASGITransport(app=app)
+            async with AsyncClient(transport=transport, base_url="http://test") as ac:
+                test_file_content = b"This is a test file"
+                test_file = io.BytesIO(test_file_content)
+                
+                files = {"files": ("test.txt", test_file, "text/plain")}
+                data = {
+                    "messages": json.dumps(sample_chat_messages),
+                    "agent": "test-agent-123"
+                }
+                
+                response = await ac.post("/chat/", files=files, data=data)
+                
+                assert response.status_code == 200
+                assert captured_request is not None
+                assert isinstance(captured_request, ChatRequest)
+                assert captured_request.files is not None
+                assert len(captured_request.files) == 1
+                assert captured_request.files[0].filename == "test.txt" 

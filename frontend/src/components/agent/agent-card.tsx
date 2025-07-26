@@ -382,6 +382,7 @@ export const AgentCard = ({
                     <Button
                         colorScheme="teal"
                         variant="solid"
+                        disabled={!isEditing || !agentDraft?.name}
                         onClick={handleSaveAgent}
                         transition="all 0.3s ease"
                         _hover={{

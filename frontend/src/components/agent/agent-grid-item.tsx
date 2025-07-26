@@ -33,7 +33,6 @@ export const AgentGridItem = ({
                 method: "POST",
             });
             if (res.ok) {
-                console.log("abc")
                 toaster.create({
                     description: "Agent deleted successfully",
                     type: "success",

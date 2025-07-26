@@ -10,7 +10,6 @@ export const AgentChatPage = () => {
 
     useEffect(() => {
         const fetchAgent = async () => {
-            console.log("abc")
             try {
                 const response = await fetch(
                     BASE_URL + `/api/agent/id=${agent?.id ?? "685fff58d3367dc42c178987"}`,
