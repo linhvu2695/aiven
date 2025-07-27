@@ -3,7 +3,9 @@ import { BrowserRouter, Route, Routes } from "react-router-dom";
 import Navbar from "./components/navbar";
 import { AgentChatPage } from "./pages/agent-chat-page";
 import { AgentManagementPage } from "./pages/agent-mngmnt-page";
+import KnowledgePage from "./pages/knowledge-page";
 import { AgentProvider } from "./context/agent-ctx";
+import { ArticleProvider } from "./context/article-ctx";
 import { ChatProvider } from "./context/chat-ctx";
 import { Toaster } from "./components/ui/toaster";
 
@@ -31,6 +33,14 @@ function App() {
                                 <AgentProvider>
                                     <AgentManagementPage />
                                 </AgentProvider>
+                            }
+                        />
+                        <Route
+                            path="/knowledge"
+                            element={
+                                <ArticleProvider>
+                                    <KnowledgePage />
+                                </ArticleProvider>
                             }
                         />
                     </Routes>

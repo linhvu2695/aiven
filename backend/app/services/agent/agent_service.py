@@ -1,5 +1,4 @@
 import logging
-from fastapi import logger
 from app.classes.agent import (
     CreateOrUpdateAgentRequest,
     CreateOrUpdateAgentResponse,

@@ -1,6 +1,6 @@
 import { Box, Container, Flex, Text, IconButton } from "@chakra-ui/react";
 import { ColorModeButton } from "@/components/ui/color-mode";
-import { FaComment } from "react-icons/fa";
+import { FaBook, FaComment } from "react-icons/fa";
 import { Tooltip } from "@/components/ui/tooltip";
 import { useNavigate } from "react-router-dom";
 import { FaRobot } from "react-icons/fa6";
@@ -42,7 +42,7 @@ function Navbar() {
                         {/* Right side */}
                         <Flex gap={3} alignItems={"center"}>
 
-                            {/* Chat */}
+                            {/* Start new chat */}
                             <Tooltip content="Start new chat" showArrow>
                                 <IconButton
                                     aria-label="Start new chat"
@@ -57,7 +57,7 @@ function Navbar() {
                                 </IconButton>
                             </Tooltip>
 
-                            {/* Chat */}
+                            {/* Agents management */}
                             <Tooltip content="Agents" showArrow>
                                 <IconButton
                                     aria-label="Agent management"
@@ -66,6 +66,18 @@ function Navbar() {
                                     onClick={() => navigate("/agent")}
                                 >
                                     <FaRobot />
+                                </IconButton>
+                            </Tooltip>
+
+                            {/* Knowledge base */}
+                            <Tooltip content="Knowledge base" showArrow>
+                                <IconButton
+                                    aria-label="Knowledge base"
+                                    variant="ghost"
+                                    size="xl"
+                                    onClick={() => navigate("/knowledge")}
+                                >
+                                    <FaBook />
                                 </IconButton>
                             </Tooltip>
                         </Flex>
