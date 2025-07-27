@@ -44,7 +44,6 @@ class ArticleService:
             summary=data.get("summary", ""),
             tags=data.get("tags", []),
             parent=data.get("parent", "0"),
-            children=data.get("children", []),
             created_at=data.get("created_at", datetime.now(timezone.utc)),
             updated_at=data.get("updated_at", datetime.now(timezone.utc)),
         )
@@ -65,7 +64,6 @@ class ArticleService:
                 "summary": request.summary,
                 "tags": request.tags,
                 "parent": request.parent,
-                "children": [],  # Initialize empty children list
                 "updated_at": current_time,
             }
             
@@ -100,7 +98,6 @@ class ArticleService:
                 summary=doc.get("summary", ""),
                 tags=doc.get("tags", []),
                 parent=doc.get("parent", "0"),
-                children=doc.get("children", []),
                 created_at=doc.get("created_at", datetime.now(timezone.utc)),
                 updated_at=doc.get("updated_at", datetime.now(timezone.utc)),
             )

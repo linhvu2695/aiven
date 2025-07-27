@@ -9,7 +9,6 @@ class ArticleInfo(BaseModel):
     summary: str
     tags: list[str]
     parent: str  # Parent article ID, "0" for root level
-    children: list[str]  # List of child article IDs
     created_at: datetime
     updated_at: datetime
 

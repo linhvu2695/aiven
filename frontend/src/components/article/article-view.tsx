@@ -9,15 +9,12 @@ import {
 } from "@chakra-ui/react";
 import { FaSave, FaTimes } from "react-icons/fa";
 import { useColorMode } from "@/components/ui/color-mode";
-import type { Article } from "@/context/article-ctx";
-
-type ViewMode = "view" | "edit";
+import type { Article, ViewMode } from "@/context/article-ctx";
 
 interface ArticleViewProps {
     article: Article | null;
     articleDraft: Article | null;
     mode: ViewMode;
-    onModeChange: (mode: ViewMode) => void;
     onSave: () => void;
     onCancel: () => void;
     onUpdateDraft: (updater: (prev: Article | null) => Article | null) => void;
@@ -27,7 +24,6 @@ export const ArticleView = ({
     article,
     articleDraft,
     mode,
-    onModeChange,
     onSave,
     onCancel,
     onUpdateDraft,

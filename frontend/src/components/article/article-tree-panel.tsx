@@ -1,7 +1,8 @@
 import { Box, VStack, Text } from "@chakra-ui/react";
-import { useMemo } from "react";
+import { useEffect } from "react";
 import { ArticleTreeItem } from "./article-tree-item";
 import type { ArticleItemInfo } from "./article-item-info";
+import { useArticle, type Article } from "../../context/article-ctx";
 
 interface ArticleTreePanelProps {
     articles: ArticleItemInfo[];
@@ -10,29 +11,29 @@ interface ArticleTreePanelProps {
     searchQuery: string;
 }
 
-const ArticleTree = ({ articles, selectedId, onSelect }: {
-    articles: ArticleItemInfo[];
+const ArticleTree = ({ selectedId, onSelect }: {
     selectedId?: string;
     onSelect: (article: ArticleItemInfo) => void;
 }) => {
-    // Find root articles (parent = "0")
-    const rootArticles = useMemo(() => {
-        return articles.filter(article => article.parent === "0");
-    }, [articles]);
+    const { articles } = useArticle();
+    
+    // Derive root articles from the articles array
+    const rootArticles = articles.filter(article => article.parent === "0");
 
     return (
         <Box h="full" overflowY="auto">
             <VStack gap={1} align="stretch" p={2}>
-                {rootArticles.map(article => (
-                    <ArticleTreeItem
-                        key={article.id}
-                        article={article}
-                        articles={articles}
-                        selectedId={selectedId}
-                        onSelect={onSelect}
-                        level={0}
-                    />
-                ))}
+                {rootArticles.map(article => {
+                    return (
+                        <ArticleTreeItem
+                            key={article.id}
+                            article={article}
+                            selectedId={selectedId}
+                            onSelect={onSelect}
+                            level={0}
+                        />
+                    );
+                })}
             </VStack>
         </Box>
     );
@@ -44,6 +45,14 @@ export const ArticleTreePanel = ({
     onSelect,
     searchQuery,
 }: ArticleTreePanelProps) => {
+    const { setArticles } = useArticle();
+
+    // Update the context when articles prop changes
+    // This allows the component to still receive articles as props while storing them in context
+    useEffect(() => {
+        setArticles(articles);
+    }, [articles, setArticles]);
+
     return (
         <Box w="400px">
             <VStack h="full" gap={0} align="stretch">
@@ -55,7 +64,6 @@ export const ArticleTreePanel = ({
                 <Box flex={1} overflow="hidden">
                     {articles.length > 0 ? (
                         <ArticleTree
-                            articles={articles}
                             selectedId={selectedId}
                             onSelect={onSelect}
                         />

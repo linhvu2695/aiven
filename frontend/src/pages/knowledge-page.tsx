@@ -1,13 +1,4 @@
-import {
-    Box,
-    HStack,
-    VStack,
-    Text,
-    Input,
-    Button,
-    Flex,
-    IconButton,
-} from "@chakra-ui/react";
+import { Box, HStack, Input, Button, Flex, IconButton } from "@chakra-ui/react";
 import { FaPlus, FaEdit, FaEye } from "react-icons/fa";
 import { useState, useEffect, useMemo } from "react";
 import { BASE_URL } from "@/App";
@@ -19,16 +10,19 @@ import { ArticleView } from "@/components/article/article-view";
 import type { ArticleItemInfo } from "@/components/article/article-item-info";
 import type { Article } from "@/context/article-ctx";
 
-type ViewMode = "view" | "edit";
-
 export const KnowledgePage = () => {
-    const { setArticle, articleDraft, setArticleDraft } = useArticle();
+    const {
+        setArticle,
+        articleDraft,
+        setArticleDraft,
+        articles,
+        setArticles,
+        selectedArticle,
+        setSelectedArticle,
+        mode,
+        setMode,
+    } = useArticle();
     const [searchQuery, setSearchQuery] = useState("");
-    const [articles, setArticles] = useState<ArticleItemInfo[]>([]);
-    const [selectedArticle, setSelectedArticle] = useState<Article | null>(
-        null
-    );
-    const [mode, setMode] = useState<ViewMode>("view");
 
     const fetchArticle = async (id: string) => {
         try {
@@ -61,12 +55,11 @@ export const KnowledgePage = () => {
 
             if (!response.ok) throw new Error("Failed to fetch articles");
             const data = await response.json();
-            // Ensure parent and children fields exist, defaulting if not
+            // Ensure parent field exists, defaulting if not
             const processedArticles = (data.articles || []).map(
                 (article: any) => ({
                     ...article,
                     parent: article.parent || "0",
-                    children: article.children || [],
                 })
             );
             setArticles(processedArticles);
@@ -79,23 +72,20 @@ export const KnowledgePage = () => {
         if (!articleDraft) return;
 
         try {
-            const response = await fetch(
-                BASE_URL + "/api/article/",
-                {
-                    method: "POST",
-                    headers: {
-                        "Content-Type": "application/json",
-                    },
-                    body: JSON.stringify({
-                        id: articleDraft.id || undefined,
-                        title: articleDraft.title,
-                        content: articleDraft.content,
-                        summary: articleDraft.summary,
-                        tags: articleDraft.tags,
-                        parent: articleDraft.parent || "0",
-                    }),
-                }
-            );
+            const response = await fetch(BASE_URL + "/api/article/", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify({
+                    id: articleDraft.id || undefined,
+                    title: articleDraft.title,
+                    content: articleDraft.content,
+                    summary: articleDraft.summary,
+                    tags: articleDraft.tags,
+                    parent: articleDraft.parent || "0",
+                }),
+            });
 
             if (!response.ok) throw new Error("Failed to save article");
 
@@ -137,7 +127,6 @@ export const KnowledgePage = () => {
             summary: "",
             tags: [],
             parent: "0",
-            children: [],
         };
         setSelectedArticle(newArticle);
         setArticle(newArticle);
@@ -178,7 +167,6 @@ export const KnowledgePage = () => {
                     >
                         <FaEdit /> Edit
                     </Button>
-
                 </HStack>
 
                 <Box flex={1} />
@@ -222,7 +210,6 @@ export const KnowledgePage = () => {
                         article={selectedArticle}
                         articleDraft={articleDraft}
                         mode={mode}
-                        onModeChange={setMode}
                         onSave={saveArticle}
                         onCancel={handleCancel}
                         onUpdateDraft={setArticleDraft}

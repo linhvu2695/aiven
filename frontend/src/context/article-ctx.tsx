@@ -1,4 +1,5 @@
 import { createContext, useContext, useState, type ReactNode, type Dispatch, type SetStateAction } from "react";
+import type { ArticleItemInfo } from "../components/article/article-item-info";
 
 export type Article = {
     id: string;
@@ -7,12 +8,14 @@ export type Article = {
     summary: string;
     tags: string[];
     parent: string;  // Parent article ID, "0" for root level
-    children: string[];  // List of child article IDs
     created_at?: string;
     updated_at?: string;
 };
 
+export type ViewMode = "view" | "edit";
+
 type ArticleContextType = {
+    // Selected article
     article: Article | null;
     setArticle: Dispatch<SetStateAction<Article | null>>;
     articleDraft: Article | null;
@@ -21,6 +24,16 @@ type ArticleContextType = {
         field: K,
         value: Article[K]
     ) => void;
+
+    // UI state
+    selectedArticle: Article | null;
+    setSelectedArticle: Dispatch<SetStateAction<Article | null>>;
+    mode: ViewMode;
+    setMode: Dispatch<SetStateAction<ViewMode>>;
+
+    // Article tree data
+    articles: ArticleItemInfo[];
+    setArticles: Dispatch<SetStateAction<ArticleItemInfo[]>>;
 };
 
 const ArticleContext = createContext<ArticleContextType | undefined>(undefined);
@@ -36,6 +49,9 @@ export const useArticle = () => {
 export const ArticleProvider = ({ children }: { children: ReactNode }) => {
     const [article, setArticle] = useState<Article | null>(null);
     const [articleDraft, setArticleDraft] = useState<Article | null>(null);
+    const [articles, setArticles] = useState<ArticleItemInfo[]>([]);
+    const [selectedArticle, setSelectedArticle] = useState<Article | null>(null);
+    const [mode, setMode] = useState<ViewMode>("view");
 
     const updateArticleDraft = <K extends keyof Article>(
         field: K,
@@ -52,6 +68,12 @@ export const ArticleProvider = ({ children }: { children: ReactNode }) => {
                 articleDraft,
                 setArticleDraft,
                 updateArticleDraft,
+                selectedArticle,
+                setSelectedArticle,
+                mode,
+                setMode,
+                articles,
+                setArticles,
             }}
         >
             {children}
