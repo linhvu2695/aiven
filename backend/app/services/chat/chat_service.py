@@ -9,6 +9,7 @@ from app.core.constants import LLMModel, OPENAI_MODELS, GEMINI_MODELS, CLAUDE_MO
 from app.services.agent.agent_service import AgentService
 import base64
 import mimetypes
+import re
 from typing import Optional
 
 GPT_DEFAULT_MODEL = LLMModel.GPT_4O_MINI
@@ -36,6 +37,24 @@ class ChatService:
             return init_chat_model(model=model_name, model_provider="nvidia", api_key=settings.nvidia_api_key)
         
         return init_chat_model(model=GPT_DEFAULT_MODEL, model_provider="openai", api_key=settings.openai_api_key)
+
+    def _parse_format_error(self, error_message: str) -> str:
+        """Parse LLM provider error message to extract supported formats and return user-friendly message."""
+        # Look for patterns like 'image/jpeg', 'image/png', etc. in the error message
+        format_pattern = r"'(image/\w+)'"
+        matches = re.findall(format_pattern, error_message)
+        
+        if matches:
+            # Convert mime types to user-friendly format names
+            format_names = [fmt.split('/')[1].upper() for fmt in matches]
+            supported_list = ", ".join(format_names)
+            return f"❌ File Upload Error: The uploaded image format is not supported by this model. Supported formats: {supported_list}"
+        
+        # Fallback for other format-related errors
+        if "media_type" in error_message.lower() or "format" in error_message.lower():
+            return "❌ File Upload Error: The uploaded file format is not supported by this model. Please try a different file format."
+        
+        return f"❌ File Upload Error: {error_message}"
 
     def _get_file_type_category(self, mime_type: str) -> str:
         """Determine the file type category based on mime type."""
@@ -85,27 +104,42 @@ class ChatService:
             return None
 
     async def generate_chat_response(self, request: ChatRequest) -> ChatResponse:
-        agent = await AgentService().get_agent(request.agent)
-        model = self._get_chat_model(agent.model)
+        try:
+            agent = await AgentService().get_agent(request.agent)
+            model = self._get_chat_model(agent.model)
 
-        messages = [ChatMessage(role="system", content=agent.persona)]
-        messages.extend(request.messages)
-        lc_messages = chat_utils.convert_chat_messages(messages)
-        
-        # Process uploaded files if any
-        if request.files:
-            file = request.files[0] # expect only one file
-            file_content = await self._get_file_content(file)
-                
-            if file_content:
-                file_message = HumanMessage(content=[
-                    file_content.model_dump()
-                ])
-                lc_messages.append(file_message)
+            messages = [ChatMessage(role="system", content=agent.persona)]
+            messages.extend(request.messages)
+            lc_messages = chat_utils.convert_chat_messages(messages)
+            
+            # Process uploaded files if any
+            if request.files:
+                file = request.files[0] # expect only one file
+                file_content = await self._get_file_content(file)
+                    
+                if file_content:
+                    file_message = HumanMessage(content=[
+                        file_content.model_dump()
+                    ])
+                    lc_messages.append(file_message)
 
-        response = model.invoke(lc_messages)
-
-        return ChatResponse(response=str(response.content))
+            response = model.invoke(lc_messages)
+            return ChatResponse(response=str(response.content))
+            
+        except Exception as e:
+            # Handle format-related errors from LLM providers
+            error_msg = str(e)
+            
+            # Check for specific format/media type errors
+            if any(keyword in error_msg.lower() for keyword in ["media_type", "format", "image/", "audio/", "video/"]):
+                return ChatResponse(response=self._parse_format_error(error_msg))
+            
+            # Handle other API errors
+            if "BadRequestError" in str(type(e)) or "400" in error_msg:
+                return ChatResponse(response=f"❌ Request Error: There was an issue with your request. Please check your input and try again.")
+            
+            # Generic error handling
+            return ChatResponse(response=f"❌ An error occurred while processing your request. Please try again or contact support if the issue persists.")
     
     async def get_models(self) -> dict[str, list[dict[str, str]]]:
         def model_info(model: LLMModel) -> dict[str, str]: return {"value": model.value, "label": model.value}
