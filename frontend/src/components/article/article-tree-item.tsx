@@ -8,6 +8,7 @@ import {
     Collapsible,
 } from "@chakra-ui/react";
 import { FaChevronRight, FaChevronDown, FaPlus, FaTrash } from "react-icons/fa";
+import { useDraggable, useDroppable } from "@dnd-kit/core";
 import type { ArticleItemInfo } from "./article-item-info";
 import { useArticle, type Article } from "../../context/article-ctx";
 import { BASE_URL } from "@/App";
@@ -15,18 +16,16 @@ import { toaster } from "../ui/toaster";
 
 interface ArticleTreeItemProps {
     article: ArticleItemInfo;
-    selectedId?: string;
     onSelect: (article: ArticleItemInfo) => void;
     level?: number;
 }
 
 export const ArticleTreeItem = ({
     article,
-    selectedId,
     onSelect,
     level = 0,
 }: ArticleTreeItemProps) => {
-    const { open, onToggle } = useDisclosure({ defaultOpen: level < 2 });
+    const { open, onToggle } = useDisclosure({ defaultOpen: true });
     const {
         articles,
         setArticles,
@@ -37,9 +36,25 @@ export const ArticleTreeItem = ({
         setMode,
     } = useArticle();
 
+    // Draggable hook
+    const {
+        attributes,
+        listeners,
+        setNodeRef: setDragRef,
+        transform,
+        isDragging,
+    } = useDraggable({
+        id: article.id,
+    });
+
+    // Droppable hook
+    const { isOver, setNodeRef: setDropRef } = useDroppable({
+        id: article.id,
+    });
+
     const children = articles.filter((a) => a.parent === article.id);
     const hasChildren = children.length > 0;
-    const isSelected = selectedId === article.id;
+    const isSelected = selectedArticle?.id === article.id;
 
     const handleAddArticle = (parentId: string) => {
         const newArticle: Article = {
@@ -85,30 +100,41 @@ export const ArticleTreeItem = ({
         }
     };
 
+    const style = transform ? {
+        transform: `translate3d(${transform.x}px, ${transform.y}px, 0)`,
+        opacity: isDragging ? 0.5 : 1,
+    } : undefined;
+
     return (
-        <Box>
+        <Box ref={setDropRef} style={style}>
             <HStack
                 p={2}
-                pl={level * 4 + 4}
-                cursor="pointer"
-                bg={isSelected ? "teal.800" : "transparent"}
+                pl={level * 8 + 4}
+                bg={isSelected ? "teal.800" : isOver ? "blue.800" : "transparent"}
                 color={isSelected ? "white" : "inherit"}
                 _hover={{
-                    bg: isSelected ? "teal.800" : "gray.100",
+                    bg: isSelected ? "teal.800" : isOver ? "blue.800" : "gray.100",
                     _dark: {
-                        bg: isSelected ? "teal.800" : "gray.900",
+                        bg: isSelected ? "teal.800" : isOver ? "blue.800" : "gray.900",
                     },
                     "& .add-button, & .delete-button": {
                         opacity: 1,
                     },
                 }}
                 borderRadius="md"
-                onClick={() => onSelect(article)}
                 gap={2}
+                border={isOver ? "2px dashed" : "none"}
+                borderColor={isOver ? "blue.400" : "transparent"}
             >
                 <Text
+                    ref={setDragRef}
+                    {...attributes}
+                    {...listeners}
                     fontSize="sm"
                     fontWeight={isSelected ? "semibold" : "normal"}
+                    cursor={isDragging ? "grabbing" : "pointer"}
+                    flex={1}
+                    onClick={() => onSelect(article)}
                 >
                     {article.title}
                 </Text>
@@ -173,7 +199,6 @@ export const ArticleTreeItem = ({
                                 <ArticleTreeItem
                                     key={child.id}
                                     article={child}
-                                    selectedId={selectedId}
                                     onSelect={onSelect}
                                     level={level + 1}
                                 />

@@ -9,6 +9,7 @@ import { ArticleTreePanel } from "@/components/article/article-tree-panel";
 import { ArticleView } from "@/components/article/article-view";
 import type { ArticleItemInfo } from "@/components/article/article-item-info";
 import type { Article } from "@/context/article-ctx";
+import { toaster } from "@/components/ui/toaster";
 
 export const KnowledgePage = () => {
     const {
@@ -89,11 +90,26 @@ export const KnowledgePage = () => {
 
             if (!response.ok) throw new Error("Failed to save article");
 
-            await fetchArticles();
-            if (articleDraft.id) {
-                await fetchArticle(articleDraft.id);
+            var result = await response.json();
+            console.log(result);
+            if (!result.success) {
+                toaster.create({
+                    description: result.message,
+                    type: "error",
+                });
+                return;
+            } else {
+                toaster.create({
+                    description: "Article saved successfully",
+                    type: "success",
+                });
+                articleDraft.id = result.id;
+                setArticle(articleDraft);
+                setSelectedArticle(articleDraft);
+                setMode("view");
             }
-            setMode("view");
+
+            await fetchArticles();
         } catch (error) {
             console.error("Error saving article:", error);
         }
@@ -196,8 +212,7 @@ export const KnowledgePage = () => {
             <Flex h="calc(100vh - 80px)">
                 {/* Article Tree */}
                 <ArticleTreePanel
-                    articles={filteredArticles}
-                    selectedId={selectedArticle?.id}
+                    articles={filteredArticles} 
                     onSelect={(article: ArticleItemInfo) =>
                         fetchArticle(article.id)
                     }

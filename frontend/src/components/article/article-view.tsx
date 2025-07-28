@@ -98,12 +98,12 @@ export const ArticleView = ({
                         <HStack fontSize="sm" color="gray.500" gap={4}>
                             {article.created_at && (
                                 <Text>
-                                    Created: {new Date(article.created_at).toLocaleDateString()}
+                                    Created at {new Date(article.created_at).toLocaleString()}
                                 </Text>
                             )}
                             {article.updated_at && (
                                 <Text>
-                                    Updated: {new Date(article.updated_at).toLocaleDateString()}
+                                    Updated at {new Date(article.updated_at).toLocaleString()}
                                 </Text>
                             )}
                         </HStack>
