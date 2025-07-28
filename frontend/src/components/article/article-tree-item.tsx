@@ -144,8 +144,10 @@ export const ArticleTreeItem = ({
                     <IconButton
                         aria-label="Toggle children"
                         variant="ghost"
+                        opacity={0.2}
                         bg={"transparent"}
                         size="xs"
+                        ml="auto"
                         onClick={(e) => {
                             e.stopPropagation();
                             onToggle();
