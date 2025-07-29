@@ -2,6 +2,7 @@ from fastapi import UploadFile
 from langchain.chat_models import init_chat_model
 from langchain_core.language_models.chat_models import BaseChatModel
 from langchain_core.messages import HumanMessage
+from langchain_core.runnables import RunnableConfig
 from app.classes.chat import ChatFileContent, ChatFileUrl, ChatMessage, ChatRequest, ChatResponse
 from app.core.config import settings
 from app.utils.chat import chat_utils
@@ -108,6 +109,16 @@ class ChatService:
             agent = await AgentService().get_agent(request.agent)
             model = self._get_chat_model(agent.model)
 
+            # Prepare tracing metadata for logging
+            trace_metadata = {
+                "agent_id": request.agent,
+                "agent_name": agent.name,
+                "model": agent.model,
+                "message_count": len(request.messages),
+                "has_files": bool(request.files),
+                "file_count": len(request.files) if request.files else 0
+            }
+
             messages = [ChatMessage(role="system", content=agent.persona)]
             messages.extend(request.messages)
             lc_messages = chat_utils.convert_chat_messages(messages)
@@ -123,7 +134,17 @@ class ChatService:
                     ])
                     lc_messages.append(file_message)
 
-            response = model.invoke(lc_messages)
+            # Add custom metadata and tags to the LLM call for better tracing
+            config = RunnableConfig(
+                metadata=trace_metadata,
+                tags=[
+                    self.__class__.__name__,
+                ],
+                run_name=f"Chat with {agent.name}"
+            )
+
+            # Invoke!
+            response = model.invoke(lc_messages, config=config)
             return ChatResponse(response=str(response.content))
             
         except Exception as e:
