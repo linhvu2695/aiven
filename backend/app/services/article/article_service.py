@@ -6,7 +6,7 @@ from app.classes.article import (
     ArticleInfo,
     SearchArticlesResponse,
 )
-from app.core.database import insert_document, get_document, update_document, list_documents, delete_document
+from app.core.database import insert_document, get_document, update_document, list_documents, delete_document, find_documents_by_field
 
 ARTICLE_COLLECTION_NAME = "articles"
 
@@ -107,6 +107,19 @@ class ArticleService:
     
     async def delete_article(self, id: str) -> bool:
         try:
+            # First, find all children of this article
+            child_documents = await find_documents_by_field(ARTICLE_COLLECTION_NAME, "parent", id)
+            
+            # Recursively delete all children
+            for child_doc in child_documents:
+                child_id = str(child_doc.get("_id", ""))
+                if child_id:
+                    child_deleted = await self.delete_article(child_id)
+                    if not child_deleted:
+                        logging.getLogger("uvicorn.error").error(f"Failed to delete child article {child_id}")
+                        return False
+            
+            # After all children are deleted, delete the original article
             return await delete_document(ARTICLE_COLLECTION_NAME, id)
         except Exception as e:
             logging.getLogger("uvicorn.error").error(f"Failed to delete article {id}: {e}")

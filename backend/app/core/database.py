@@ -61,6 +61,15 @@ async def list_documents(collection_name: str) -> list[dict]:
         documents.append(document)
     return documents
 
+async def find_documents_by_field(collection_name: str, field_name: str, field_value: str) -> list[dict]:
+    """Find documents where a specific field matches a given value."""
+    db = _get_mongodb_conn()
+    cursor = db[collection_name].find({field_name: field_value})
+    documents = []
+    async for document in cursor:
+        documents.append(document)
+    return documents
+
 async def delete_document(collection_name: str, id: str) -> bool:
     db = _get_mongodb_conn()
     result = await db[collection_name].delete_one({"_id": ObjectId(id)})

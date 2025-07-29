@@ -10,6 +10,7 @@ from app.core.database import (
     insert_document,
     update_document,
     list_documents,
+    find_documents_by_field,
     delete_document
 )
 
@@ -232,6 +233,128 @@ class TestListDocuments:
         assert result == []
         mock_motor_client["collection"].find.assert_called_once()
 
+class TestFindDocumentsByField:
+    @pytest.mark.asyncio
+    async def test_find_documents_by_field_success(self, mock_motor_client):
+        """Test successful document search by field"""
+        # Arrange
+        field_name = "status"
+        field_value = "active"
+        matching_documents = [
+            {"_id": ObjectId(), "name": "doc1", "status": "active"},
+            {"_id": ObjectId(), "name": "doc2", "status": "active"}
+        ]
+        
+        # Create an async iterator mock
+        async def async_generator():
+            for doc in matching_documents:
+                yield doc
+        
+        mock_cursor = MagicMock()
+        mock_cursor.__aiter__ = lambda x: async_generator()
+        mock_motor_client["collection"].find.return_value = mock_cursor
+        
+        # Act
+        result = await find_documents_by_field("test_collection", field_name, field_value)
+        
+        # Assert
+        assert result == matching_documents
+        mock_motor_client["collection"].find.assert_called_once_with({field_name: field_value})
+
+    @pytest.mark.asyncio
+    async def test_find_documents_by_field_no_matches(self, mock_motor_client):
+        """Test search with no matching documents"""
+        # Arrange
+        field_name = "status"
+        field_value = "nonexistent"
+        
+        async def empty_generator():
+            return
+            yield  # unreachable, but makes this a generator
+        
+        mock_cursor = MagicMock()
+        mock_cursor.__aiter__ = lambda x: empty_generator()
+        mock_motor_client["collection"].find.return_value = mock_cursor
+        
+        # Act
+        result = await find_documents_by_field("test_collection", field_name, field_value)
+        
+        # Assert
+        assert result == []
+        mock_motor_client["collection"].find.assert_called_once_with({field_name: field_value})
+
+    @pytest.mark.asyncio
+    async def test_find_documents_by_field_different_types(self, mock_motor_client):
+        """Test search with different field value types"""
+        # Arrange - Test with numeric value
+        field_name = "count"
+        field_value = "5"  # Note: function parameter is str, but we're testing search
+        matching_documents = [
+            {"_id": ObjectId(), "name": "doc1", "count": "5"}
+        ]
+        
+        async def async_generator():
+            for doc in matching_documents:
+                yield doc
+        
+        mock_cursor = MagicMock()
+        mock_cursor.__aiter__ = lambda x: async_generator()
+        mock_motor_client["collection"].find.return_value = mock_cursor
+        
+        # Act
+        result = await find_documents_by_field("test_collection", field_name, field_value)
+        
+        # Assert
+        assert result == matching_documents
+        mock_motor_client["collection"].find.assert_called_once_with({field_name: field_value})
+
+    @pytest.mark.asyncio
+    async def test_find_documents_by_field_single_match(self, mock_motor_client):
+        """Test search with single matching document"""
+        # Arrange
+        field_name = "email"
+        field_value = "user@example.com"
+        matching_document = {"_id": ObjectId(), "name": "John", "email": "user@example.com"}
+        
+        async def async_generator():
+            yield matching_document
+        
+        mock_cursor = MagicMock()
+        mock_cursor.__aiter__ = lambda x: async_generator()
+        mock_motor_client["collection"].find.return_value = mock_cursor
+        
+        # Act
+        result = await find_documents_by_field("test_collection", field_name, field_value)
+        
+        # Assert
+        assert result == [matching_document]
+        mock_motor_client["collection"].find.assert_called_once_with({field_name: field_value})
+
+    @pytest.mark.asyncio
+    async def test_find_documents_by_field_nested_field(self, mock_motor_client):
+        """Test search by nested field name"""
+        # Arrange
+        field_name = "user.role"
+        field_value = "admin"
+        matching_documents = [
+            {"_id": ObjectId(), "user": {"name": "admin1", "role": "admin"}},
+        ]
+        
+        async def async_generator():
+            for doc in matching_documents:
+                yield doc
+        
+        mock_cursor = MagicMock()
+        mock_cursor.__aiter__ = lambda x: async_generator()
+        mock_motor_client["collection"].find.return_value = mock_cursor
+        
+        # Act
+        result = await find_documents_by_field("test_collection", field_name, field_value)
+        
+        # Assert
+        assert result == matching_documents
+        mock_motor_client["collection"].find.assert_called_once_with({field_name: field_value})
+
 class TestDeleteDocument:
     @pytest.mark.asyncio
     async def test_delete_document_success(self, mock_motor_client):
@@ -314,6 +437,65 @@ class TestIntegrationScenarios:
         # Delete
         deleted = await delete_document(collection_name, doc_id)
         assert deleted is True
+
+    @pytest.mark.asyncio
+    async def test_crud_with_search_workflow(self, mock_motor_client):
+        """Test CRUD workflow including field-based search"""
+        collection_name = "test_collection"
+        
+        # Setup test data
+        documents = [
+            {"name": "doc1", "status": "active", "category": "type_a"},
+            {"name": "doc2", "status": "active", "category": "type_b"},
+            {"name": "doc3", "status": "inactive", "category": "type_a"}
+        ]
+        
+        # Mock search by status=active (should return 2 docs)
+        active_docs = [doc for doc in documents if doc["status"] == "active"]
+        
+        async def active_search_generator():
+            for doc in active_docs:
+                yield {**doc, "_id": ObjectId()}
+        
+        # Mock search by category=type_a (should return 2 docs)  
+        type_a_docs = [doc for doc in documents if doc["category"] == "type_a"]
+        
+        async def type_a_search_generator():
+            for doc in type_a_docs:
+                yield {**doc, "_id": ObjectId()}
+        
+        # Setup different mock cursors for different queries
+        def mock_find_side_effect(query):
+            mock_cursor = MagicMock()
+            if query == {"status": "active"}:
+                mock_cursor.__aiter__ = lambda x: active_search_generator()
+            elif query == {"category": "type_a"}:
+                mock_cursor.__aiter__ = lambda x: type_a_search_generator()
+            else:
+                async def empty_gen():
+                    return
+                    yield
+                mock_cursor.__aiter__ = lambda x: empty_gen()
+            return mock_cursor
+        
+        mock_motor_client["collection"].find.side_effect = mock_find_side_effect
+        
+        # Test search operations
+        # Search by status
+        active_results = await find_documents_by_field(collection_name, "status", "active")
+        assert len(active_results) == 2
+        
+        # Search by category
+        type_a_results = await find_documents_by_field(collection_name, "category", "type_a")
+        assert len(type_a_results) == 2
+        
+        # Verify find was called with correct filters
+        expected_calls = [
+            {"status": "active"},
+            {"category": "type_a"}
+        ]
+        actual_calls = [call[0][0] for call in mock_motor_client["collection"].find.call_args_list]
+        assert actual_calls == expected_calls
 
     @pytest.mark.asyncio 
     async def test_error_handling_chain(self, mock_motor_client):

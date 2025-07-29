@@ -309,4 +309,105 @@ class TestArticleService:
         with patch("app.services.article.article_service.delete_document", side_effect=Exception("Delete error")):
             result = await article_service.delete_article("test_id_123")
             
-            assert result is False 
+            assert result is False
+
+
+    @pytest.mark.asyncio
+    async def test_delete_article_with_descendants(self, article_service):
+        """Test that deleting an article also deletes all its descendants"""
+        # Mock data for hierarchical structure:
+        # parent_1
+        # ├── child_1
+        # │   └── grandchild_1
+        # └── child_2
+        
+        mock_child_1 = {"_id": "child_1", "parent": "parent_1"}
+        mock_child_2 = {"_id": "child_2", "parent": "parent_1"}
+        mock_grandchild_1 = {"_id": "grandchild_1", "parent": "child_1"}
+        
+        def mock_find_documents_by_field(collection_name, field_name, field_value):
+            if field_value == "parent_1":
+                return [mock_child_1, mock_child_2]
+            elif field_value == "child_1":
+                return [mock_grandchild_1]
+            elif field_value == "child_2":
+                return []
+            elif field_value == "grandchild_1":
+                return []
+            return []
+        
+        # Track the order of deletion calls
+        deletion_calls = []
+        
+        def mock_delete_document(collection_name, doc_id):
+            deletion_calls.append(doc_id)
+            return True
+        
+        with patch("app.services.article.article_service.find_documents_by_field", 
+                  side_effect=mock_find_documents_by_field) as mock_find, \
+             patch("app.services.article.article_service.delete_document", 
+                  side_effect=mock_delete_document) as mock_delete:
+            
+            result = await article_service.delete_article("parent_1")
+            
+            # Verify the deletion was successful
+            assert result is True
+            
+            # Verify all documents were deleted in the correct order
+            # Should delete descendants first, then parent
+            assert "grandchild_1" in deletion_calls
+            assert "child_1" in deletion_calls  
+            assert "child_2" in deletion_calls
+            assert "parent_1" in deletion_calls
+            
+            # Verify all 4 documents were deleted
+            assert len(deletion_calls) == 4
+            
+            # Verify that grandchild is deleted before its parent (child_1)
+            grandchild_index = deletion_calls.index("grandchild_1")
+            child1_index = deletion_calls.index("child_1")
+            assert grandchild_index < child1_index
+            
+            # Verify that children are deleted before their parent (parent_1)
+            parent_index = deletion_calls.index("parent_1")
+            assert child1_index < parent_index
+            assert deletion_calls.index("child_2") < parent_index
+            
+            # Verify find_documents_by_field was called for each article to find its children
+            assert mock_find.call_count == 4  # parent_1, child_1, child_2, grandchild_1
+
+
+    @pytest.mark.asyncio
+    async def test_delete_article_with_descendants_child_deletion_failure(self, article_service):
+        """Test that parent deletion fails if any child deletion fails"""
+        mock_child_1 = {"_id": "child_1", "parent": "parent_1"}
+        mock_child_2 = {"_id": "child_2", "parent": "parent_1"}
+        
+        def mock_find_documents_by_field(collection_name, field_name, field_value):
+            if field_value == "parent_1":
+                return [mock_child_1, mock_child_2]
+            return []
+        
+        deletion_calls = []
+        
+        def mock_delete_document(collection_name, doc_id):
+            deletion_calls.append(doc_id)
+            # Simulate failure when deleting child_2
+            if doc_id == "child_2":
+                return False
+            return True
+        
+        with patch("app.services.article.article_service.find_documents_by_field", 
+                  side_effect=mock_find_documents_by_field), \
+             patch("app.services.article.article_service.delete_document", 
+                  side_effect=mock_delete_document):
+            
+            result = await article_service.delete_article("parent_1")
+            
+            # Verify the deletion failed
+            assert result is False
+            
+            # Verify that child_1 was deleted but child_2 failed, and parent_1 was not attempted
+            assert "child_1" in deletion_calls
+            assert "child_2" in deletion_calls
+            assert "parent_1" not in deletion_calls  # Should not reach parent deletion

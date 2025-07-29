@@ -13,6 +13,7 @@ import type { ArticleItemInfo } from "./article-item-info";
 import { useArticle } from "../../context/article-ctx";
 import { BASE_URL } from "@/App";
 import { toaster } from "../ui/toaster";
+import { isDescendant } from "../../utils/article-utils";
 
 interface ArticleTreePanelProps {
     articles: ArticleItemInfo[];
@@ -185,22 +186,6 @@ const ArticleTree = ({
             </Box>
         </DndContext>
     );
-};
-
-// Helper function to check if an article is a descendant of another
-const isDescendant = (
-    ancestorId: string,
-    descendantId: string,
-    articles: ArticleItemInfo[]
-): boolean => {
-    const article = articles.find((a) => a.id === descendantId);
-    if (!article || article.parent === "0") {
-        return false;
-    }
-    if (article.parent === ancestorId) {
-        return true;
-    }
-    return isDescendant(ancestorId, article.parent, articles);
 };
 
 export const ArticleTreePanel = ({

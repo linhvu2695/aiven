@@ -13,6 +13,7 @@ import type { ArticleItemInfo } from "./article-item-info";
 import { useArticle, type Article } from "../../context/article-ctx";
 import { BASE_URL } from "@/App";
 import { toaster } from "../ui/toaster";
+import { isDescendant } from "../../utils/article-utils";
 
 interface ArticleTreeItemProps {
     article: ArticleItemInfo;
@@ -72,21 +73,27 @@ export const ArticleTreeItem = ({
     };
 
     const handleDeleteArticle = async (articleId: string) => {
-        const response = await fetch(BASE_URL + `/api/article/delete?id=${articleId}`, {
-            method: "POST",
-        });
+        const response = await fetch(
+            BASE_URL + `/api/article/delete?id=${articleId}`,
+            {
+                method: "POST",
+            }
+        );
 
         if (response.ok) {
             // Update the articles state to remove the deleted article
-            setArticles(prev => prev.filter(a => a.id !== articleId));
-            
+            setArticles((prev) => prev.filter((a) => a.id !== articleId));
+
             // If the deleted article was selected, clear the selection
-            if (selectedArticle?.id === articleId) {
+            if (
+                selectedArticle?.id === articleId ||
+                isDescendant(articleId, selectedArticle?.id ?? "", articles)
+            ) {
                 setSelectedArticle(null);
                 setArticle(null);
                 setArticleDraft(null);
             }
-            
+
             toaster.create({
                 description: "Article deleted successfully",
                 type: "success",
@@ -100,22 +107,43 @@ export const ArticleTreeItem = ({
         }
     };
 
-    const style = transform ? {
-        transform: `translate3d(${transform.x}px, ${transform.y}px, 0)`,
-        opacity: isDragging ? 0.5 : 1,
-    } : undefined;
+    const style = transform
+        ? {
+              transform: `translate3d(${transform.x}px, ${transform.y}px, 0)`,
+              opacity: isDragging ? 0.5 : 1,
+          }
+        : undefined;
 
     return (
         <Box ref={setDropRef} style={style}>
             <HStack
+                ref={setDragRef}
+                {...attributes}
+                {...listeners}
+                onClick={() => onSelect(article)}
+                cursor={isDragging ? "grabbing" : "pointer"}
                 p={2}
                 pl={level * 8 + 4}
-                bg={isSelected ? "teal.800" : isOver ? "blue.800" : "transparent"}
+                bg={
+                    isSelected
+                        ? "teal.800"
+                        : isOver
+                        ? "blue.800"
+                        : "transparent"
+                }
                 color={isSelected ? "white" : "inherit"}
                 _hover={{
-                    bg: isSelected ? "teal.800" : isOver ? "blue.800" : "gray.100",
+                    bg: isSelected
+                        ? "teal.800"
+                        : isOver
+                        ? "blue.800"
+                        : "gray.100",
                     _dark: {
-                        bg: isSelected ? "teal.800" : isOver ? "blue.800" : "gray.900",
+                        bg: isSelected
+                            ? "teal.800"
+                            : isOver
+                            ? "blue.800"
+                            : "gray.900",
                     },
                     "& .add-button, & .delete-button": {
                         opacity: 1,
@@ -127,14 +155,9 @@ export const ArticleTreeItem = ({
                 borderColor={isOver ? "blue.400" : "transparent"}
             >
                 <Text
-                    ref={setDragRef}
-                    {...attributes}
-                    {...listeners}
                     fontSize="sm"
                     fontWeight={isSelected ? "semibold" : "normal"}
-                    cursor={isDragging ? "grabbing" : "pointer"}
                     flex={1}
-                    onClick={() => onSelect(article)}
                 >
                     {article.title}
                 </Text>
