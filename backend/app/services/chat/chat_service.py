@@ -104,13 +104,10 @@ class ChatService:
             print(f"Error processing file {file.filename}: {str(e)}")
             return None
 
-    async def generate_chat_response(self, request: ChatRequest) -> ChatResponse:
-        try:
-            agent = await AgentService().get_agent(request.agent)
-            model = self._get_chat_model(agent.model)
+    async def _get_trace_metadata(self, request: ChatRequest) -> dict:
+        agent = await AgentService().get_agent(request.agent)
 
-            # Prepare tracing metadata for logging
-            trace_metadata = {
+        trace_metadata = {
                 "agent_id": request.agent,
                 "agent_name": agent.name,
                 "model": agent.model,
@@ -118,6 +115,12 @@ class ChatService:
                 "has_files": bool(request.files),
                 "file_count": len(request.files) if request.files else 0
             }
+        return trace_metadata
+    
+    async def generate_chat_response(self, request: ChatRequest) -> ChatResponse:
+        try:
+            agent = await AgentService().get_agent(request.agent)
+            model = self._get_chat_model(agent.model)
 
             messages = [ChatMessage(role="system", content=agent.persona)]
             messages.extend(request.messages)
@@ -136,7 +139,7 @@ class ChatService:
 
             # Add custom metadata and tags to the LLM call for better tracing
             config = RunnableConfig(
-                metadata=trace_metadata,
+                metadata=await self._get_trace_metadata(request),
                 tags=[
                     self.__class__.__name__,
                 ],
@@ -148,7 +151,6 @@ class ChatService:
             return ChatResponse(response=str(response.content))
             
         except Exception as e:
-            # Handle format-related errors from LLM providers
             error_msg = str(e)
             
             # Check for specific format/media type errors

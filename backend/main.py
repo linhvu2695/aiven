@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from app.api import chat, agent, storage, article
+from app.api import chat, agent, storage, article, health
 from app.core.database import check_mongodb_health
 from contextlib import asynccontextmanager
 from app.core.config import settings
@@ -26,6 +26,7 @@ app.add_middleware(
 )
 
 # Controllers
+app.include_router(health.router, prefix="/api", tags=["Health"])
 app.include_router(chat.router, prefix="/api/chat", tags=["Chat"])
 app.include_router(agent.router, prefix="/api/agent", tags=["Agent"])
 app.include_router(article.router, prefix="/api/article", tags=["Article"])
@@ -37,6 +38,4 @@ if settings.langsmith_tracing == "true":
     os.environ["LANGCHAIN_API_KEY"] = settings.langsmith_api_key
     os.environ["LANGCHAIN_PROJECT"] = settings.langsmith_project
 
-@app.get("/api/ping")
-def ping():
-    return {"message": "Pong from Aiven!"}
+
