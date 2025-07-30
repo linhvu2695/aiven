@@ -268,7 +268,7 @@ export const AgentCard = ({
                     </Card.Description>
                 )}
 
-                <ModelSelector inDialog={inDialog} />
+                <ModelSelector inDialog={inDialog} mode={isEditing ? "edit" : "view"} />
 
                 <Separator />
 

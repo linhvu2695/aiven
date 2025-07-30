@@ -23,9 +23,13 @@ export const LLM_PROVIDERS = [
 
 export interface ModelSelectorProps {
     inDialog?: boolean;
+    mode?: "view" | "edit";
 }
 
-export const ModelSelector = ({ inDialog = false }: ModelSelectorProps) => {
+export const ModelSelector = ({
+    inDialog = false,
+    mode = "edit",
+}: ModelSelectorProps) => {
     const { agentDraft, updateAgentDraft } = useAgent();
     const [provider, setProvider] = useState("openai");
     const [providerOptions, setProviderOptions] = useState<
@@ -87,9 +91,12 @@ export const ModelSelector = ({ inDialog = false }: ModelSelectorProps) => {
             <RadioCard.Root
                 colorPalette="teal"
                 value={provider}
-                onValueChange={(val) =>
-                    handleProviderChange(val.value ?? "openai")
+                onValueChange={
+                    mode === "edit"
+                        ? (val) => handleProviderChange(val.value ?? "openai")
+                        : undefined
                 }
+                disabled={mode === "view"}
             >
                 <Wrap align="stretch">
                     {LLM_PROVIDERS.map((item) => (
@@ -125,16 +132,23 @@ export const ModelSelector = ({ inDialog = false }: ModelSelectorProps) => {
                     items: providerOptions[provider] || [],
                 })}
                 value={[agentDraft?.model ?? ""]}
-                onValueChange={(items: { value: string[] }) =>
-                    updateAgentDraft("model", items.value[0])
+                onValueChange={
+                    mode === "edit"
+                        ? (items: { value: string[] }) =>
+                              updateAgentDraft("model", items.value[0])
+                        : undefined
                 }
-                disabled={loading || !providerOptions[provider]}
+                disabled={
+                    loading || !providerOptions[provider] || mode === "view"
+                }
             >
                 <Select.HiddenSelect />
-                <Select.Label>Select model</Select.Label>
+                {mode === "edit" && <Select.Label>Select model</Select.Label>}
                 <Select.Control>
                     <Select.Trigger>
-                        <Select.ValueText placeholder="Select model" />
+                        <Select.ValueText
+                            placeholder={mode === "edit" ? "Select model" : ""}
+                        />
                     </Select.Trigger>
                     <Select.IndicatorGroup>
                         <Select.Indicator />
