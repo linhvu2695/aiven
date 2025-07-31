@@ -11,12 +11,19 @@ import {
     Input,
     IconButton,
     Spinner,
+    Box,
+    Badge,
+    CloseButton,
+    Flex,
+    Dialog,
+    Portal,
 } from "@chakra-ui/react";
 import { ModelSelector } from "./model-selector";
-import { useAgent } from "@/context/agent-ctx";
+import { ToolSelectionGrid } from "./tool-selection-grid";
+import { useAgent, type Tool } from "@/context/agent-ctx";
 import { useState, useRef, useEffect } from "react";
 import { BASE_URL } from "@/App";
-import { FaPencilAlt } from "react-icons/fa";
+import { FaPencilAlt, FaPlus } from "react-icons/fa";
 
 const missingAgentFieldWarning = (field: string) => (
     <span style={{ color: "#888" }}>No {field} set.</span>
@@ -43,7 +50,133 @@ export const AgentCard = ({
     const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
     const [avatarFile, setAvatarFile] = useState<File | null>(null);
     const [isAvatarLoading, setIsAvatarLoading] = useState(false);
+    const [availableTools, setAvailableTools] = useState<Tool[]>([]);
+    const [isToolPopupOpen, setIsToolPopupOpen] = useState(false);
+    const [selectedToolIds, setSelectedToolIds] = useState<Set<string>>(
+        new Set()
+    );
     const fileInputRef = useRef<HTMLInputElement | null>(null);
+
+    // Mock API functions for tools (to be replaced with actual API calls)
+    const mockAvailableTools: Tool[] = [
+        {
+            id: "web-search",
+            name: "Web Search",
+            description: "Search the internet for real-time information",
+            category: "Search",
+        },
+        {
+            id: "file-manager",
+            name: "File Manager",
+            description: "Read, write, and manage files in the workspace",
+            category: "File System",
+        },
+        {
+            id: "code-executor",
+            name: "Code Executor",
+            description: "Execute code in various programming languages",
+            category: "Development",
+        },
+        {
+            id: "calculator",
+            name: "Calculator",
+            description: "Perform mathematical calculations and computations",
+            category: "Math",
+        },
+        {
+            id: "weather",
+            name: "Weather",
+            description: "Get current weather information for any location",
+            category: "Data",
+        },
+        {
+            id: "email",
+            name: "Email",
+            description: "Send and manage email communications",
+            category: "Communication",
+        },
+    ];
+
+    const fetchAvailableTools = async (): Promise<Tool[]> => {
+        // Mock API call - replace with actual API
+        return new Promise((resolve) => {
+            setTimeout(() => resolve(mockAvailableTools), 500);
+        });
+    };
+
+    const addToolToAgent = async (_toolId: string): Promise<boolean> => {
+        // Mock API call - replace with actual API
+        return new Promise((resolve) => {
+            setTimeout(() => resolve(true), 200);
+        });
+    };
+
+    const removeToolFromAgent = async (_toolId: string): Promise<boolean> => {
+        // Mock API call - replace with actual API
+        return new Promise((resolve) => {
+            setTimeout(() => resolve(true), 200);
+        });
+    };
+
+    // Load available tools
+    useEffect(() => {
+        fetchAvailableTools().then(setAvailableTools);
+    }, []);
+
+    // Tool management functions
+
+    const handleRemoveTool = (toolId: string) => {
+        if (agentDraft?.tools) {
+            updateAgentDraft(
+                "tools",
+                agentDraft.tools.filter((t) => t.id !== toolId)
+            );
+            removeToolFromAgent(toolId); // Mock API call
+        }
+    };
+
+    // Modal management functions
+    const openToolModal = () => {
+        setSelectedToolIds(new Set());
+        setIsToolPopupOpen(true);
+    };
+
+    const closeToolModal = () => {
+        setIsToolPopupOpen(false);
+        setSelectedToolIds(new Set());
+    };
+
+    const toggleToolSelection = (toolId: string) => {
+        const newSelected = new Set(selectedToolIds);
+        if (newSelected.has(toolId)) {
+            newSelected.delete(toolId);
+        } else {
+            newSelected.add(toolId);
+        }
+        setSelectedToolIds(newSelected);
+    };
+
+    const handleAddSelectedTools = () => {
+        const toolsToAdd = availableTools.filter(
+            (tool) =>
+                selectedToolIds.has(tool.id) &&
+                !agentDraft?.tools?.find((t) => t.id === tool.id)
+        );
+
+        if (toolsToAdd.length > 0) {
+            updateAgentDraft("tools", [
+                ...(agentDraft?.tools || []),
+                ...toolsToAdd,
+            ]);
+            toolsToAdd.forEach((tool) => addToolToAgent(tool.id)); // Mock API calls
+        }
+
+        closeToolModal();
+    };
+
+    const isToolAssigned = (toolId: string) => {
+        return agentDraft?.tools?.some((t) => t.id === toolId) || false;
+    };
 
     // Load avatar
     useEffect(() => {
@@ -64,6 +197,7 @@ export const AgentCard = ({
                 model: "",
                 persona: "",
                 tone: "",
+                tools: [],
             });
         } else if (mode === "edit") {
             setIsEditing(true);
@@ -169,232 +303,368 @@ export const AgentCard = ({
     };
 
     return (
-        <Card.Root>
-            {/* Header */}
-            <Card.Header flexDir={"row"} spaceX={5}>
-                {/* Avatar */}
-                <div style={{ position: "relative", display: "inline-block" }}>
-                    <Avatar.Root
-                        size="2xl"
-                        shape="rounded"
-                        style={{ cursor: isEditing ? "pointer" : "default" }}
-                        onClick={handleAvatarClick}
+        <>
+            <Card.Root maxH={"85vh"}>
+                {/* Header */}
+                <Card.Header flexDir={"row"} spaceX={5}>
+                    {/* Avatar */}
+                    <div
+                        style={{
+                            position: "relative",
+                            display: "inline-block",
+                        }}
                     >
-                        <Avatar.Image
-                            src={
-                                avatarPreview || agentDraft?.avatar || undefined
-                            }
-                            onLoad={() => setIsAvatarLoading(false)}
-                            onError={() => setIsAvatarLoading(false)}
-                        />
-                        {isAvatarLoading ? (
-                            <Avatar.Fallback>
-                                <Spinner size="sm" color="teal.500" />
-                            </Avatar.Fallback>
-                        ) : (
-                            <Avatar.Fallback name={agent?.name} />
-                        )}
-                    </Avatar.Root>
-                    {isEditing && (
-                        <IconButton
-                            pos={"absolute"}
-                            bottom={-2}
-                            right={-2}
-                            bg={"white"}
-                            borderRadius={"50%"}
-                            boxShadow={"0 1px 4px rgba(0,0,0,0.15)"}
-                            zIndex={2}
-                            display={"flex"}
-                            alignItems={"center"}
-                            justifyContent={"center"}
+                        <Avatar.Root
+                            size="2xl"
+                            shape="rounded"
+                            style={{
+                                cursor: isEditing ? "pointer" : "default",
+                            }}
                             onClick={handleAvatarClick}
                         >
-                            <FaPencilAlt color="teal" />
-                        </IconButton>
-                    )}
-                    {isEditing && (
-                        <input
-                            type="file"
-                            accept="image/*"
-                            style={{ display: "none" }}
-                            ref={fileInputRef}
-                            onChange={handleAvatarChange}
-                        />
-                    )}
-                </div>
+                            <Avatar.Image
+                                src={
+                                    avatarPreview ||
+                                    agentDraft?.avatar ||
+                                    undefined
+                                }
+                                onLoad={() => setIsAvatarLoading(false)}
+                                onError={() => setIsAvatarLoading(false)}
+                            />
+                            {isAvatarLoading ? (
+                                <Avatar.Fallback>
+                                    <Spinner size="sm" color="teal.500" />
+                                </Avatar.Fallback>
+                            ) : (
+                                <Avatar.Fallback name={agent?.name} />
+                            )}
+                        </Avatar.Root>
+                        {isEditing && (
+                            <IconButton
+                                pos={"absolute"}
+                                bottom={-2}
+                                right={-2}
+                                bg={"white"}
+                                borderRadius={"50%"}
+                                boxShadow={"0 1px 4px rgba(0,0,0,0.15)"}
+                                zIndex={2}
+                                display={"flex"}
+                                alignItems={"center"}
+                                justifyContent={"center"}
+                                onClick={handleAvatarClick}
+                            >
+                                <FaPencilAlt color="teal" />
+                            </IconButton>
+                        )}
+                        {isEditing && (
+                            <input
+                                type="file"
+                                accept="image/*"
+                                style={{ display: "none" }}
+                                ref={fileInputRef}
+                                onChange={handleAvatarChange}
+                            />
+                        )}
+                    </div>
 
-                <VStack align="flex-start">
-                    {/* Name */}
+                    <VStack align="flex-start">
+                        {/* Name */}
+                        {isEditing ? (
+                            <Input
+                                value={agentDraft?.name || ""}
+                                placeholder="Agent name"
+                                size="lg"
+                                fontWeight="bold"
+                                onChange={(e) =>
+                                    updateAgentDraft("name", e.target.value)
+                                }
+                            />
+                        ) : (
+                            <Card.Title mt={2} fontSize={"2xl"}>
+                                {agentDraft?.name}
+                            </Card.Title>
+                        )}
+
+                        {/* Model */}
+                        <Card.Description fontSize={"x-small"}>
+                            {agentDraft?.model}
+                        </Card.Description>
+                    </VStack>
+                </Card.Header>
+
+                {/* Body */}
+                <Card.Body maxH={"600px"} overflowY={"auto"} spaceY={2}>
+                    {/* Description */}
                     {isEditing ? (
                         <Input
-                            value={agentDraft?.name || ""}
-                            placeholder="Agent name"
-                            size="lg"
-                            fontWeight="bold"
+                            value={agentDraft?.description || ""}
+                            placeholder="Agent description"
+                            size="sm"
+                            fontSize="xs"
+                            p={2}
+                            mt={1}
                             onChange={(e) =>
-                                updateAgentDraft("name", e.target.value)
+                                updateAgentDraft("description", e.target.value)
                             }
                         />
                     ) : (
-                        <Card.Title mt={2} fontSize={"2xl"}>
-                            {agentDraft?.name}
-                        </Card.Title>
+                        <Card.Description fontSize={"x-small"}>
+                            {agentDraft?.description}
+                        </Card.Description>
                     )}
 
-                    {/* Model */}
-                    <Card.Description fontSize={"x-small"}>
-                        {agentDraft?.model}
-                    </Card.Description>
-                </VStack>
-            </Card.Header>
-
-            {/* Body */}
-            <Card.Body spaceY={2}>
-                {/* Description */}
-                {isEditing ? (
-                    <Input
-                        value={agentDraft?.description || ""}
-                        placeholder="Agent description"
-                        size="sm"
-                        fontSize="xs"
-                        mt={1}
-                        onChange={(e) =>
-                            updateAgentDraft("description", e.target.value)
-                        }
+                    <ModelSelector
+                        inDialog={inDialog}
+                        mode={isEditing ? "edit" : "view"}
                     />
-                ) : (
-                    <Card.Description fontSize={"x-small"}>
-                        {agentDraft?.description}
-                    </Card.Description>
-                )}
 
-                <ModelSelector inDialog={inDialog} mode={isEditing ? "edit" : "view"} />
+                    <Separator />
 
-                <Separator />
+                    {/* Persona */}
+                    <Field.Root required={isEditing}>
+                        <Field.Label>
+                            Persona <Field.RequiredIndicator />
+                        </Field.Label>
+                        {isEditing ? (
+                            <>
+                                <Textarea
+                                    value={agentDraft?.persona}
+                                    placeholder="You are a helpful AI Assistant..."
+                                    variant="subtle"
+                                    onChange={(e) =>
+                                        updateAgentDraft(
+                                            "persona",
+                                            e.target.value
+                                        )
+                                    }
+                                />
+                                <Field.HelperText>
+                                    Max 500 characters.
+                                </Field.HelperText>
+                            </>
+                        ) : (
+                            <Text
+                                whiteSpace="pre-line"
+                                minH="48px"
+                                maxH="160px"
+                                overflowY="auto"
+                                p={2}
+                                borderRadius="md"
+                                fontSize={"sm"}
+                            >
+                                {agentDraft?.persona ||
+                                    missingAgentFieldWarning("persona")}
+                            </Text>
+                        )}
+                    </Field.Root>
 
-                {/* Persona */}
-                <Field.Root required={isEditing}>
-                    <Field.Label>
-                        Persona <Field.RequiredIndicator />
-                    </Field.Label>
-                    {isEditing ? (
-                        <>
-                            <Textarea
-                                value={agentDraft?.persona}
-                                placeholder="You are a helpful AI Assistant..."
-                                variant="subtle"
-                                onChange={(e) =>
-                                    updateAgentDraft("persona", e.target.value)
-                                }
-                            />
-                            <Field.HelperText>
-                                Max 500 characters.
-                            </Field.HelperText>
-                        </>
-                    ) : (
-                        <Text
-                            whiteSpace="pre-line"
-                            minH="48px"
-                            maxH="160px"
-                            overflowY="auto"
-                            p={2}
-                            borderRadius="md"
-                            fontSize={"sm"}
-                        >
-                            {agentDraft?.persona ||
-                                missingAgentFieldWarning("persona")}
-                        </Text>
-                    )}
-                </Field.Root>
+                    {/* Tone */}
+                    <Field.Root>
+                        <Field.Label>
+                            Tone <Field.RequiredIndicator />
+                        </Field.Label>
+                        {isEditing ? (
+                            <>
+                                <Textarea
+                                    value={agentDraft?.tone}
+                                    placeholder="Be polite and humorous..."
+                                    variant="subtle"
+                                    onChange={(e) =>
+                                        updateAgentDraft("tone", e.target.value)
+                                    }
+                                />
+                                <Field.HelperText>
+                                    Max 200 characters.
+                                </Field.HelperText>
+                            </>
+                        ) : (
+                            <Text
+                                whiteSpace="pre-line"
+                                minH="48px"
+                                maxH="160px"
+                                overflowY="auto"
+                                p={2}
+                                borderRadius="md"
+                                fontSize={"sm"}
+                            >
+                                {agentDraft?.tone ||
+                                    missingAgentFieldWarning("tone")}
+                            </Text>
+                        )}
+                    </Field.Root>
 
-                {/* Tone */}
-                <Field.Root>
-                    <Field.Label>
-                        Tone <Field.RequiredIndicator />
-                    </Field.Label>
-                    {isEditing ? (
-                        <>
-                            <Textarea
-                                value={agentDraft?.tone}
-                                placeholder="Be polite and humorous..."
-                                variant="subtle"
-                                onChange={(e) =>
-                                    updateAgentDraft("tone", e.target.value)
-                                }
-                            />
-                            <Field.HelperText>
-                                Max 200 characters.
-                            </Field.HelperText>
-                        </>
-                    ) : (
-                        <Text
-                            whiteSpace="pre-line"
-                            minH="48px"
-                            maxH="160px"
-                            overflowY="auto"
-                            p={2}
-                            borderRadius="md"
-                            fontSize={"sm"}
-                        >
-                            {agentDraft?.tone ||
-                                missingAgentFieldWarning("tone")}
-                        </Text>
-                    )}
-                </Field.Root>
-            </Card.Body>
+                    {/* Tools */}
+                    <Field.Root>
+                        <Field.Label>Tools</Field.Label>
+                        <Box>
+                            {/* Current Tools */}
+                            {agentDraft?.tools &&
+                            agentDraft.tools.length > 0 ? (
+                                <Flex wrap="wrap" gap={2} mb={2}>
+                                    {agentDraft.tools.map((tool) => (
+                                        <Badge
+                                            key={tool.id}
+                                            colorScheme="teal"
+                                            variant="solid"
+                                            px={3}
+                                            py={1}
+                                            borderRadius="4xl"
+                                            display="flex"
+                                            justifyContent="center"
+                                            alignItems="center"
+                                            gap={2}
+                                        >
+                                            <Text fontSize="sm">
+                                                {tool.name}
+                                            </Text>
+                                            {isEditing && (
+                                                <CloseButton
+                                                    size="xs"
+                                                    borderRadius="4xl"
+                                                    onClick={() =>
+                                                        handleRemoveTool(
+                                                            tool.id
+                                                        )
+                                                    }
+                                                    color="black"
+                                                    _hover={{
+                                                        bg: "red.500",
+                                                        color: "white",
+                                                    }}
+                                                />
+                                            )}
+                                        </Badge>
+                                    ))}
+                                </Flex>
+                            ) : (
+                                !isEditing && (
+                                    <Text fontSize="sm" color="gray.500" mb={2}>
+                                        No tools assigned
+                                    </Text>
+                                )
+                            )}
 
-            <Card.Footer>
-                {/* Action Buttons */}
-                <HStack
-                    justifyContent="flex-end"
-                    width="100%"
-                    spaceX={4}
-                    mt={4}
-                >
-                    {/* Edit */}
-                    {mode != "create" && !inDialog && (
+                            {/* Add Tool Button */}
+                            {isEditing && (
+                                <IconButton
+                                    size="sm"
+                                    variant="outline"
+                                    colorScheme="teal"
+                                    onClick={openToolModal}
+                                    aria-label="Add Tools"
+                                    _hover={{
+                                        bg: "teal.500",
+                                        color: "black",
+                                        borderColor: "teal.500",
+                                    }}
+                                >
+                                    <FaPlus />
+                                </IconButton>
+                            )}
+                        </Box>
+                    </Field.Root>
+                </Card.Body>
+
+                <Card.Footer>
+                    {/* Action Buttons */}
+                    <HStack
+                        justifyContent="flex-end"
+                        width="100%"
+                        spaceX={4}
+                        mt={4}
+                    >
+                        {/* Edit */}
+                        {mode != "create" && !inDialog && (
+                            <Button
+                                variant="outline"
+                                colorScheme="gray"
+                                bgColor={isEditing ? "teal.500" : ""}
+                                color={isEditing ? "black" : ""}
+                                onClick={() => setIsEditing(true)}
+                            >
+                                Edit
+                            </Button>
+                        )}
+
+                        {/* Cancel */}
                         <Button
                             variant="outline"
                             colorScheme="gray"
-                            bgColor={isEditing ? "teal" : ""}
-                            onClick={() => setIsEditing(true)}
+                            disabled={!isEditing}
+                            onClick={() => {
+                                setIsEditing(false);
+                                setAgentDraft(agent);
+                                setAvatarPreview(null);
+                                if (onCancel) onCancel();
+                            }}
                         >
-                            Edit
+                            Cancel
                         </Button>
-                    )}
 
-                    {/* Cancel */}
-                    <Button
-                        variant="outline"
-                        colorScheme="gray"
-                        disabled={!isEditing}
-                        onClick={() => {
-                            setIsEditing(false);
-                            setAgentDraft(agent);
-                            setAvatarPreview(null);
-                            if (onCancel) onCancel();
-                        }}
-                    >
-                        Cancel
-                    </Button>
+                        {/* Save */}
+                        <Button
+                            colorScheme="teal"
+                            variant="solid"
+                            disabled={!isEditing || !agentDraft?.name}
+                            onClick={handleSaveAgent}
+                            transition="all 0.3s ease"
+                            _hover={{
+                                transform: "scale(1.1)",
+                                bgColor: "teal.500",
+                                boxShadow: "0px 4px 10px rgba(0, 0, 0, 0.1)",
+                            }}
+                        >
+                            Save
+                        </Button>
+                    </HStack>
+                </Card.Footer>
+            </Card.Root>
 
-                    {/* Save */}
-                    <Button
-                        colorScheme="teal"
-                        variant="solid"
-                        disabled={!isEditing || !agentDraft?.name}
-                        onClick={handleSaveAgent}
-                        transition="all 0.3s ease"
-                        _hover={{
-                            transform: "scale(1.1)",
-                            bgColor: "teal.500",
-                            boxShadow: "0px 4px 10px rgba(0, 0, 0, 0.1)",
-                        }}
-                    >
-                        Save
-                    </Button>
-                </HStack>
-            </Card.Footer>
-        </Card.Root>
+            {/* Tool Selection Popup */}
+            <Dialog.Root
+                open={isToolPopupOpen}
+                onOpenChange={(details) => setIsToolPopupOpen(details.open)}
+                size="xl"
+                placement="center"
+            >
+                <Portal>
+                    <Dialog.Backdrop />
+                    <Dialog.Positioner>
+                        <Dialog.Content maxW="4xl">
+                            <Dialog.Header>
+                                <Dialog.Title>Select Tools</Dialog.Title>
+                            </Dialog.Header>
+                            <Dialog.Body>
+                                <ToolSelectionGrid
+                                    availableTools={availableTools}
+                                    isToolAssigned={isToolAssigned}
+                                    selectedToolIds={selectedToolIds}
+                                    onToggleToolSelection={toggleToolSelection}
+                                    onRemoveTool={handleRemoveTool}
+                                />
+                            </Dialog.Body>
+                            <Dialog.Footer>
+                                <Button
+                                    variant="outline"
+                                    onClick={closeToolModal}
+                                >
+                                    Cancel
+                                </Button>
+                                <Button
+                                    colorScheme="teal"
+                                    onClick={handleAddSelectedTools}
+                                    disabled={selectedToolIds.size === 0}
+                                >
+                                    Add Selected ({selectedToolIds.size})
+                                </Button>
+                            </Dialog.Footer>
+                            <Dialog.CloseTrigger asChild>
+                                <CloseButton size="sm" />
+                            </Dialog.CloseTrigger>
+                        </Dialog.Content>
+                    </Dialog.Positioner>
+                </Portal>
+            </Dialog.Root>
+        </>
     );
 };

@@ -101,26 +101,28 @@ export const ModelSelector = ({
                 <Wrap align="stretch">
                     {LLM_PROVIDERS.map((item) => (
                         <WrapItem key={item.value}>
-                            <RadioCard.Item value={item.value}>
-                                <RadioCard.ItemHiddenInput />
-                                <RadioCard.ItemControl>
-                                    <RadioCard.ItemText fontSize={14}>
-                                        {item.icon && (
-                                            <span
-                                                style={{
-                                                    marginRight: 6,
-                                                    display: "inline-flex",
-                                                    alignSelf: "center",
-                                                }}
-                                            >
-                                                {<item.icon size={13} />}
-                                            </span>
-                                        )}
-                                        {item.title}
-                                    </RadioCard.ItemText>
-                                    <RadioCard.ItemIndicator />
-                                </RadioCard.ItemControl>
-                            </RadioCard.Item>
+                            <RadioCard.Root size="sm">
+                                <RadioCard.Item value={item.value}>
+                                    <RadioCard.ItemHiddenInput />
+                                    <RadioCard.ItemControl>
+                                        <RadioCard.ItemText fontSize={14}>
+                                            {item.icon && (
+                                                <span
+                                                    style={{
+                                                        marginRight: 6,
+                                                        display: "inline-flex",
+                                                        alignSelf: "center",
+                                                    }}
+                                                >
+                                                    {<item.icon size={13} />}
+                                                </span>
+                                            )}
+                                            {item.title}
+                                        </RadioCard.ItemText>
+                                        <RadioCard.ItemIndicator />
+                                    </RadioCard.ItemControl>
+                                </RadioCard.Item>
+                            </RadioCard.Root>
                         </WrapItem>
                     ))}
                 </Wrap>

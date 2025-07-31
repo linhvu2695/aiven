@@ -1,5 +1,12 @@
 import { createContext, useContext, useState, type ReactNode } from "react";
 
+export type Tool = {
+  id: string;
+  name: string;
+  description: string;
+  category?: string;
+};
+
 export type Agent = {
   id: string;
   name: string;
@@ -8,6 +15,7 @@ export type Agent = {
   model: string;
   persona: string;
   tone: string;
+  tools: Tool[];
 };
 
 type AgentContextType = {
