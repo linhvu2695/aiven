@@ -100,7 +100,7 @@ export const ToolSelectionGrid = ({
                                     color={{ base: "gray.600", _dark: "gray.200" }}
                                     lineClamp={2}
                                 >
-                                    {tool.description}
+                                    {tool.description}{tool.emoji}
                                 </Text>
                             </VStack>
                         </Box>

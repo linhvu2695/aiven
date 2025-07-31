@@ -65,6 +65,7 @@ export const AgentSelectionGrid = ({ onSelect }: { onSelect?: () => void }) => {
                     model: agent.model,
                     persona: agent.persona,
                     tone: agent.tone,
+                    tools: agent.tools || [],
                 }))
             );
         } catch (error) {

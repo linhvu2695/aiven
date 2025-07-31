@@ -15,7 +15,7 @@ export type Agent = {
   model: string;
   persona: string;
   tone: string;
-  tools: Tool[];
+  tools: string[];
 };
 
 type AgentContextType = {

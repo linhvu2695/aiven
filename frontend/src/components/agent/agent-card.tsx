@@ -76,20 +76,6 @@ export const AgentCard = ({
         }
     };
 
-    const addToolToAgent = async (_toolId: string): Promise<boolean> => {
-        // Mock API call - replace with actual API
-        return new Promise((resolve) => {
-            setTimeout(() => resolve(true), 200);
-        });
-    };
-
-    const removeToolFromAgent = async (_toolId: string): Promise<boolean> => {
-        // Mock API call - replace with actual API
-        return new Promise((resolve) => {
-            setTimeout(() => resolve(true), 200);
-        });
-    };
-
     // Load available tools
     useEffect(() => {
         fetchAvailableTools().then(setAvailableTools);
@@ -100,19 +86,18 @@ export const AgentCard = ({
         if (agentDraft?.tools) {
             updateAgentDraft(
                 "tools",
-                agentDraft.tools.filter((t) => t.id !== toolId)
+                agentDraft.tools.filter((id) => id !== toolId)
             );
-            removeToolFromAgent(toolId); // Mock API call
         }
     };
 
-    // Modal management functions
-    const openToolModal = () => {
+    // Tool Popup management functions
+    const openToolPopup = () => {
         setSelectedToolIds(new Set());
         setIsToolPopupOpen(true);
     };
 
-    const closeToolModal = () => {
+    const closeToolPopup = () => {
         setIsToolPopupOpen(false);
         setSelectedToolIds(new Set());
     };
@@ -128,25 +113,22 @@ export const AgentCard = ({
     };
 
     const handleAddSelectedTools = () => {
-        const toolsToAdd = availableTools.filter(
-            (tool) =>
-                selectedToolIds.has(tool.id) &&
-                !agentDraft?.tools?.find((t) => t.id === tool.id)
+        const toolIdsToAdd = Array.from(selectedToolIds).filter(
+            (toolId) => !agentDraft?.tools?.includes(toolId)
         );
 
-        if (toolsToAdd.length > 0) {
+        if (toolIdsToAdd.length > 0) {
             updateAgentDraft("tools", [
                 ...(agentDraft?.tools || []),
-                ...toolsToAdd,
+                ...toolIdsToAdd,
             ]);
-            toolsToAdd.forEach((tool) => addToolToAgent(tool.id)); // Mock API calls
         }
 
-        closeToolModal();
+        closeToolPopup();
     };
 
     const isToolAssigned = (toolId: string) => {
-        return agentDraft?.tools?.some((t) => t.id === toolId) || false;
+        return agentDraft?.tools?.includes(toolId) || false;
     };
 
     // Load avatar
@@ -223,10 +205,7 @@ export const AgentCard = ({
                     headers: {
                         "Content-Type": "application/json",
                     },
-                    body: JSON.stringify({
-                        ...agentDraft,
-                        tools: agentDraft.tools?.map(tool => tool.id) || []
-                    }),
+                    body: JSON.stringify(agentDraft),
                 });
                 if (!response.ok) {
                     throw new Error("Failed to connect to server");
@@ -475,9 +454,9 @@ export const AgentCard = ({
                             {agentDraft?.tools &&
                             agentDraft.tools.length > 0 ? (
                                 <Flex wrap="wrap" gap={2} mb={2}>
-                                    {agentDraft.tools.map((tool) => (
+                                    {agentDraft.tools.map((toolId) => (
                                         <Badge
-                                            key={tool.id}
+                                            key={toolId}
                                             colorScheme="teal"
                                             variant="solid"
                                             px={3}
@@ -489,16 +468,14 @@ export const AgentCard = ({
                                             gap={2}
                                         >
                                             <Text fontSize="sm">
-                                                {tool.name}
+                                                {toolId}
                                             </Text>
                                             {isEditing && (
                                                 <CloseButton
                                                     size="xs"
                                                     borderRadius="4xl"
                                                     onClick={() =>
-                                                        handleRemoveTool(
-                                                            tool.id
-                                                        )
+                                                        handleRemoveTool(toolId)
                                                     }
                                                     color="black"
                                                     _hover={{
@@ -524,7 +501,7 @@ export const AgentCard = ({
                                     size="sm"
                                     variant="outline"
                                     colorScheme="teal"
-                                    onClick={openToolModal}
+                                    onClick={openToolPopup}
                                     aria-label="Add Tools"
                                     _hover={{
                                         bg: "teal.500",
@@ -620,7 +597,7 @@ export const AgentCard = ({
                             <Dialog.Footer>
                                 <Button
                                     variant="outline"
-                                    onClick={closeToolModal}
+                                    onClick={closeToolPopup}
                                 >
                                     Cancel
                                 </Button>
