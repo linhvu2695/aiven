@@ -10,6 +10,7 @@ class AgentInfo(BaseModel):
     model: LLMModel
     persona: str
     tone: str
+    tools: list[str]
 
 class CreateOrUpdateAgentRequest(BaseModel):
     id: Optional[str] = None
@@ -18,6 +19,7 @@ class CreateOrUpdateAgentRequest(BaseModel):
     model: LLMModel
     persona: str
     tone: str
+    tools: list[str]
 
 class CreateOrUpdateAgentResponse(BaseModel):
     success: bool

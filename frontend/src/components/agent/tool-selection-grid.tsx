@@ -4,9 +4,7 @@ import {
     Box,
     IconButton,
     VStack,
-    HStack,
     Text,
-    Badge,
 } from "@chakra-ui/react";
 import { FaCheck, FaTimes } from "react-icons/fa";
 import { type Tool } from "@/context/agent-ctx";

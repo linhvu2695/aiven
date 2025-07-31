@@ -4,7 +4,7 @@ export type Tool = {
   id: string;
   name: string;
   description: string;
-  category?: string;
+  emoji: string;
 };
 
 export type Agent = {

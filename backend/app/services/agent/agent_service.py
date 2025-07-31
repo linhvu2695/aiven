@@ -52,6 +52,7 @@ class AgentService:
             model=data.get("model", ""),
             persona=data.get("persona", ""),
             tone=data.get("tone", ""),
+            tools=data.get("tools", []),
         )
 
     async def create_or_update_agent(
@@ -69,13 +70,14 @@ class AgentService:
                 "model": request.model,
                 "persona": request.persona,
                 "tone": request.tone,
+                "tools": request.tools,
             }
             
             if getattr(request, "id", None):  # Update if id is present
                 updated_id = await update_document(
                     AGENT_COLLECTION_NAME, str(request.id), document
                 )
-                if updated_id is not None:
+                if updated_id is None:
                     raise Exception(f"Agent update failed for id {request.id}")
 
                 return CreateOrUpdateAgentResponse(
@@ -102,6 +104,7 @@ class AgentService:
                 model=doc.get("model", ""),
                 persona=doc.get("persona", ""),
                 tone=doc.get("tone", ""),
+                tools=doc.get("tools", []),
             )
             for doc in documents
         ]

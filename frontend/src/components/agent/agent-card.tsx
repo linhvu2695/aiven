@@ -57,51 +57,23 @@ export const AgentCard = ({
     );
     const fileInputRef = useRef<HTMLInputElement | null>(null);
 
-    // Mock API functions for tools (to be replaced with actual API calls)
-    const mockAvailableTools: Tool[] = [
-        {
-            id: "web-search",
-            name: "Web Search",
-            description: "Search the internet for real-time information",
-            category: "Search",
-        },
-        {
-            id: "file-manager",
-            name: "File Manager",
-            description: "Read, write, and manage files in the workspace",
-            category: "File System",
-        },
-        {
-            id: "code-executor",
-            name: "Code Executor",
-            description: "Execute code in various programming languages",
-            category: "Development",
-        },
-        {
-            id: "calculator",
-            name: "Calculator",
-            description: "Perform mathematical calculations and computations",
-            category: "Math",
-        },
-        {
-            id: "weather",
-            name: "Weather",
-            description: "Get current weather information for any location",
-            category: "Data",
-        },
-        {
-            id: "email",
-            name: "Email",
-            description: "Send and manage email communications",
-            category: "Communication",
-        },
-    ];
-
     const fetchAvailableTools = async (): Promise<Tool[]> => {
-        // Mock API call - replace with actual API
-        return new Promise((resolve) => {
-            setTimeout(() => resolve(mockAvailableTools), 500);
-        });
+        try {
+            const response = await fetch(BASE_URL + "/api/tool/search", {
+                method: "GET",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+            });
+
+            if (!response.ok) throw new Error("Failed to fetch available tools");
+
+            const data = await response.json();
+            return data.tools;
+        } catch (error) {
+            console.error("Error fetching available tools:", error);
+            return [];
+        }
     };
 
     const addToolToAgent = async (_toolId: string): Promise<boolean> => {
@@ -124,7 +96,6 @@ export const AgentCard = ({
     }, []);
 
     // Tool management functions
-
     const handleRemoveTool = (toolId: string) => {
         if (agentDraft?.tools) {
             updateAgentDraft(
@@ -252,7 +223,10 @@ export const AgentCard = ({
                     headers: {
                         "Content-Type": "application/json",
                     },
-                    body: JSON.stringify(agentDraft),
+                    body: JSON.stringify({
+                        ...agentDraft,
+                        tools: agentDraft.tools?.map(tool => tool.id) || []
+                    }),
                 });
                 if (!response.ok) {
                     throw new Error("Failed to connect to server");
