@@ -20,7 +20,7 @@ async def check_mongodb_health():
     try:
         conn = _get_mongodb_conn()
         await conn.command("ping")
-        logging.getLogger("uvicorn.error").info("Successfully connected to MongoDB")
+        logging.getLogger("uvicorn.info").info("Successfully connected to MongoDB")
         return True
     except Exception as ex:
         logging.getLogger("uvicorn.error").error(f"Fail to connect to MongoDB: {ex}")

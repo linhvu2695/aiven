@@ -60,7 +60,7 @@ class AgentService:
     ) -> CreateOrUpdateAgentResponse:
         valid, warning = self._validate_create_agent_request(request)
         if not valid:
-            logging.getLogger("uvicorn.error").warning(warning)
+            logging.getLogger("uvicorn.warning").warning(warning)
             return CreateOrUpdateAgentResponse(success=False, id="", message=warning)
 
         try:
@@ -119,7 +119,7 @@ class AgentService:
                 try:
                     await FirebaseStorageRepository().delete(avatar_path)
                 except Exception as avatar_exc:
-                    logging.getLogger("uvicorn.error").warning(f"Failed to delete avatar for agent {id}: {avatar_exc}")
+                    logging.getLogger("uvicorn.warning").warning(f"Failed to delete avatar for agent {id}: {avatar_exc}")
             return await delete_document(AGENT_COLLECTION_NAME, id)
         except Exception as e:
             logging.getLogger("uvicorn.error").error(f"Failed to delete agent {id}: {e}")

@@ -53,7 +53,7 @@ class ArticleService:
     ) -> CreateOrUpdateArticleResponse:
         valid, warning = self._validate_create_article_request(request)
         if not valid:
-            logging.getLogger("uvicorn.error").warn(warning)
+            logging.getLogger("uvicorn.warning").warning(warning)
             return CreateOrUpdateArticleResponse(success=False, id="", message=warning)
 
         try:

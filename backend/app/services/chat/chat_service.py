@@ -1,18 +1,21 @@
+import logging
 from fastapi import UploadFile
 from langchain.chat_models import init_chat_model
 from langchain_core.language_models.chat_models import BaseChatModel
 from langchain_core.messages import HumanMessage
 from langchain_core.runnables import RunnableConfig
+from langchain_core.tools import BaseTool
 from langgraph.prebuilt import create_react_agent
 from app.classes.chat import ChatFileContent, ChatFileUrl, ChatMessage, ChatRequest, ChatResponse
 from app.core.config import settings
 from app.utils.chat import chat_utils
 from app.core.constants import LLMModel, OPENAI_MODELS, GEMINI_MODELS, CLAUDE_MODELS, GROK_MODELS, MISTRAL_MODELS, NVIDIA_MODELS
 from app.services.agent.agent_service import AgentService
-import base64
-import mimetypes
-import re
+from app.services.tool.tool_service import ToolService
+import base64, mimetypes, re
 from typing import Optional
+from langchain_mcp_adapters.client import MultiServerMCPClient
+from pathlib import Path
 
 GPT_DEFAULT_MODEL = LLMModel.GPT_4O_MINI
 
@@ -24,7 +27,38 @@ class ChatService:
             cls._instance = super(ChatService, cls).__new__(cls)
         return cls._instance
     
+    async def _load_mcp_tools(self, tool_names: list[str]) -> list[BaseTool]:
+        if not tool_names:
+            return []
+            
+        try:
+            # Get the path to the MCP server
+            current_dir = Path(__file__).parent
+            backend_dir = current_dir.parent.parent.parent
+            mcp_server_path = backend_dir / "mcp_server" / "server.py"
 
+            client = MultiServerMCPClient({
+                "aiven": {
+                    "command": "python",
+                    "args": [str(mcp_server_path)],
+                    "transport": "stdio",
+                }
+            })
+            
+            # Get all available tools from MCP server
+            all_functions = await client.get_tools()
+            
+            allowed_mcp_functions = ToolService().get_mcp_functions_for_tools(tool_names)
+            
+            filtered_functions = []
+            for function in all_functions:
+                if function.name in allowed_mcp_functions:
+                    filtered_functions.append(function)
+            return filtered_functions
+                    
+        except Exception as e:
+            logging.getLogger("uvicorn.warning").warning(f"Warning: Could not load MCP tools: {e}")
+            return []
 
     def _get_chat_model(self, model_name) -> BaseChatModel:
         if model_name in OPENAI_MODELS:
@@ -122,14 +156,16 @@ class ChatService:
     
     async def generate_chat_response(self, request: ChatRequest) -> ChatResponse:
         try:
+            # Step 1: Get agent and model
             agent = await AgentService().get_agent(request.agent)
             model = self._get_chat_model(agent.model)
 
+            # Step 2: Convert messages to LangChain format
             messages = [ChatMessage(role="system", content=agent.persona)]
             messages.extend(request.messages)
             lc_messages = chat_utils.convert_chat_messages(messages)
             
-            # Process uploaded files if any
+            # Step 3: Process uploaded files if any
             if request.files:
                 file = request.files[0] # expect only one file
                 file_content = await self._get_file_content(file)
@@ -140,10 +176,15 @@ class ChatService:
                     ])
                     lc_messages.append(file_message)
 
-            # Create LangGraph react agent without tools (simple conversation agent)
-            graph = create_react_agent(model, [])
+            # Step 4: Load MCP tools based on agent configuration
+            functions = []
+            if agent.tools is not None and len(agent.tools) > 0:
+                functions = await self._load_mcp_tools(agent.tools)
             
-            # Add custom metadata and tags to the LLM call for better tracing
+            # Step 5: Create LangGraph react agent with MCP tools
+            graph = create_react_agent(model, functions)
+            
+            # Step 6: Add custom metadata and tags to the LLM call for better tracing
             config = RunnableConfig(
                 metadata=await self._get_trace_metadata(request),
                 tags=[
@@ -152,13 +193,13 @@ class ChatService:
                 run_name=f"Chat with {agent.name}"
             )
             
-            # Invoke the graph with messages
+            # Step 7: Invoke the graph with messages
             result = await graph.ainvoke(
                 {"messages": lc_messages}, 
                 config=config
             )
             
-            # Extract the final response from the graph result
+            # Step 8: Extract the final response from the graph result
             response_message = result["messages"][-1]
             response_content = response_message.content
             if isinstance(response_content, list):

@@ -6,6 +6,7 @@ class ToolInfo(BaseModel):
     name: str
     description: str
     emoji: str
+    mcp_functions: list[str]
 
 class SearchToolsResponse(BaseModel):
     """Response for tool search endpoint"""

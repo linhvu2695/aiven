@@ -13,4 +13,5 @@ def register_health_tools(mcp: FastMCP, client: AivenAPIClient):
     async def ping_health() -> str:
         """Check if the API server is healthy and responding"""
         result = await client.request("GET", "/api/ping")
+        print(f"Ping health result: {result}")
         return client.format_response(result)
