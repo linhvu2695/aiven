@@ -1,5 +1,5 @@
 import { Box, VStack, Text } from "@chakra-ui/react";
-import { useEffect } from "react";
+import { useMemo } from "react";
 import {
     DndContext,
     type DragEndEvent,
@@ -16,9 +16,7 @@ import { toaster } from "../ui/toaster";
 import { isDescendant } from "../../utils/article-utils";
 
 interface ArticleTreePanelProps {
-    articles: ArticleItemInfo[];
     onSelect: (article: ArticleItemInfo) => void;
-    searchQuery: string;
 }
 
 const RootDropZone = () => {
@@ -58,14 +56,13 @@ const RootDropZone = () => {
 };
 
 const ArticleTree = ({
+    articles,
     onSelect,
 }: {
+    articles: ArticleItemInfo[];
     onSelect: (article: ArticleItemInfo) => void;
 }) => {
-    const { articles, setArticles } = useArticle();
-
-    // Derive root articles from the articles array
-    const rootArticles = articles.filter((article) => article.parent === "0");
+    const { setArticles } = useArticle();
 
     const sensors = useSensors(
         useSensor(PointerSensor, {
@@ -163,7 +160,7 @@ const ArticleTree = ({
                     {/* Article tree */}
                     <Box flex={1} p={2}>
                         <VStack gap={1} align="stretch">
-                            {rootArticles.map((article) => {
+                            {articles.map((article) => {
                                 return (
                                     <ArticleTreeItem
                                         key={article.id}
@@ -173,7 +170,7 @@ const ArticleTree = ({
                                     />
                                 );
                             })}
-                            {rootArticles.length === 0 && (
+                            {articles.length === 0 && (
                                 <Box p={4} textAlign="center">
                                     <Text color="gray.500" fontSize="sm">
                                         No articles yet
@@ -189,17 +186,30 @@ const ArticleTree = ({
 };
 
 export const ArticleTreePanel = ({
-    articles,
     onSelect,
-    searchQuery,
 }: ArticleTreePanelProps) => {
-    const { setArticles } = useArticle();
+    const { articles, searchQuery } = useArticle();
 
-    // Update the context when articles prop changes
-    // This allows the component to still receive articles as props while storing them in context
-    useEffect(() => {
-        setArticles(articles);
-    }, [articles, setArticles]);
+    // Derive root articles from the articles array
+    const rootArticles = articles.filter((article) => article.parent === "0");
+
+    // Filter articles based on search query
+    const filteredArticles = useMemo(() => {
+        if (searchQuery === "") return rootArticles;
+        
+        return articles.filter(
+            (article) =>
+                article.title
+                    .toLowerCase()
+                    .includes(searchQuery.toLowerCase()) ||
+                article.summary
+                    .toLowerCase()
+                    .includes(searchQuery.toLowerCase()) ||
+                article.tags.some((tag) =>
+                    tag.toLowerCase().includes(searchQuery.toLowerCase())
+                )
+        );
+    }, [searchQuery, articles]);
 
     return (
         <Box w="400px">
@@ -210,8 +220,8 @@ export const ArticleTreePanel = ({
                     </Text>
                 </Box>
                 <Box flex={1} overflow="hidden">
-                    {articles.length > 0 ? (
-                        <ArticleTree onSelect={onSelect} />
+                    {filteredArticles.length > 0 ? (
+                        <ArticleTree articles={filteredArticles} onSelect={onSelect} />
                     ) : (
                         <Box p={4} textAlign="center">
                             <Text color="gray.500" fontSize="sm">

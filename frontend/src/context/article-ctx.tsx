@@ -31,6 +31,10 @@ type ArticleContextType = {
     mode: ViewMode;
     setMode: Dispatch<SetStateAction<ViewMode>>;
 
+    // Search functionality
+    searchQuery: string;
+    setSearchQuery: Dispatch<SetStateAction<string>>;
+
     // Article tree data
     articles: ArticleItemInfo[];
     setArticles: Dispatch<SetStateAction<ArticleItemInfo[]>>;
@@ -52,6 +56,7 @@ export const ArticleProvider = ({ children }: { children: ReactNode }) => {
     const [articles, setArticles] = useState<ArticleItemInfo[]>([]);
     const [selectedArticle, setSelectedArticle] = useState<Article | null>(null);
     const [mode, setMode] = useState<ViewMode>("view");
+    const [searchQuery, setSearchQuery] = useState<string>("");
 
     const updateArticleDraft = <K extends keyof Article>(
         field: K,
@@ -72,6 +77,8 @@ export const ArticleProvider = ({ children }: { children: ReactNode }) => {
                 setSelectedArticle,
                 mode,
                 setMode,
+                searchQuery,
+                setSearchQuery,
                 articles,
                 setArticles,
             }}

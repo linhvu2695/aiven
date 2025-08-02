@@ -52,7 +52,7 @@ export const ToolSelectionGrid = ({
                                 !isAssigned && onToggleToolSelection(tool.id)
                             }
                         >
-                            {/* Remove button for assigned tools */}
+                            {/* Remove button */}
                             {isAssigned && (
                                 <IconButton
                                     position="absolute"
@@ -88,19 +88,19 @@ export const ToolSelectionGrid = ({
                             )}
 
                             {/* Content */}
-                            <VStack
-                                align="start"
-                                gap={2}
-                            >
+                            <VStack align="start" gap={2}>
                                 <Text fontWeight="bold" fontSize="sm">
-                                    {tool.name}
+                                    {tool.emoji} {tool.name}
                                 </Text>
                                 <Text
                                     fontSize="xs"
-                                    color={{ base: "gray.600", _dark: "gray.200" }}
+                                    color={{
+                                        base: "gray.600",
+                                        _dark: "gray.200",
+                                    }}
                                     lineClamp={2}
                                 >
-                                    {tool.description}{tool.emoji}
+                                    {tool.description}
                                 </Text>
                             </VStack>
                         </Box>

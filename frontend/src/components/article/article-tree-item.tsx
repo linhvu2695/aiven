@@ -35,6 +35,7 @@ export const ArticleTreeItem = ({
         selectedArticle,
         setSelectedArticle,
         setMode,
+        searchQuery,
     } = useArticle();
 
     // Draggable hook
@@ -163,7 +164,7 @@ export const ArticleTreeItem = ({
                 </Text>
 
                 {/* Fold button */}
-                {hasChildren && (
+                {hasChildren && searchQuery === "" && (
                     <IconButton
                         aria-label="Toggle children"
                         variant="ghost"
@@ -216,7 +217,7 @@ export const ArticleTreeItem = ({
                 </IconButton>
             </HStack>
 
-            {hasChildren && (
+            {hasChildren && searchQuery === "" && (
                 <Collapsible.Root open={open}>
                     <Collapsible.Content>
                         <VStack gap={0} align="stretch">

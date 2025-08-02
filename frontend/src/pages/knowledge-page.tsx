@@ -1,6 +1,6 @@
 import { Box, HStack, Input, Button, Flex, IconButton } from "@chakra-ui/react";
 import { FaPlus, FaEdit, FaEye } from "react-icons/fa";
-import { useState, useEffect, useMemo } from "react";
+import { useEffect } from "react";
 import { BASE_URL } from "@/App";
 
 import { Tooltip } from "@/components/ui/tooltip";
@@ -16,14 +16,14 @@ export const KnowledgePage = () => {
         setArticle,
         articleDraft,
         setArticleDraft,
-        articles,
         setArticles,
         selectedArticle,
         setSelectedArticle,
         mode,
         setMode,
+        searchQuery,
+        setSearchQuery,
     } = useArticle();
-    const [searchQuery, setSearchQuery] = useState("");
 
     const fetchArticle = async (id: string) => {
         try {
@@ -119,21 +119,7 @@ export const KnowledgePage = () => {
         fetchArticles();
     }, []);
 
-    const filteredArticles = useMemo(() => {
-        if (!searchQuery) return articles;
-        return articles.filter(
-            (article) =>
-                article.title
-                    .toLowerCase()
-                    .includes(searchQuery.toLowerCase()) ||
-                article.summary
-                    .toLowerCase()
-                    .includes(searchQuery.toLowerCase()) ||
-                article.tags.some((tag) =>
-                    tag.toLowerCase().includes(searchQuery.toLowerCase())
-                )
-        );
-    }, [searchQuery, articles]);
+
 
     const handleNewArticle = () => {
         const newArticle: Article = {
@@ -212,11 +198,9 @@ export const KnowledgePage = () => {
             <Flex h="calc(100vh - 80px)">
                 {/* Article Tree */}
                 <ArticleTreePanel
-                    articles={filteredArticles} 
                     onSelect={(article: ArticleItemInfo) =>
                         fetchArticle(article.id)
                     }
-                    searchQuery={searchQuery}
                 />
 
                 {/* Article View */}
