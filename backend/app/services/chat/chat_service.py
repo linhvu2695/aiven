@@ -3,6 +3,7 @@ from langchain.chat_models import init_chat_model
 from langchain_core.language_models.chat_models import BaseChatModel
 from langchain_core.messages import HumanMessage
 from langchain_core.runnables import RunnableConfig
+from langgraph.prebuilt import create_react_agent
 from app.classes.chat import ChatFileContent, ChatFileUrl, ChatMessage, ChatRequest, ChatResponse
 from app.core.config import settings
 from app.utils.chat import chat_utils
@@ -23,6 +24,8 @@ class ChatService:
             cls._instance = super(ChatService, cls).__new__(cls)
         return cls._instance
     
+
+
     def _get_chat_model(self, model_name) -> BaseChatModel:
         if model_name in OPENAI_MODELS:
             return init_chat_model(model=model_name, model_provider="openai", api_key=settings.openai_api_key)
@@ -137,6 +140,9 @@ class ChatService:
                     ])
                     lc_messages.append(file_message)
 
+            # Create LangGraph react agent without tools (simple conversation agent)
+            graph = create_react_agent(model, [])
+            
             # Add custom metadata and tags to the LLM call for better tracing
             config = RunnableConfig(
                 metadata=await self._get_trace_metadata(request),
@@ -145,10 +151,27 @@ class ChatService:
                 ],
                 run_name=f"Chat with {agent.name}"
             )
-
-            # Invoke!
-            response = model.invoke(lc_messages, config=config)
-            return ChatResponse(response=str(response.content))
+            
+            # Invoke the graph with messages
+            result = await graph.ainvoke(
+                {"messages": lc_messages}, 
+                config=config
+            )
+            
+            # Extract the final response from the graph result
+            response_message = result["messages"][-1]
+            response_content = response_message.content
+            if isinstance(response_content, list):
+                # If content is a list, extract text from it
+                response_text = ""
+                for item in response_content:
+                    if isinstance(item, str):
+                        response_text += item
+                    elif isinstance(item, dict) and "text" in item:
+                        response_text += item["text"]
+                return ChatResponse(response=response_text)
+            else:
+                return ChatResponse(response=str(response_content))
             
         except Exception as e:
             error_msg = str(e)

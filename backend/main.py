@@ -36,7 +36,6 @@ app.include_router(tool.router, prefix="/api/tool", tags=["Tool"])
 # Configure LangSmith tracing
 if settings.langsmith_tracing == "true":
     os.environ["LANGCHAIN_TRACING_V2"] = "true"
-    os.environ["LANGCHAIN_API_KEY"] = settings.langsmith_api_key
-    os.environ["LANGCHAIN_PROJECT"] = settings.langsmith_project
-
+    os.environ["LANGCHAIN_API_KEY"] = settings.langchain_api_key
+    os.environ["LANGCHAIN_PROJECT"] = settings.langchain_project
 

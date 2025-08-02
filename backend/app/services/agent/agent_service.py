@@ -60,7 +60,7 @@ class AgentService:
     ) -> CreateOrUpdateAgentResponse:
         valid, warning = self._validate_create_agent_request(request)
         if not valid:
-            logging.getLogger("uvicorn.error").warn(warning)
+            logging.getLogger("uvicorn.error").warning(warning)
             return CreateOrUpdateAgentResponse(success=False, id="", message=warning)
 
         try:

@@ -24,8 +24,8 @@ class Settings(BaseSettings):
     redis_username: str
     redis_database: str
 
-    langsmith_api_key: str
-    langsmith_project: str
+    langchain_api_key: str
+    langchain_project: str
     langsmith_tracing: str
 
     class Config:

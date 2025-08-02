@@ -2,9 +2,10 @@ import pytest
 import base64
 from unittest.mock import patch, AsyncMock, MagicMock
 from fastapi import UploadFile
-from langchain_core.messages import HumanMessage
+from langchain_core.messages import HumanMessage, AIMessage, SystemMessage
 
 from app.services.chat.chat_service import ChatService
+from app.services.agent.agent_service import AgentService
 from app.classes.chat import ChatMessage, ChatRequest, ChatResponse, ChatFileContent
 from app.classes.agent import AgentInfo
 from app.core.constants import LLMModel
@@ -345,7 +346,8 @@ class TestGenerateChatResponse:
             model=LLMModel.GPT_4O,
             persona="You are a helpful assistant",
             tone="friendly",
-            avatar="test_avatar"
+            avatar="test_avatar",
+            tools=[]
         )
     
     @pytest.fixture
@@ -363,22 +365,39 @@ class TestGenerateChatResponse:
     @pytest.mark.asyncio
     async def test_generate_chat_response_success(self, chat_service, sample_agent, sample_chat_request):
         """Test successful chat response generation."""
+        # Create a more comprehensive mock
         mock_model = MagicMock()
-        mock_response = MagicMock()
-        mock_response.content = "I'm doing well, thank you!"
-        mock_model.invoke.return_value = mock_response
+        
+        # Create a mock response message with the expected structure
+        mock_response_message = MagicMock()
+        mock_response_message.content = "I'm doing well, thank you!"
+        
+        # Create a mock graph with complete mocking
+        mock_graph = AsyncMock()
+        mock_graph.ainvoke.return_value = {"messages": [mock_response_message]}
         
         with patch.object(chat_service, '_get_chat_model', return_value=mock_model), \
-             patch('app.services.agent.agent_service.AgentService.get_agent', new=AsyncMock(return_value=sample_agent)), \
-             patch('app.utils.chat.chat_utils.convert_chat_messages') as mock_convert:
+             patch.object(AgentService, 'get_agent', new=AsyncMock(return_value=sample_agent)), \
+             patch('app.services.chat.chat_service.create_react_agent') as mock_create_agent:
             
-            mock_convert.return_value = [MagicMock(), MagicMock(), MagicMock()]
+            # Set up the mock to return our mock graph
+            mock_create_agent.return_value = mock_graph
             
             result = await chat_service.generate_chat_response(sample_chat_request)
         
         assert isinstance(result, ChatResponse)
         assert result.response == "I'm doing well, thank you!"
-        mock_model.invoke.assert_called_once()
+        
+        # Verify create_react_agent was called with the model and empty tools
+        mock_create_agent.assert_called_once_with(mock_model, [])
+        
+        # Verify the graph was called
+        mock_graph.ainvoke.assert_called_once()
+        
+        # Verify the correct arguments were passed to ainvoke
+        call_args, call_kwargs = mock_graph.ainvoke.call_args
+        assert "messages" in call_args[0]
+        assert len(call_args[0]["messages"]) == 4  # system + 3 request messages
     
     @pytest.mark.asyncio
     async def test_generate_chat_response_with_file(self, chat_service, sample_agent):
@@ -400,28 +419,33 @@ class TestGenerateChatResponse:
             mime_type="image/jpeg"
         )
         
+        # Set up mocks
         mock_model = MagicMock()
-        mock_response = MagicMock()
-        mock_response.content = "I can see the image"
-        mock_model.invoke.return_value = mock_response
+        mock_response_message = MagicMock()
+        mock_response_message.content = "I can see the image"
+        
+        mock_graph = AsyncMock()
+        mock_graph.ainvoke.return_value = {"messages": [mock_response_message]}
         
         with patch.object(chat_service, '_get_chat_model', return_value=mock_model), \
              patch.object(chat_service, '_get_file_content', new=AsyncMock(return_value=mock_file_content)), \
-             patch('app.services.agent.agent_service.AgentService.get_agent', new=AsyncMock(return_value=sample_agent)), \
-             patch('app.utils.chat.chat_utils.convert_chat_messages') as mock_convert:
+             patch.object(AgentService, 'get_agent', new=AsyncMock(return_value=sample_agent)), \
+             patch('app.services.chat.chat_service.create_react_agent') as mock_create_agent:
             
-            mock_convert.return_value = [MagicMock()]
+            mock_create_agent.return_value = mock_graph
             
             result = await chat_service.generate_chat_response(request_with_file)
         
         assert isinstance(result, ChatResponse)
         assert result.response == "I can see the image"
-        mock_model.invoke.assert_called_once()
         
-        # Verify that file message was added
-        call_args = mock_model.invoke.call_args[0][0]
-        assert len(call_args) == 2  # original messages + file message
-        assert isinstance(call_args[-1], HumanMessage)
+        # Verify the graph was called
+        mock_graph.ainvoke.assert_called_once()
+        
+        # Verify that file message was added to the messages
+        call_args, call_kwargs = mock_graph.ainvoke.call_args
+        assert "messages" in call_args[0]
+        assert len(call_args[0]["messages"]) == 3  # system + user message + file message
     
     @pytest.mark.asyncio
     async def test_generate_chat_response_with_file_no_content(self, chat_service, sample_agent):
@@ -435,17 +459,20 @@ class TestGenerateChatResponse:
             files=[mock_file]
         )
         
+        # Set up mocks
         mock_model = MagicMock()
-        mock_response = MagicMock()
-        mock_response.content = "No image provided"
-        mock_model.invoke.return_value = mock_response
+        mock_response_message = MagicMock()
+        mock_response_message.content = "No image provided"
+        
+        mock_graph = AsyncMock()
+        mock_graph.ainvoke.return_value = {"messages": [mock_response_message]}
         
         with patch.object(chat_service, '_get_chat_model', return_value=mock_model), \
              patch.object(chat_service, '_get_file_content', new=AsyncMock(return_value=None)), \
-             patch('app.services.agent.agent_service.AgentService.get_agent', new=AsyncMock(return_value=sample_agent)), \
-             patch('app.utils.chat.chat_utils.convert_chat_messages') as mock_convert:
+             patch.object(AgentService, 'get_agent', new=AsyncMock(return_value=sample_agent)), \
+             patch('app.services.chat.chat_service.create_react_agent') as mock_create_agent:
             
-            mock_convert.return_value = [MagicMock()]
+            mock_create_agent.return_value = mock_graph
             
             result = await chat_service.generate_chat_response(request_with_file)
         
@@ -453,21 +480,25 @@ class TestGenerateChatResponse:
         assert result.response == "No image provided"
         
         # Verify that no file message was added
-        call_args = mock_model.invoke.call_args[0][0]
-        assert len(call_args) == 1  # only original messages
+        call_args, call_kwargs = mock_graph.ainvoke.call_args
+        assert "messages" in call_args[0]
+        assert len(call_args[0]["messages"]) == 2  # system + user message only
     
     @pytest.mark.asyncio
     async def test_generate_chat_response_format_error(self, chat_service, sample_agent, sample_chat_request):
         """Test handling of format-related errors."""
         mock_model = MagicMock()
-        mock_model.invoke.side_effect = Exception("Unsupported media_type: image/webp")
+        
+        # Mock the graph to raise a format-related exception
+        mock_graph = AsyncMock()
+        mock_graph.ainvoke.side_effect = Exception("Unsupported media_type: image/webp")
         
         with patch.object(chat_service, '_get_chat_model', return_value=mock_model), \
-             patch('app.services.agent.agent_service.AgentService.get_agent', new=AsyncMock(return_value=sample_agent)), \
-             patch('app.utils.chat.chat_utils.convert_chat_messages') as mock_convert, \
+             patch.object(AgentService, 'get_agent', new=AsyncMock(return_value=sample_agent)), \
+             patch('app.services.chat.chat_service.create_react_agent') as mock_create_agent, \
              patch.object(chat_service, '_parse_format_error', return_value="Format error message") as mock_parse:
             
-            mock_convert.return_value = [MagicMock()]
+            mock_create_agent.return_value = mock_graph
             
             result = await chat_service.generate_chat_response(sample_chat_request)
         
@@ -484,13 +515,16 @@ class TestGenerateChatResponse:
             pass
         
         MockBadRequestError.__name__ = "BadRequestError"
-        mock_model.invoke.side_effect = MockBadRequestError("Bad request")
+        
+        # Mock the graph to raise a BadRequestError
+        mock_graph = AsyncMock()
+        mock_graph.ainvoke.side_effect = MockBadRequestError("Bad request")
         
         with patch.object(chat_service, '_get_chat_model', return_value=mock_model), \
-             patch('app.services.agent.agent_service.AgentService.get_agent', new=AsyncMock(return_value=sample_agent)), \
-             patch('app.utils.chat.chat_utils.convert_chat_messages') as mock_convert:
+             patch.object(AgentService, 'get_agent', new=AsyncMock(return_value=sample_agent)), \
+             patch('app.services.chat.chat_service.create_react_agent') as mock_create_agent:
             
-            mock_convert.return_value = [MagicMock()]
+            mock_create_agent.return_value = mock_graph
             
             result = await chat_service.generate_chat_response(sample_chat_request)
         
@@ -501,13 +535,16 @@ class TestGenerateChatResponse:
     async def test_generate_chat_response_generic_error(self, chat_service, sample_agent, sample_chat_request):
         """Test handling of generic errors."""
         mock_model = MagicMock()
-        mock_model.invoke.side_effect = Exception("Generic error")
+        
+        # Mock the graph to raise a generic exception
+        mock_graph = AsyncMock()
+        mock_graph.ainvoke.side_effect = Exception("Generic error")
         
         with patch.object(chat_service, '_get_chat_model', return_value=mock_model), \
-             patch('app.services.agent.agent_service.AgentService.get_agent', new=AsyncMock(return_value=sample_agent)), \
-             patch('app.utils.chat.chat_utils.convert_chat_messages') as mock_convert:
+             patch.object(AgentService, 'get_agent', new=AsyncMock(return_value=sample_agent)), \
+             patch('app.services.chat.chat_service.create_react_agent') as mock_create_agent:
             
-            mock_convert.return_value = [MagicMock()]
+            mock_create_agent.return_value = mock_graph
             
             result = await chat_service.generate_chat_response(sample_chat_request)
         

@@ -23,6 +23,7 @@ def mock_agent_data():
         "model": "o3",
         "persona": "helpful",
         "tone": "friendly",
+        "tools": ["agent-management", "chat", "knowledge-base"]
     }
 
 
@@ -33,7 +34,8 @@ def create_agent_request():
         description="Test Description",
         model=LLMModel.O3,
         persona="helpful",
-        tone="friendly"
+        tone="friendly",
+        tools=["chat", "system-health"]
     )
 
 
@@ -45,7 +47,8 @@ def update_agent_request():
         description="Updated Description",
         model=LLMModel.GEMINI_2_0_FLASH,
         persona="expert",
-        tone="serious"
+        tone="serious",
+        tools=["agent-management", "file-storage", "knowledge-base"]
     )
 
 
@@ -69,7 +72,8 @@ class TestAgentService:
                 "model": "o3",
                 "persona": "helpful",
                 "tone": "friendly",
-                "avatar": "avatar/agent1.jpg"
+                "avatar": "avatar/agent1.jpg",
+                "tools": ["chat", "agent-management"]
             },
             {
                 "_id": "2",
@@ -78,7 +82,8 @@ class TestAgentService:
                 "model": "gemini-2.0-flash",
                 "persona": "expert",
                 "tone": "serious",
-                "avatar": ""
+                "avatar": "",
+                "tools": ["knowledge-base", "file-storage", "system-health"]
             },
         ]
         
@@ -95,6 +100,7 @@ class TestAgentService:
             assert response.agents[0].persona == "helpful"
             assert response.agents[0].tone == "friendly"
             assert response.agents[0].avatar == "http://avatar1.jpg"
+            assert response.agents[0].tools == ["chat", "agent-management"]
 
             assert response.agents[1].name == "Agent 2"
             assert response.agents[1].description == "Desc 2"
@@ -102,6 +108,7 @@ class TestAgentService:
             assert response.agents[1].persona == "expert"
             assert response.agents[1].tone == "serious"
             assert response.agents[1].avatar == ""
+            assert response.agents[1].tools == ["knowledge-base", "file-storage", "system-health"]
 
 
     @pytest.mark.asyncio
@@ -120,6 +127,7 @@ class TestAgentService:
             assert agent.model == "o3"
             assert agent.persona == "helpful"
             assert agent.tone == "friendly"
+            assert agent.tools == ["agent-management", "chat", "knowledge-base"]
 
 
     @pytest.mark.asyncio
@@ -158,7 +166,8 @@ class TestAgentService:
             description="Test Description",
             model=LLMModel.O3,
             persona="helpful",
-            tone="friendly"
+            tone="friendly",
+            tools=["chat", "system-health"]
         )
         valid, warning = agent_service._validate_create_agent_request(request)
         assert valid is False
@@ -197,7 +206,8 @@ class TestAgentService:
             description="Test Description",
             model=LLMModel.O3,
             persona="helpful",
-            tone="friendly"
+            tone="friendly",
+            tools=["chat", "agent-management"]
         )
         
         response = await agent_service.create_or_update_agent(invalid_request)
@@ -223,24 +233,25 @@ class TestAgentService:
     @pytest.mark.asyncio
     async def test_update_agent_success(self, agent_service, update_agent_request):
         """Test successful agent update"""
-        with patch("app.services.agent.agent_service.update_document", return_value=None):
+        with patch("app.services.agent.agent_service.update_document", return_value="test_id_123"):
             response = await agent_service.create_or_update_agent(update_agent_request)
             
             assert isinstance(response, CreateOrUpdateAgentResponse)
             assert response.success is True
-            assert response.id == "None"  # This seems like a bug in the original code
+            assert response.id == "test_id_123"
             assert response.message == "Agent updated successfully."
 
 
     @pytest.mark.asyncio
     async def test_update_agent_failure(self, agent_service, update_agent_request):
         """Test agent update failure"""
-        with patch("app.services.agent.agent_service.update_document", return_value="some_value"):
+        with patch("app.services.agent.agent_service.update_document", return_value=None):
             response = await agent_service.create_or_update_agent(update_agent_request)
             
             assert isinstance(response, CreateOrUpdateAgentResponse)
             assert response.success is False
             assert response.id == ""
+            assert response.message == f"Agent update failed for id {update_agent_request.id}"
 
 
     @pytest.mark.asyncio

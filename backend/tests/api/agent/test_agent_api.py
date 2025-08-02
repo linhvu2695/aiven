@@ -13,8 +13,8 @@ app.include_router(router, prefix="/agents")
 @pytest.mark.asyncio
 async def test_search_agents_api():
     mock_response = SearchAgentsResponse(agents=[
-        AgentInfo(id="1", name="Agent 1", description="Desc 1", model=LLMModel.GPT_3_5_TURBO, persona="helpful", tone="friendly", avatar="http://test/url/avatar1.jpg"),
-        AgentInfo(id="2", name="Agent 2", description="Desc 2", model=LLMModel.GPT_4, persona="expert", tone="serious", avatar="http://test/url/avatar2.jpg"),
+        AgentInfo(id="1", name="Agent 1", description="Desc 1", model=LLMModel.GPT_3_5_TURBO, persona="helpful", tone="friendly", avatar="http://test/url/avatar1.jpg", tools=["chat", "agent-management"]),
+        AgentInfo(id="2", name="Agent 2", description="Desc 2", model=LLMModel.GPT_4, persona="expert", tone="serious", avatar="http://test/url/avatar2.jpg", tools=["knowledge-base", "file-storage", "system-health"]),
     ])
     
     with patch("app.services.agent.agent_service.AgentService.search_agents", new=AsyncMock(return_value=mock_response)):
@@ -49,7 +49,8 @@ async def test_get_agent_api():
         model=LLMModel.GPT_4,
         persona="helpful",
         tone="friendly",
-        avatar="http://test/url/avatar.jpg"
+        avatar="http://test/url/avatar.jpg",
+        tools=["chat", "agent-management"]
     )
     
     with patch("app.services.agent.agent_service.AgentService.get_agent", new=AsyncMock(return_value=mock_agent)):
@@ -74,7 +75,8 @@ async def test_create_agent_api():
         "description": "New Description",
         "model": LLMModel.GPT_3_5_TURBO,
         "persona": "helpful",
-        "tone": "friendly"
+        "tone": "friendly",
+        "tools": ["chat", "agent-management"]
     }
     
     mock_response = CreateOrUpdateAgentResponse(
@@ -102,7 +104,8 @@ async def test_update_agent_api():
         "description": "Updated Description",
         "model": LLMModel.GPT_4,
         "persona": "expert",
-        "tone": "serious"
+        "tone": "serious",
+        "tools": ["knowledge-base", "file-storage"]
     }
     
     mock_response = CreateOrUpdateAgentResponse(
@@ -129,7 +132,8 @@ async def test_create_agent_api_failure():
         "description": "Test Description",
         "model": LLMModel.GPT_3_5_TURBO,
         "persona": "helpful",
-        "tone": "friendly"
+        "tone": "friendly",
+        "tools": ["chat"]
     }
     
     mock_response = CreateOrUpdateAgentResponse(
