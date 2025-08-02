@@ -77,6 +77,7 @@ export const ModelSelector = ({
     }, [agentDraft]);
 
     const handleProviderChange = (value: string) => {
+        console.log("handleProviderChange", value);
         setProvider(value);
         if (providerOptions[value] && providerOptions[value][0]) {
             updateAgentDraft("model", providerOptions[value][0].value);
@@ -97,32 +98,31 @@ export const ModelSelector = ({
                         : undefined
                 }
                 disabled={mode === "view"}
+                size="sm"
             >
                 <Wrap align="stretch">
                     {LLM_PROVIDERS.map((item) => (
                         <WrapItem key={item.value}>
-                            <RadioCard.Root size="sm">
-                                <RadioCard.Item value={item.value}>
-                                    <RadioCard.ItemHiddenInput />
-                                    <RadioCard.ItemControl>
-                                        <RadioCard.ItemText fontSize={14}>
-                                            {item.icon && (
-                                                <span
-                                                    style={{
-                                                        marginRight: 6,
-                                                        display: "inline-flex",
-                                                        alignSelf: "center",
-                                                    }}
-                                                >
-                                                    {<item.icon size={13} />}
-                                                </span>
-                                            )}
-                                            {item.title}
-                                        </RadioCard.ItemText>
-                                        <RadioCard.ItemIndicator />
-                                    </RadioCard.ItemControl>
-                                </RadioCard.Item>
-                            </RadioCard.Root>
+                            <RadioCard.Item value={item.value}>
+                                <RadioCard.ItemHiddenInput />
+                                <RadioCard.ItemControl>
+                                    <RadioCard.ItemText fontSize={14}>
+                                        {item.icon && (
+                                            <span
+                                                style={{
+                                                    marginRight: 6,
+                                                    display: "inline-flex",
+                                                    alignSelf: "center",
+                                                }}
+                                            >
+                                                {<item.icon size={13} />}
+                                            </span>
+                                        )}
+                                        {item.title}
+                                    </RadioCard.ItemText>
+                                    <RadioCard.ItemIndicator />
+                                </RadioCard.ItemControl>
+                            </RadioCard.Item>
                         </WrapItem>
                     ))}
                 </Wrap>
