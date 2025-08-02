@@ -19,7 +19,7 @@ class ArticleService:
             cls._instance = super(ArticleService, cls).__new__(cls)
         return cls._instance
 
-    def _validate_create_article_request(
+    async def _validate_create_article_request(
         self, request: CreateOrUpdateArticleRequest
     ) -> tuple[bool, str]:
         warning = ""
@@ -31,11 +31,22 @@ class ArticleService:
             if value is None or (isinstance(value, str) and value.strip() == ""):
                 warning = f"Invalid article info. Missing value for field: {field}"
                 return False, warning
+            
+        # Check if parent is a valid article id
+        if request.parent is None or request.parent == "":
+            request.parent = "0"
+        elif request.parent != "0":
+            parent_article = await self.get_article(request.parent)
+            if not parent_article:
+                warning = f"Invalid article info. Parent article {request.parent} does not exist"
+                return False, warning
 
         return True, warning
     
-    async def get_article(self, id: str) -> ArticleInfo:
+    async def get_article(self, id: str) -> ArticleInfo | None:
         data = await get_document(ARTICLE_COLLECTION_NAME, id)
+        if not data:
+            return None
 
         return ArticleInfo(
             id=str(data.get("_id", "")),
@@ -51,7 +62,7 @@ class ArticleService:
     async def create_or_update_article(
         self, request: CreateOrUpdateArticleRequest
     ) -> CreateOrUpdateArticleResponse:
-        valid, warning = self._validate_create_article_request(request)
+        valid, warning = await self._validate_create_article_request(request)
         if not valid:
             logging.getLogger("uvicorn.warning").warning(warning)
             return CreateOrUpdateArticleResponse(success=False, id="", message=warning)
@@ -68,11 +79,9 @@ class ArticleService:
             }
             
             if getattr(request, "id", None):  # Update if id is present
-                updated_id = await update_document(
+                await update_document(
                     ARTICLE_COLLECTION_NAME, str(request.id), document
                 )
-                if updated_id is None:
-                    raise Exception(f"Article update failed for id {request.id}")
 
                 return CreateOrUpdateArticleResponse(
                     success=True,

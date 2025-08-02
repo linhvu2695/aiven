@@ -82,6 +82,14 @@ class TestArticleService:
 
 
     @pytest.mark.asyncio
+    async def test_get_article_nonexistent(self, article_service):
+        """Test article retrieval with nonexistent article"""
+        with patch("app.services.article.article_service.get_document", return_value=None):
+            article = await article_service.get_article("test_id_123")
+            assert article is None
+        
+
+    @pytest.mark.asyncio
     async def test_get_article_with_missing_fields(self, article_service):
         """Test article retrieval with missing optional fields"""
         minimal_data = {
@@ -159,14 +167,16 @@ class TestArticleService:
             assert len(response.articles) == 0
 
 
-    def test_validate_create_article_request_valid(self, article_service, create_article_request):
+    @pytest.mark.asyncio
+    async def test_validate_create_article_request_valid(self, article_service, create_article_request):
         """Test validation with valid request"""
-        valid, warning = article_service._validate_create_article_request(create_article_request)
+        valid, warning = await article_service._validate_create_article_request(create_article_request)
         assert valid is True
         assert warning == ""
 
 
-    def test_validate_create_article_request_missing_title(self, article_service):
+    @pytest.mark.asyncio
+    async def test_validate_create_article_request_missing_title(self, article_service):
         """Test validation with missing title"""
         request = CreateOrUpdateArticleRequest(
             title="",
@@ -175,12 +185,13 @@ class TestArticleService:
             tags=["test"],
             parent="0"
         )
-        valid, warning = article_service._validate_create_article_request(request)
+        valid, warning = await article_service._validate_create_article_request(request)
         assert valid is False
         assert "Missing value for field: title" in warning
 
 
-    def test_validate_create_article_request_missing_content(self, article_service):
+    @pytest.mark.asyncio
+    async def test_validate_create_article_request_missing_content(self, article_service):
         """Test validation with missing content"""
         request = CreateOrUpdateArticleRequest(
             title="Test Title",
@@ -189,19 +200,20 @@ class TestArticleService:
             tags=["test"],
             parent="0"
         )
-        valid, warning = article_service._validate_create_article_request(request)
+        valid, warning = await article_service._validate_create_article_request(request)
         assert valid is False
         assert "Missing value for field: content" in warning
 
 
-    def test_validate_create_article_request_none_values(self, article_service):
+    @pytest.mark.asyncio
+    async def test_validate_create_article_request_none_values(self, article_service):
         """Test validation with None values"""
         # Create a mock request with None title to test validation
         request = MagicMock()
         request.title = None
         request.content = "Test content"
         
-        valid, warning = article_service._validate_create_article_request(request)
+        valid, warning = await article_service._validate_create_article_request(request)
         assert valid is False
         assert "Missing value for field: title" in warning
 
@@ -252,7 +264,13 @@ class TestArticleService:
     @pytest.mark.asyncio
     async def test_update_article_success(self, article_service, update_article_request):
         """Test successful article update"""
-        with patch("app.services.article.article_service.update_document", return_value="test_id_123"):
+        # Mock parent validation - parent_id_456 should be valid
+        with patch("app.services.article.article_service.get_document") as mock_get_doc, \
+             patch("app.services.article.article_service.update_document", return_value="test_id_123"):
+            
+            # Mock parent article exists
+            mock_get_doc.return_value = {"_id": "parent_id_456", "title": "Parent Article"}
+            
             response = await article_service.create_or_update_article(update_article_request)
             
             assert isinstance(response, CreateOrUpdateArticleResponse)
@@ -262,21 +280,28 @@ class TestArticleService:
 
 
     @pytest.mark.asyncio
-    async def test_update_article_failure(self, article_service, update_article_request):
-        """Test article update failure when document not found"""
-        with patch("app.services.article.article_service.update_document", return_value=None):
+    async def test_update_article_invalid_parent(self, article_service, update_article_request):
+        """Test article update failure when parent doesn't exist"""
+        # Mock parent validation - parent_id_456 does not exist
+        with patch("app.services.article.article_service.get_document", return_value=None):
             response = await article_service.create_or_update_article(update_article_request)
             
             assert isinstance(response, CreateOrUpdateArticleResponse)
             assert response.success is False
             assert response.id == ""
-            assert "Article update failed for id test_id_123" in response.message
+            assert "Parent article parent_id_456 does not exist" in response.message
 
 
     @pytest.mark.asyncio
     async def test_update_article_exception(self, article_service, update_article_request):
         """Test article update with database exception"""
-        with patch("app.services.article.article_service.update_document", side_effect=Exception("Update error")):
+        # Mock parent validation - parent_id_456 should be valid
+        with patch("app.services.article.article_service.get_document") as mock_get_doc, \
+             patch("app.services.article.article_service.update_document", side_effect=Exception("Update error")):
+            
+            # Mock parent article exists
+            mock_get_doc.return_value = {"_id": "parent_id_456", "title": "Parent Article"}
+            
             response = await article_service.create_or_update_article(update_article_request)
             
             assert isinstance(response, CreateOrUpdateArticleResponse)

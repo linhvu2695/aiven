@@ -16,25 +16,11 @@ TOOL_COLLECTION = [
         mcp_functions=["get_article", "create_or_update_article", "search_articles", "delete_article"]
     ),
     ToolInfo(
-        id="chat",
-        name="Chat",
-        description="Tools for interacting with AI agents - send messages, get responses, and manage chat models",
-        emoji="💬",
-        mcp_functions=["chat_with_agent", "get_chat_models"]
-    ),
-    ToolInfo(
         id="system-health",
         name="System Health",
         description="Tools for monitoring system health and API status - check if services are running properly",
         emoji="❤️",
         mcp_functions=["ping_health"]
-    ),
-    ToolInfo(
-        id="file-storage",
-        name="File Storage",
-        description="Tools for managing file storage - get presigned URLs for secure file access and storage operations",
-        emoji="🗄️",
-        mcp_functions=["get_presigned_url"]
     ),
 ]
 
