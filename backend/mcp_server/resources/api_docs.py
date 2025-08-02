@@ -14,27 +14,18 @@ def register_api_docs_resource(mcp: FastMCP):
         return """
 # Aiven API Documentation
 
-## Chat API
-- POST /api/chat/ - Send messages to agents
-- GET /api/chat/models - Get available models
-
 ## Agent API  
 - GET /api/agent/id={id} - Get agent by ID
 - POST /api/agent/ - Create/update agent
 - GET /api/agent/search - Search agents
-- POST /api/agent/delete - Delete agent
+- POST /api/agent/delete?id={id} - Delete agent
 - POST /api/agent/avatar - Update agent avatar
 
 ## Article API
 - GET /api/article/id={id} - Get article by ID  
 - POST /api/article/ - Create/update article
 - GET /api/article/search - Search articles
-- POST /api/article/delete - Delete article
-
-## Storage API
-- POST /api/storage/upload/ - Upload file
-- GET /api/storage/download/{filename} - Download file
-- GET /api/storage/url/{filepath} - Get presigned URL
+- POST /api/article/delete?id={id} - Delete article
 
 ## Health API
 - GET /api/ping - Health check

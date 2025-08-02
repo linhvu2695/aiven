@@ -10,10 +10,8 @@ The Model Context Protocol (MCP) is a protocol developed by Anthropic that allow
 
 ### Tools (AI Agent Actions)
 - **Health Check**: Check if the API server is responding
-- **Chat Operations**: Send messages to agents and get responses
 - **Agent Management**: Create, read, update, and delete agents
-- **Article Management**: Create, read, update, and delete articles  
-- **Storage Operations**: Get presigned URLs for file access
+- **Article Management**: Create, read, update, and delete articles
 
 ### Resources (Information Access)
 - **API Documentation**: Complete documentation of available endpoints
@@ -92,10 +90,7 @@ Once connected, an AI agent can:
    - Use `create_or_update_article` to create content
    - Use `get_article` to retrieve specific articles
 
-4. **Chat with agents**:
-   - Use `chat_with_agent` to send messages and get responses
-
-5. **Access documentation**:
+4. **Access documentation**:
    - Read the `aiven://api/docs` resource for API documentation
    - Read the `aiven://api/config` resource for configuration info
 

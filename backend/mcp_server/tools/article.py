@@ -4,6 +4,7 @@ Article management tools for the Aiven MCP Server
 
 from typing import Optional
 from mcp.server.fastmcp import FastMCP
+from app.classes.article import CreateOrUpdateArticleRequest
 from mcp_server.client import AivenAPIClient
 
 
@@ -21,22 +22,13 @@ def register_article_tools(mcp: FastMCP, client: AivenAPIClient):
         return client.format_response(result)
 
     @mcp.tool()
-    async def create_or_update_article(title: str, content: str, article_id: Optional[str] = None) -> str:
+    async def create_or_update_article(request: CreateOrUpdateArticleRequest) -> str:
         """Create a new article or update an existing one
         
         Args:
-            title: Title of the article
-            content: Content of the article
-            article_id: Optional ID for updating existing article
+            request: CreateOrUpdateArticleRequest object containing article details
         """
-        data = {
-            "title": title,
-            "content": content
-        }
-        if article_id:
-            data["id"] = article_id
-            
-        result = await client.request("POST", "/api/article/", data)
+        result = await client.request("POST", "/api/article/", request.model_dump())
         return client.format_response(result)
 
     @mcp.tool()
@@ -52,5 +44,5 @@ def register_article_tools(mcp: FastMCP, client: AivenAPIClient):
         Args:
             article_id: The ID of the article to delete
         """
-        result = await client.request("POST", "/api/article/delete", {"id": article_id})
+        result = await client.request("POST", f"/api/article/delete?id={article_id}")
         return client.format_response(result)
