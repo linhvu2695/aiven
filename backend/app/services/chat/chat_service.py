@@ -1,5 +1,5 @@
 import logging, base64, mimetypes, re
-from typing import Optional
+from typing import Optional, AsyncGenerator
 from pathlib import Path
 from fastapi import UploadFile
 from langchain.chat_models import init_chat_model
@@ -220,14 +220,16 @@ class ChatService:
         )
 
     async def generate_chat_response(self, request: ChatRequest) -> ChatResponse:
+        """
+        Generate a chat response using LangGraph's invoke capabilities.
+        """
         try:
             # Step 1: Get agent and model
             agent = await AgentService().get_agent(request.agent)
             model = self._get_chat_model(agent.model)
 
             # Step 2: Convert messages to LangChain format
-            messages = [ChatMessage(role="system", content=await self._get_agent_system_prompt(agent))]
-            messages.extend(request.messages)
+            messages = request.messages
             lc_messages = chat_utils.convert_chat_messages(messages)
 
             # Step 3: Process uploaded files if any
@@ -245,7 +247,11 @@ class ChatService:
                 functions = await self._load_mcp_tools(agent.tools)
 
             # Step 5: Create LangGraph react agent with MCP tools
-            graph = create_react_agent(model, functions)
+            graph = create_react_agent(
+                model,
+                functions,
+                prompt=await self._get_agent_system_prompt(agent),
+            )
 
             # Step 6: Add custom metadata and tags to the LLM call for better tracing
             config = RunnableConfig(
@@ -294,6 +300,86 @@ class ChatService:
             return ChatResponse(
                 response=f"❌ An error occurred while processing your request. Please try again or contact support if the issue persists."
             )
+
+    async def generate_streaming_chat_response(self, request: ChatRequest) -> AsyncGenerator[str, None]:
+        """
+        Generate a streaming chat response using LangGraph's streaming capabilities.
+        Yields individual tokens as they are produced by the LLM.
+        """
+        try:
+            # Step 1: Get agent and model
+            agent = await AgentService().get_agent(request.agent)
+            model = self._get_chat_model(agent.model)
+
+            # Step 2: Convert messages to LangChain format
+            messages = request.messages
+            lc_messages = chat_utils.convert_chat_messages(messages)
+
+            # Step 3: Process uploaded files if any
+            if request.files:
+                file = request.files[0]  # expect only one file
+                file_content = await self._get_file_content(file)
+
+                if file_content:
+                    file_message = HumanMessage(content=[file_content.model_dump()])
+                    lc_messages.append(file_message)
+
+            # Step 4: Load MCP tools based on agent configuration
+            functions = []
+            if agent.tools is not None and len(agent.tools) > 0:
+                functions = await self._load_mcp_tools(agent.tools)
+
+            # Step 5: Create LangGraph react agent with MCP tools
+            graph = create_react_agent(
+                model,
+                functions,
+                prompt=await self._get_agent_system_prompt(agent),
+            )
+
+            # Step 6: Add custom metadata and tags to the LLM call for better tracing
+            config = RunnableConfig(
+                metadata=await self._get_trace_metadata(request),
+                tags=[
+                    self.__class__.__name__,
+                ],
+                run_name=f"Streaming Chat with {agent.name}",
+            )
+
+            # Step 7: Stream the graph response using "messages" mode for token-level streaming
+            async for token, metadata in graph.astream(
+                {"messages": lc_messages}, 
+                config=config,
+                stream_mode="messages"
+            ):
+                # Stream individual tokens as they are produced
+                if isinstance(token, str):
+                    yield token
+                elif hasattr(token, 'content') and token.content:
+                    if isinstance(token.content, str):
+                        yield token.content
+                    elif isinstance(token.content, list):
+                        # Handle list content (like tool calls or complex content)
+                        for item in token.content:
+                            if isinstance(item, str):
+                                yield item
+                            elif isinstance(item, dict) and "text" in item:
+                                yield item["text"]
+
+        except Exception as e:
+            error_msg = str(e)
+
+            # Check for specific format/media type errors
+            if any(
+                keyword in error_msg.lower()
+                for keyword in ["media_type", "format", "image/", "audio/", "video/"]
+            ):
+                yield self._parse_format_error(error_msg)
+            # Handle other API errors
+            elif "BadRequestError" in str(type(e)) or "400" in error_msg:
+                yield f"❌ Request Error: There was an issue with your request. Please check your input and try again."
+            else:
+                # Generic error handling
+                yield f"❌ An error occurred while processing your request. Please try again or contact support if the issue persists."
 
     async def get_models(self) -> dict[str, list[dict[str, str]]]:
         def model_info(model: LLMModel) -> dict[str, str]:

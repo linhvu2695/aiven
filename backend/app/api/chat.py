@@ -1,4 +1,5 @@
 from fastapi import APIRouter, Form, UploadFile, File, HTTPException, Request
+from fastapi.responses import StreamingResponse
 from typing import List, Optional
 import json
 from app.classes.chat import ChatRequest, ChatResponse, ChatMessage
@@ -6,14 +7,17 @@ from app.services.chat.chat_service import ChatService
 
 router = APIRouter()
 
-@router.post("/", response_model=ChatResponse)
-async def chat_endpoint(
+
+async def parse_chat_request(
     request: Request,
-    # FormData parameters
-    messages: Optional[str] = Form(None),
-    agent: Optional[str] = Form(None),
-    files: List[UploadFile] = File(None),
-):
+    messages: Optional[str] = None,
+    agent: Optional[str] = None, 
+    files: Optional[List[UploadFile]] = None,
+) -> ChatRequest:
+    """
+    Parse chat request from either FormData (with files) or JSON format.
+    Returns a ChatRequest object ready for processing.
+    """
     content_type = request.headers.get("content-type", "")
 
     # Handle FormData (when files are uploaded)
@@ -28,10 +32,10 @@ async def chat_endpoint(
             chat_messages = [ChatMessage(**msg) for msg in messages_data]
 
             # Create ChatRequest with files
-            chat_request = ChatRequest(
+            return ChatRequest(
                 messages=chat_messages,
                 agent=agent,
-                files=files if files and files[0].filename else None,
+                files=files if files and len(files) > 0 and files[0].filename else None,
             )
         except json.JSONDecodeError:
             raise HTTPException(status_code=400, detail="Invalid messages format")
@@ -48,13 +52,71 @@ async def chat_endpoint(
                 status_code=400, detail="Messages and agent are required"
             )
 
-        chat_messages = [ChatMessage(**msg) for msg in messages_data]
-        chat_request = ChatRequest(messages=chat_messages, agent=agent_id, files=None)
+        try:
+            chat_messages = [ChatMessage(**msg) for msg in messages_data]
+            return ChatRequest(messages=chat_messages, agent=agent_id, files=None)
+        except Exception as e:
+            raise HTTPException(status_code=400, detail=f"Invalid message format: {str(e)}")
 
     else:
         raise HTTPException(status_code=400, detail="Invalid request format")
 
+
+@router.post("/", response_model=ChatResponse)
+async def chat_endpoint(
+    request: Request,
+    # FormData parameters
+    messages: Optional[str] = Form(None),
+    agent: Optional[str] = Form(None),
+    files: List[UploadFile] = File(None),
+):
+    """
+    Chat endpoint that returns a chat response.
+    Supports both JSON requests and FormData (with file uploads).
+    """
+    chat_request = await parse_chat_request(request, messages, agent, files)
     return await ChatService().generate_chat_response(chat_request)
+
+
+@router.post("/stream")
+async def stream_chat_endpoint(
+    request: Request,
+    # FormData parameters
+    messages: Optional[str] = Form(None),
+    agent: Optional[str] = Form(None),
+    files: List[UploadFile] = File(None),
+):
+    """
+    Streaming chat endpoint that returns Server-Sent Events (SSE).
+    Supports both JSON requests and FormData (with file uploads).
+    """
+    chat_request = await parse_chat_request(request, messages, agent, files)
+    
+    async def generate_sse():
+        """Generate Server-Sent Events format for streaming."""
+        try:
+            chat_service = ChatService()
+            async for token in chat_service.generate_streaming_chat_response(chat_request):
+                # Format as Server-Sent Events
+                yield f"data: {json.dumps({'token': token, 'type': 'token'})}\n\n"
+            
+            # Send completion signal
+            yield f"data: {json.dumps({'type': 'done'})}\n\n"
+            
+        except Exception as e:
+            # Send error signal
+            yield f"data: {json.dumps({'type': 'error', 'message': str(e)})}\n\n"
+    
+    return StreamingResponse(
+        generate_sse(),
+        media_type="text/plain",
+        headers={
+            "Cache-Control": "no-cache",
+            "Connection": "keep-alive",
+            "Access-Control-Allow-Origin": "*",  # Adjust for your frontend domain
+            "Access-Control-Allow-Headers": "Content-Type",
+        }
+    )
 
 
 @router.get("/models")

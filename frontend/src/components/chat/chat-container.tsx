@@ -44,6 +44,127 @@ const ChatContainerContent = () => {
         });
     };
 
+    const handleStreamingResponse = async (response: Response, assistantMessageIndex: number) => {
+        const reader = response.body?.getReader();
+        const decoder = new TextDecoder();
+
+        if (reader) {
+            let buffer = "";
+            
+            while (true) {
+                const { done, value } = await reader.read();
+                if (done) break;
+
+                // Decode chunk and add to buffer
+                buffer += decoder.decode(value, { stream: true });
+
+                // Process complete lines
+                const lines = buffer.split('\n');
+                buffer = lines.pop() || ""; // Keep incomplete line in buffer
+
+                for (const line of lines) {
+                    if (line.startsWith('data: ')) {
+                        const dataStr = line.slice(6); // Remove 'data: ' prefix
+                        try {
+                            const data = JSON.parse(dataStr);
+                            
+                            if (data.type === 'token') {
+                                // Update assistant message with new token
+                                setMessages((prev) => {
+                                    const newMessages = [...prev];
+                                    newMessages[assistantMessageIndex] = {
+                                        ...newMessages[assistantMessageIndex],
+                                        content: newMessages[assistantMessageIndex].content + data.token
+                                    };
+                                    return newMessages;
+                                });
+                            } else if (data.type === 'done') {
+                                // Streaming completed
+                                return;
+                            } else if (data.type === 'error') {
+                                throw new Error(data.message || 'Streaming error');
+                            }
+                        } catch (e) {
+                            console.warn('Failed to parse SSE data:', dataStr);
+                        }
+                    }
+                }
+            }
+        }
+    };
+
+    const sendStreamingRequestWithFiles = async (
+        messageHistory: ChatMessageInfo[],
+        userInput: string,
+        assistantMessageIndex: number
+    ) => {
+        const formData = new FormData();
+
+        // Add messages data
+        formData.append(
+            "messages",
+            JSON.stringify([
+                ...messageHistory,
+                {
+                    role: "user",
+                    content: userInput,
+                },
+            ])
+        );
+
+        // Add agent ID
+        if (agent?.id) {
+            formData.append("agent", agent.id);
+        }
+
+        // Add files
+        fileUpload.acceptedFiles.forEach((file) => {
+            formData.append(`files`, file);
+        });
+
+        const response = await fetch(BASE_URL + "/api/chat/stream", {
+            method: "POST",
+            body: formData,
+        });
+
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+
+        await handleStreamingResponse(response, assistantMessageIndex);
+    };
+
+    const sendStreamingRequestJSON = async (
+        messageHistory: ChatMessageInfo[],
+        userInput: string,
+        assistantMessageIndex: number
+    ) => {
+        const requestBody = {
+            messages: [
+                ...messageHistory,
+                {
+                    role: "user",
+                    content: userInput,
+                },
+            ],
+            agent: agent?.id,
+        };
+
+        const response = await fetch(BASE_URL + "/api/chat/stream", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+            },
+            body: JSON.stringify(requestBody),
+        });
+
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+
+        await handleStreamingResponse(response, assistantMessageIndex);
+    };
+
     const handleSendMessage = async () => {
         if (!input.trim()) return;
 
@@ -62,80 +183,38 @@ const ChatContainerContent = () => {
                     : null,
         };
 
+        const currentInput = input;
+        const currentMessages = messages;
+        
         setMessages((prev) => [...prev, userMessage]);
         setInput("");
         setIsLoading(true);
 
-        // Fetch
+        // Add empty assistant message that we'll update with streaming content
+        const assistantMessageIndex = messages.length + 1;
+        setMessages((prev) => [...prev, { role: "assistant", content: "" }]);
+
         try {
-            let response;
-
             if (fileUpload.acceptedFiles.length > 0) {
-                // Use FormData when files are uploaded
-                const formData = new FormData();
-
-                // Add messages data
-                formData.append(
-                    "messages",
-                    JSON.stringify([
-                        ...messages,
-                        {
-                            role: "user",
-                            content: input,
-                        },
-                    ])
-                );
-
-                // Add agent ID
-                if (agent?.id) {
-                    formData.append("agent", agent.id);
-                }
-
-                // Add files
-                fileUpload.acceptedFiles.forEach((file) => {
-                    formData.append(`files`, file);
-                });
-
-                response = await fetch(BASE_URL + "/api/chat/", {
-                    method: "POST",
-                    body: formData,
-                });
+                await sendStreamingRequestWithFiles(currentMessages, currentInput, assistantMessageIndex);
             } else {
-                // Use JSON when no files
-                response = await fetch(BASE_URL + "/api/chat/", {
-                    method: "POST",
-                    headers: {
-                        "Content-Type": "application/json",
-                    },
-                    body: JSON.stringify({
-                        messages: [
-                            ...messages,
-                            {
-                                role: "user",
-                                content: input,
-                            },
-                        ],
-                        agent: agent?.id,
-                    }),
-                });
+                await sendStreamingRequestJSON(currentMessages, currentInput, assistantMessageIndex);
             }
 
-            const data = await response.json();
-
-            if (!response.ok) {
-                console.log(data);
-                throw new Error(data.error);
-            }
-
-            setMessages((prev) => [
-                ...prev,
-                { role: "assistant", content: data.response },
-            ]);
-
-            // Clear uploaded files and revoke URLs after successful send
+            // Clear uploaded files after successful send
             fileUpload.clearFiles();
         } catch (error) {
-            console.error(error);
+            console.error('Streaming error:', error);
+            
+            // Update the assistant message with error
+            setMessages((prev) => {
+                const newMessages = [...prev];
+                newMessages[assistantMessageIndex] = {
+                    ...newMessages[assistantMessageIndex],
+                    content: "❌ An error occurred while processing your request. Please try again."
+                };
+                return newMessages;
+            });
         } finally {
             setIsLoading(false);
             scrollToBottom();

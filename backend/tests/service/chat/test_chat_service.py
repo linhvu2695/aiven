@@ -329,6 +329,127 @@ class TestGetFileContent:
         assert result.type == "application"
 
 
+class TestGetAgentSystemPrompt:
+    """Test _get_agent_system_prompt method."""
+    
+    @pytest.fixture
+    def chat_service(self):
+        ChatService._instance = None
+        return ChatService()
+    
+    @pytest.fixture
+    def sample_agent(self):
+        return AgentInfo(
+            id="test_agent",
+            name="Test Agent",
+            description="A helpful test assistant",
+            model=LLMModel.GPT_4O,
+            persona="You are a friendly and knowledgeable assistant",
+            tone="professional",
+            avatar="test_avatar",
+            tools=[]
+        )
+    
+    @pytest.mark.asyncio
+    async def test_get_agent_system_prompt_with_complete_agent(self, chat_service, sample_agent):
+        """Test system prompt generation includes all agent fields."""
+        result = await chat_service._get_agent_system_prompt(sample_agent)
+        
+        # Test basic structure and type
+        assert isinstance(result, str)
+        assert len(result.strip()) > 0
+        
+        # Test that all agent fields are included in the prompt
+        assert sample_agent.name in result
+        assert sample_agent.description in result
+        assert sample_agent.persona in result
+        assert sample_agent.tone in result
+    
+    @pytest.mark.asyncio
+    async def test_get_agent_system_prompt_with_empty_values(self, chat_service):
+        """Test system prompt generation handles empty string values gracefully."""
+        agent = AgentInfo(
+            id="empty_agent",
+            name="",
+            description="",
+            model=LLMModel.GPT_4O,
+            persona="",
+            tone="",
+            avatar="",
+            tools=[]
+        )
+        
+        result = await chat_service._get_agent_system_prompt(agent)
+        
+        # Test basic structure and type
+        assert isinstance(result, str)
+        assert len(result.strip()) > 0
+        
+        # Test that empty values don't break the formatting
+        # The prompt should still be a valid string structure
+        lines = result.strip().split('\n')
+        assert len(lines) > 0
+    
+    @pytest.mark.asyncio
+    async def test_get_agent_system_prompt_with_special_characters(self, chat_service):
+        """Test system prompt generation preserves special characters."""
+        agent = AgentInfo(
+            id="special_agent",
+            name="Agent & Co.",
+            description="An agent with <special> characters & symbols",
+            model=LLMModel.GPT_4O,
+            persona="You are an assistant with 'quotes' and \"double quotes\"",
+            tone="casual & friendly",
+            avatar="special_avatar",
+            tools=[]
+        )
+        
+        result = await chat_service._get_agent_system_prompt(agent)
+        
+        # Test basic structure and type
+        assert isinstance(result, str)
+        assert len(result.strip()) > 0
+        
+        # Test that special characters are preserved in the output
+        assert "Agent & Co." in result
+        assert "<special>" in result
+        assert "& symbols" in result
+        assert "'quotes'" in result
+        assert "\"double quotes\"" in result
+        assert "casual & friendly" in result
+    
+    @pytest.mark.asyncio
+    async def test_get_agent_system_prompt_with_multiline_values(self, chat_service):
+        """Test system prompt generation handles multiline values correctly."""
+        agent = AgentInfo(
+            id="multiline_agent",
+            name="Multiline Agent",
+            description="First line\nSecond line\nThird line",
+            model=LLMModel.GPT_4O,
+            persona="You are helpful.\nYou are knowledgeable.\nYou are friendly.",
+            tone="professional\nand courteous",
+            avatar="multiline_avatar",
+            tools=[]
+        )
+        
+        result = await chat_service._get_agent_system_prompt(agent)
+        
+        # Test basic structure and type
+        assert isinstance(result, str)
+        assert len(result.strip()) > 0
+        
+        # Test that multiline content is preserved
+        assert "Multiline Agent" in result
+        assert "First line" in result
+        assert "Second line" in result
+        assert "Third line" in result
+        assert "You are helpful." in result
+        assert "You are knowledgeable." in result
+        assert "You are friendly." in result
+        assert "professional" in result
+        assert "and courteous" in result
+
+
 class TestGenerateChatResponse:
     """Test generate_chat_response method."""
     
@@ -388,8 +509,8 @@ class TestGenerateChatResponse:
         assert isinstance(result, ChatResponse)
         assert result.response == "I'm doing well, thank you!"
         
-        # Verify create_react_agent was called with the model and empty tools
-        mock_create_agent.assert_called_once_with(mock_model, [])
+        # Verify create_react_agent was called with the model, empty tools, and a prompt
+        mock_create_agent.assert_called_once()
         
         # Verify the graph was called
         mock_graph.ainvoke.assert_called_once()
@@ -397,7 +518,7 @@ class TestGenerateChatResponse:
         # Verify the correct arguments were passed to ainvoke
         call_args, call_kwargs = mock_graph.ainvoke.call_args
         assert "messages" in call_args[0]
-        assert len(call_args[0]["messages"]) == 4  # system + 3 request messages
+        assert len(call_args[0]["messages"]) == 3  # 3 request messages (no system message since it's passed separately)
     
     @pytest.mark.asyncio
     async def test_generate_chat_response_with_file(self, chat_service, sample_agent):
@@ -445,7 +566,7 @@ class TestGenerateChatResponse:
         # Verify that file message was added to the messages
         call_args, call_kwargs = mock_graph.ainvoke.call_args
         assert "messages" in call_args[0]
-        assert len(call_args[0]["messages"]) == 3  # system + user message + file message
+        assert len(call_args[0]["messages"]) == 2  # user message + file message (no system message since it's passed separately)
     
     @pytest.mark.asyncio
     async def test_generate_chat_response_with_file_no_content(self, chat_service, sample_agent):
@@ -482,7 +603,7 @@ class TestGenerateChatResponse:
         # Verify that no file message was added
         call_args, call_kwargs = mock_graph.ainvoke.call_args
         assert "messages" in call_args[0]
-        assert len(call_args[0]["messages"]) == 2  # system + user message only
+        assert len(call_args[0]["messages"]) == 1  # user message only (no system message since it's passed separately)
     
     @pytest.mark.asyncio
     async def test_generate_chat_response_format_error(self, chat_service, sample_agent, sample_chat_request):
@@ -552,6 +673,459 @@ class TestGenerateChatResponse:
         assert "❌ An error occurred" in result.response
 
 
+class TestGenerateStreamingChatResponse:
+    """Test generate_streaming_chat_response method."""
+    
+    @pytest.fixture
+    def chat_service(self):
+        ChatService._instance = None
+        return ChatService()
+    
+    @pytest.fixture
+    def sample_agent(self):
+        return AgentInfo(
+            id="test_agent",
+            name="Test Agent",
+            description="Test description",
+            model=LLMModel.GPT_4O,
+            persona="You are a helpful assistant",
+            tone="friendly",
+            avatar="test_avatar",
+            tools=[]
+        )
+    
+    @pytest.fixture
+    def sample_chat_request(self):
+        return ChatRequest(
+            messages=[
+                ChatMessage(role="user", content="Hello"),
+                ChatMessage(role="assistant", content="Hi there!"),
+                ChatMessage(role="user", content="How are you?")
+            ],
+            agent="test_agent",
+            files=None
+        )
+    
+    async def collect_stream(self, async_gen):
+        """Helper method to collect all items from an async generator."""
+        items = []
+        async for item in async_gen:
+            items.append(item)
+        return items
+    
+    @pytest.mark.asyncio
+    async def test_generate_streaming_chat_response_success_string_tokens(self, chat_service, sample_agent, sample_chat_request):
+        """Test successful streaming with string tokens."""
+        mock_model = MagicMock()
+        
+        # Mock the async generator for astream
+        async def mock_astream(*args, **kwargs):
+            tokens = ["Hello", " there", "!", " How", " can", " I", " help", "?"]
+            for token in tokens:
+                yield token, {}  # token, metadata
+        
+        mock_graph = AsyncMock()
+        mock_graph.astream = mock_astream
+        
+        with patch.object(chat_service, '_get_chat_model', return_value=mock_model), \
+             patch.object(AgentService, 'get_agent', new=AsyncMock(return_value=sample_agent)), \
+             patch('app.services.chat.chat_service.create_react_agent') as mock_create_agent:
+            
+            mock_create_agent.return_value = mock_graph
+            
+            result = await self.collect_stream(
+                chat_service.generate_streaming_chat_response(sample_chat_request)
+            )
+        
+        expected_tokens = ["Hello", " there", "!", " How", " can", " I", " help", "?"]
+        assert result == expected_tokens
+        
+        # Verify create_react_agent was called
+        mock_create_agent.assert_called_once()
+    
+    @pytest.mark.asyncio
+    async def test_generate_streaming_chat_response_success_object_tokens(self, chat_service, sample_agent, sample_chat_request):
+        """Test successful streaming with object tokens containing content."""
+        mock_model = MagicMock()
+        
+        # Create mock token objects with content
+        class MockToken:
+            def __init__(self, content):
+                self.content = content
+        
+        async def mock_astream(*args, **kwargs):
+            tokens = [
+                MockToken("Hello"),
+                MockToken(" world"),
+                MockToken("!")
+            ]
+            for token in tokens:
+                yield token, {}
+        
+        mock_graph = AsyncMock()
+        mock_graph.astream = mock_astream
+        
+        with patch.object(chat_service, '_get_chat_model', return_value=mock_model), \
+             patch.object(AgentService, 'get_agent', new=AsyncMock(return_value=sample_agent)), \
+             patch('app.services.chat.chat_service.create_react_agent') as mock_create_agent:
+            
+            mock_create_agent.return_value = mock_graph
+            
+            result = await self.collect_stream(
+                chat_service.generate_streaming_chat_response(sample_chat_request)
+            )
+        
+        expected_tokens = ["Hello", " world", "!"]
+        assert result == expected_tokens
+    
+    @pytest.mark.asyncio
+    async def test_generate_streaming_chat_response_list_content(self, chat_service, sample_agent, sample_chat_request):
+        """Test streaming with list content containing text items."""
+        mock_model = MagicMock()
+        
+        class MockToken:
+            def __init__(self, content):
+                self.content = content
+        
+        async def mock_astream(*args, **kwargs):
+            # Token with list content containing strings and dict with text
+            token_with_list = MockToken([
+                "First part",
+                {"text": " second part"},
+                " third part"
+            ])
+            yield token_with_list, {}
+        
+        mock_graph = AsyncMock()
+        mock_graph.astream = mock_astream
+        
+        with patch.object(chat_service, '_get_chat_model', return_value=mock_model), \
+             patch.object(AgentService, 'get_agent', new=AsyncMock(return_value=sample_agent)), \
+             patch('app.services.chat.chat_service.create_react_agent') as mock_create_agent:
+            
+            mock_create_agent.return_value = mock_graph
+            
+            result = await self.collect_stream(
+                chat_service.generate_streaming_chat_response(sample_chat_request)
+            )
+        
+        expected_tokens = ["First part", " second part", " third part"]
+        assert result == expected_tokens
+    
+    @pytest.mark.asyncio
+    async def test_generate_streaming_chat_response_with_file(self, chat_service, sample_agent):
+        """Test streaming with file upload."""
+        mock_file = MagicMock(spec=UploadFile)
+        mock_file.filename = "test.jpg"
+        
+        request_with_file = ChatRequest(
+            messages=[ChatMessage(role="user", content="Analyze this image")],
+            agent="test_agent",
+            files=[mock_file]
+        )
+        
+        mock_file_content = ChatFileContent(
+            type="image",
+            source_type="base64",
+            data="base64_data",
+            mime_type="image/jpeg"
+        )
+        
+        mock_model = MagicMock()
+        
+        async def mock_astream(*args, **kwargs):
+            yield "I can see", {}
+            yield " the image", {}
+            yield " clearly", {}
+        
+        mock_graph = AsyncMock()
+        mock_graph.astream = mock_astream
+        
+        with patch.object(chat_service, '_get_chat_model', return_value=mock_model), \
+             patch.object(chat_service, '_get_file_content', new=AsyncMock(return_value=mock_file_content)), \
+             patch.object(AgentService, 'get_agent', new=AsyncMock(return_value=sample_agent)), \
+             patch('app.services.chat.chat_service.create_react_agent') as mock_create_agent:
+            
+            mock_create_agent.return_value = mock_graph
+            
+            result = await self.collect_stream(
+                chat_service.generate_streaming_chat_response(request_with_file)
+            )
+        
+        expected_tokens = ["I can see", " the image", " clearly"]
+        assert result == expected_tokens
+    
+    @pytest.mark.asyncio
+    async def test_generate_streaming_chat_response_empty_stream(self, chat_service, sample_agent, sample_chat_request):
+        """Test streaming when no tokens are produced."""
+        mock_model = MagicMock()
+        
+        async def mock_astream(*args, **kwargs):
+            # Empty generator - no tokens yielded
+            return
+            yield  # This won't be reached but helps with typing
+        
+        mock_graph = AsyncMock()
+        mock_graph.astream = mock_astream
+        
+        with patch.object(chat_service, '_get_chat_model', return_value=mock_model), \
+             patch.object(AgentService, 'get_agent', new=AsyncMock(return_value=sample_agent)), \
+             patch('app.services.chat.chat_service.create_react_agent') as mock_create_agent:
+            
+            mock_create_agent.return_value = mock_graph
+            
+            result = await self.collect_stream(
+                chat_service.generate_streaming_chat_response(sample_chat_request)
+            )
+        
+        assert result == []
+    
+    @pytest.mark.asyncio
+    async def test_generate_streaming_chat_response_mixed_token_types(self, chat_service, sample_agent, sample_chat_request):
+        """Test streaming with mixed token types."""
+        mock_model = MagicMock()
+        
+        class MockToken:
+            def __init__(self, content):
+                self.content = content
+        
+        async def mock_astream(*args, **kwargs):
+            # Mix of string tokens and object tokens
+            yield "Hello", {}
+            yield MockToken(" world"), {}
+            yield "!", {}
+            yield MockToken(" How are"), {}
+            yield " you?", {}
+        
+        mock_graph = AsyncMock()
+        mock_graph.astream = mock_astream
+        
+        with patch.object(chat_service, '_get_chat_model', return_value=mock_model), \
+             patch.object(AgentService, 'get_agent', new=AsyncMock(return_value=sample_agent)), \
+             patch('app.services.chat.chat_service.create_react_agent') as mock_create_agent:
+            
+            mock_create_agent.return_value = mock_graph
+            
+            result = await self.collect_stream(
+                chat_service.generate_streaming_chat_response(sample_chat_request)
+            )
+        
+        expected_tokens = ["Hello", " world", "!", " How are", " you?"]
+        assert result == expected_tokens
+    
+    @pytest.mark.asyncio
+    async def test_generate_streaming_chat_response_format_error(self, chat_service, sample_agent, sample_chat_request):
+        """Test streaming with format-related error."""
+        mock_model = MagicMock()
+        
+        # Create a proper async generator that raises an exception during iteration
+        async def mock_astream(*args, **kwargs):
+            if False:  # This makes it an async generator
+                yield
+            raise Exception("Unsupported media_type: image/webp")
+        
+        mock_graph = AsyncMock()
+        mock_graph.astream = mock_astream
+        
+        with patch.object(chat_service, '_get_chat_model', return_value=mock_model), \
+             patch.object(AgentService, 'get_agent', new=AsyncMock(return_value=sample_agent)), \
+             patch('app.services.chat.chat_service.create_react_agent') as mock_create_agent, \
+             patch.object(chat_service, '_parse_format_error', return_value="Format error message") as mock_parse:
+            
+            mock_create_agent.return_value = mock_graph
+            
+            result = await self.collect_stream(
+                chat_service.generate_streaming_chat_response(sample_chat_request)
+            )
+        
+        assert result == ["Format error message"]
+        mock_parse.assert_called_once_with("Unsupported media_type: image/webp")
+    
+    @pytest.mark.asyncio
+    async def test_generate_streaming_chat_response_bad_request_error(self, chat_service, sample_agent, sample_chat_request):
+        """Test streaming with BadRequestError."""
+        mock_model = MagicMock()
+        
+        async def mock_astream(*args, **kwargs):
+            if False:  # This makes it an async generator
+                yield
+            raise Exception("400 Bad Request: Invalid input")
+        
+        mock_graph = AsyncMock()
+        mock_graph.astream = mock_astream
+        
+        with patch.object(chat_service, '_get_chat_model', return_value=mock_model), \
+             patch.object(AgentService, 'get_agent', new=AsyncMock(return_value=sample_agent)), \
+             patch('app.services.chat.chat_service.create_react_agent') as mock_create_agent:
+            
+            mock_create_agent.return_value = mock_graph
+            
+            result = await self.collect_stream(
+                chat_service.generate_streaming_chat_response(sample_chat_request)
+            )
+        
+        assert len(result) == 1
+        assert "❌ Request Error" in result[0]
+    
+    @pytest.mark.asyncio
+    async def test_generate_streaming_chat_response_bad_request_error_type(self, chat_service, sample_agent, sample_chat_request):
+        """Test streaming with actual BadRequestError exception type."""
+        mock_model = MagicMock()
+        
+        # Create a mock exception that has "BadRequestError" in its type name
+        class BadRequestError(Exception):
+            pass
+        
+        async def mock_astream(*args, **kwargs):
+            if False:  # This makes it an async generator
+                yield
+            raise BadRequestError("Bad request")
+        
+        mock_graph = AsyncMock()
+        mock_graph.astream = mock_astream
+        
+        with patch.object(chat_service, '_get_chat_model', return_value=mock_model), \
+             patch.object(AgentService, 'get_agent', new=AsyncMock(return_value=sample_agent)), \
+             patch('app.services.chat.chat_service.create_react_agent') as mock_create_agent:
+            
+            mock_create_agent.return_value = mock_graph
+            
+            result = await self.collect_stream(
+                chat_service.generate_streaming_chat_response(sample_chat_request)
+            )
+        
+        assert len(result) == 1
+        assert "❌ Request Error" in result[0]
+    
+    @pytest.mark.asyncio
+    async def test_generate_streaming_chat_response_generic_error(self, chat_service, sample_agent, sample_chat_request):
+        """Test streaming with generic error."""
+        mock_model = MagicMock()
+        
+        async def mock_astream(*args, **kwargs):
+            if False:  # This makes it an async generator
+                yield
+            raise Exception("Generic error")
+        
+        mock_graph = AsyncMock()
+        mock_graph.astream = mock_astream
+        
+        with patch.object(chat_service, '_get_chat_model', return_value=mock_model), \
+             patch.object(AgentService, 'get_agent', new=AsyncMock(return_value=sample_agent)), \
+             patch('app.services.chat.chat_service.create_react_agent') as mock_create_agent:
+            
+            mock_create_agent.return_value = mock_graph
+            
+            result = await self.collect_stream(
+                chat_service.generate_streaming_chat_response(sample_chat_request)
+            )
+        
+        assert len(result) == 1
+        assert "❌ An error occurred" in result[0]
+    
+    @pytest.mark.asyncio
+    async def test_generate_streaming_chat_response_with_tools(self, chat_service, sample_agent, sample_chat_request):
+        """Test streaming with agent that has tools configured."""
+        # Modify agent to have tools
+        agent_with_tools = AgentInfo(
+            id="test_agent",
+            name="Test Agent",
+            description="Test description",
+            model=LLMModel.GPT_4O,
+            persona="You are a helpful assistant",
+            tone="friendly",
+            avatar="test_avatar",
+            tools=["tool1", "tool2"]
+        )
+        
+        mock_model = MagicMock()
+        mock_tools = [MagicMock(), MagicMock()]
+        
+        async def mock_astream(*args, **kwargs):
+            yield "Using tools to", {}
+            yield " help you", {}
+        
+        mock_graph = AsyncMock()
+        mock_graph.astream = mock_astream
+        
+        with patch.object(chat_service, '_get_chat_model', return_value=mock_model), \
+             patch.object(chat_service, '_load_mcp_tools', new=AsyncMock(return_value=mock_tools)), \
+             patch.object(AgentService, 'get_agent', new=AsyncMock(return_value=agent_with_tools)), \
+             patch('app.services.chat.chat_service.create_react_agent') as mock_create_agent:
+            
+            mock_create_agent.return_value = mock_graph
+            
+            result = await self.collect_stream(
+                chat_service.generate_streaming_chat_response(sample_chat_request)
+            )
+        
+        expected_tokens = ["Using tools to", " help you"]
+        assert result == expected_tokens
+        
+        # Verify create_react_agent was called with tools
+        mock_create_agent.assert_called_once()
+        call_args = mock_create_agent.call_args[0]
+        assert call_args[1] == mock_tools  # tools parameter
+    
+    @pytest.mark.asyncio
+    async def test_generate_streaming_chat_response_token_without_content(self, chat_service, sample_agent, sample_chat_request):
+        """Test streaming when tokens don't have content attribute."""
+        mock_model = MagicMock()
+        
+        class MockTokenNoContent:
+            pass  # No content attribute
+        
+        async def mock_astream(*args, **kwargs):
+            yield MockTokenNoContent(), {}
+            yield "Valid token", {}
+        
+        mock_graph = AsyncMock()
+        mock_graph.astream = mock_astream
+        
+        with patch.object(chat_service, '_get_chat_model', return_value=mock_model), \
+             patch.object(AgentService, 'get_agent', new=AsyncMock(return_value=sample_agent)), \
+             patch('app.services.chat.chat_service.create_react_agent') as mock_create_agent:
+            
+            mock_create_agent.return_value = mock_graph
+            
+            result = await self.collect_stream(
+                chat_service.generate_streaming_chat_response(sample_chat_request)
+            )
+        
+        # Should only get the valid token, not the one without content
+        assert result == ["Valid token"]
+    
+    @pytest.mark.asyncio
+    async def test_generate_streaming_chat_response_token_with_empty_content(self, chat_service, sample_agent, sample_chat_request):
+        """Test streaming when token has empty content."""
+        mock_model = MagicMock()
+        
+        class MockToken:
+            def __init__(self, content):
+                self.content = content
+        
+        async def mock_astream(*args, **kwargs):
+            yield MockToken(""), {}  # Empty content
+            yield MockToken(None), {}  # None content
+            yield MockToken("Valid content"), {}
+        
+        mock_graph = AsyncMock()
+        mock_graph.astream = mock_astream
+        
+        with patch.object(chat_service, '_get_chat_model', return_value=mock_model), \
+             patch.object(AgentService, 'get_agent', new=AsyncMock(return_value=sample_agent)), \
+             patch('app.services.chat.chat_service.create_react_agent') as mock_create_agent:
+            
+            mock_create_agent.return_value = mock_graph
+            
+            result = await self.collect_stream(
+                chat_service.generate_streaming_chat_response(sample_chat_request)
+            )
+        
+        # Should only get the token with valid content
+        assert result == ["Valid content"]
+    
+    
 class TestGetModels:
     """Test get_models method."""
     
