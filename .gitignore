@@ -1,10 +1,17 @@
 # Python
 __pycache__/
-
 *.py[cod]
 *.pyo
 *.pyd
+*.pyc
 *.so
+
+# Virtual environments
+venv/
+env/
+ENV/
+.env/
+.venv/
 
 # Environment
 .env
