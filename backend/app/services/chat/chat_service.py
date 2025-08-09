@@ -224,6 +224,7 @@ class ChatService:
     async def generate_chat_response(self, request: ChatRequest) -> ChatResponse:
         """
         Generate a chat response using LangGraph's invoke capabilities.
+        The response is not persisted to chat history.
         """
         try:
             # Step 1: Get agent and model

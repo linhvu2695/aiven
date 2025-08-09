@@ -2,13 +2,27 @@ import pytest
 import base64
 from unittest.mock import patch, AsyncMock, MagicMock
 from fastapi import UploadFile
-from langchain_core.messages import HumanMessage, AIMessage, SystemMessage
 
 from app.services.chat.chat_service import ChatService
 from app.services.agent.agent_service import AgentService
-from app.classes.chat import ChatMessage, ChatRequest, ChatResponse, ChatFileContent
+from app.classes.chat import ChatMessage, ChatRequest, ChatResponse, ChatFileContent, ChatStreamChunk
 from app.classes.agent import AgentInfo
 from app.core.constants import LLMModel
+
+# Test constants
+TEST_SESSION_ID = "test-session-id"
+TEST_NEW_SESSION_ID = "test-new-session-id"
+TEST_AGENT_ID = "test-agent"
+TEST_OPENAI_API_KEY = "test-openai-key"
+TEST_GEMINI_API_KEY = "test-gemini-key"
+TEST_ANTHROPIC_API_KEY = "test-anthropic-key"
+TEST_XAI_API_KEY = "test-xai-key"
+TEST_MISTRAL_API_KEY = "test-mistral-key"
+TEST_NVIDIA_API_KEY = "test-nvidia-key"
+TEST_TEXT_FILE = "test.txt"
+TEST_IMAGE_FILE = "test.jpg"
+TEST_UNKNOWN_FILE = "unknown_file"
+TEST_ALTERNATE_SESSION_ID = "test-alternate-session-id"
 
 
 class TestChatServiceSingleton:
@@ -38,7 +52,7 @@ class TestGetChatModel:
     @patch('app.services.chat.chat_service.settings')
     def test_get_openai_model(self, mock_settings, mock_init_chat_model, chat_service):
         """Test getting OpenAI model."""
-        mock_settings.openai_api_key = "test_key"
+        mock_settings.openai_api_key = TEST_OPENAI_API_KEY
         mock_model = MagicMock()
         mock_init_chat_model.return_value = mock_model
         
@@ -47,7 +61,7 @@ class TestGetChatModel:
         mock_init_chat_model.assert_called_once_with(
             model=LLMModel.GPT_4O,
             model_provider="openai",
-            api_key="test_key"
+            api_key=TEST_OPENAI_API_KEY
         )
         assert result == mock_model
     
@@ -55,7 +69,7 @@ class TestGetChatModel:
     @patch('app.services.chat.chat_service.settings')
     def test_get_gemini_model(self, mock_settings, mock_init_chat_model, chat_service):
         """Test getting Gemini model."""
-        mock_settings.gemini_api_key = "test_gemini_key"
+        mock_settings.gemini_api_key = TEST_GEMINI_API_KEY
         mock_model = MagicMock()
         mock_init_chat_model.return_value = mock_model
         
@@ -64,7 +78,7 @@ class TestGetChatModel:
         mock_init_chat_model.assert_called_once_with(
             model=LLMModel.GEMINI_2_0_FLASH,
             model_provider="google_genai",
-            api_key="test_gemini_key"
+            api_key=TEST_GEMINI_API_KEY
         )
         assert result == mock_model
     
@@ -72,7 +86,7 @@ class TestGetChatModel:
     @patch('app.services.chat.chat_service.settings')
     def test_get_claude_model(self, mock_settings, mock_init_chat_model, chat_service):
         """Test getting Claude model."""
-        mock_settings.anthropic_api_key = "test_anthropic_key"
+        mock_settings.anthropic_api_key = TEST_ANTHROPIC_API_KEY
         mock_model = MagicMock()
         mock_init_chat_model.return_value = mock_model
         
@@ -81,7 +95,7 @@ class TestGetChatModel:
         mock_init_chat_model.assert_called_once_with(
             model=LLMModel.CLAUDE_SONNET_3_5,
             model_provider="anthropic",
-            api_key="test_anthropic_key"
+            api_key=TEST_ANTHROPIC_API_KEY
         )
         assert result == mock_model
     
@@ -89,7 +103,7 @@ class TestGetChatModel:
     @patch('app.services.chat.chat_service.settings')
     def test_get_grok_model(self, mock_settings, mock_init_chat_model, chat_service):
         """Test getting Grok model."""
-        mock_settings.xai_api_key = "test_xai_key"
+        mock_settings.xai_api_key = TEST_XAI_API_KEY
         mock_model = MagicMock()
         mock_init_chat_model.return_value = mock_model
         
@@ -98,7 +112,7 @@ class TestGetChatModel:
         mock_init_chat_model.assert_called_once_with(
             model=LLMModel.GROK_3,
             model_provider="xai",
-            api_key="test_xai_key"
+            api_key=TEST_XAI_API_KEY
         )
         assert result == mock_model
     
@@ -106,7 +120,7 @@ class TestGetChatModel:
     @patch('app.services.chat.chat_service.settings')
     def test_get_mistral_model(self, mock_settings, mock_init_chat_model, chat_service):
         """Test getting Mistral model."""
-        mock_settings.mistral_api_key = "test_mistral_key"
+        mock_settings.mistral_api_key = TEST_MISTRAL_API_KEY
         mock_model = MagicMock()
         mock_init_chat_model.return_value = mock_model
         
@@ -115,7 +129,7 @@ class TestGetChatModel:
         mock_init_chat_model.assert_called_once_with(
             model=LLMModel.MISTRAL_LARGE_LATEST,
             model_provider="mistralai",
-            api_key="test_mistral_key"
+            api_key=TEST_MISTRAL_API_KEY
         )
         assert result == mock_model
     
@@ -123,7 +137,7 @@ class TestGetChatModel:
     @patch('app.services.chat.chat_service.settings')
     def test_get_nvidia_model(self, mock_settings, mock_init_chat_model, chat_service):
         """Test getting NVIDIA model."""
-        mock_settings.nvidia_api_key = "test_nvidia_key"
+        mock_settings.nvidia_api_key = TEST_NVIDIA_API_KEY
         mock_model = MagicMock()
         mock_init_chat_model.return_value = mock_model
         
@@ -132,7 +146,7 @@ class TestGetChatModel:
         mock_init_chat_model.assert_called_once_with(
             model=LLMModel.NVIDIA_NEVA_22B,
             model_provider="nvidia",
-            api_key="test_nvidia_key"
+            api_key=TEST_NVIDIA_API_KEY
         )
         assert result == mock_model
     
@@ -140,7 +154,7 @@ class TestGetChatModel:
     @patch('app.services.chat.chat_service.settings')
     def test_get_unknown_model_defaults_to_gpt(self, mock_settings, mock_init_chat_model, chat_service):
         """Test that unknown model defaults to GPT_4O_MINI."""
-        mock_settings.openai_api_key = "test_key"
+        mock_settings.openai_api_key = TEST_OPENAI_API_KEY
         mock_model = MagicMock()
         mock_init_chat_model.return_value = mock_model
         
@@ -149,7 +163,7 @@ class TestGetChatModel:
         mock_init_chat_model.assert_called_once_with(
             model=LLMModel.GPT_4O_MINI,
             model_provider="openai",
-            api_key="test_key"
+            api_key=TEST_OPENAI_API_KEY
         )
         assert result == mock_model
 
@@ -258,7 +272,7 @@ class TestGetFileContent:
         # Create mock file
         file_content = b"test file content"
         mock_file = MagicMock(spec=UploadFile)
-        mock_file.filename = "test.txt"
+        mock_file.filename = TEST_TEXT_FILE
         mock_file.read = AsyncMock(return_value=file_content)
         mock_file.seek = AsyncMock()
         
@@ -303,7 +317,7 @@ class TestGetFileContent:
     async def test_get_file_content_exception(self, chat_service):
         """Test handling of exception during file processing."""
         mock_file = MagicMock(spec=UploadFile)
-        mock_file.filename = "test.txt"
+        mock_file.filename = TEST_TEXT_FILE
         mock_file.read = AsyncMock(side_effect=Exception("File read error"))
         
         with patch('builtins.print') as mock_print:
@@ -317,7 +331,7 @@ class TestGetFileContent:
         """Test handling of unknown mime type."""
         file_content = b"unknown content"
         mock_file = MagicMock(spec=UploadFile)
-        mock_file.filename = "unknown_file"
+        mock_file.filename = TEST_UNKNOWN_FILE
         mock_file.read = AsyncMock(return_value=file_content)
         mock_file.seek = AsyncMock()
         
@@ -340,7 +354,7 @@ class TestGetAgentSystemPrompt:
     @pytest.fixture
     def sample_agent(self):
         return AgentInfo(
-            id="test_agent",
+            id=TEST_AGENT_ID,
             name="Test Agent",
             description="A helpful test assistant",
             model=LLMModel.GPT_4O,
@@ -461,7 +475,7 @@ class TestGenerateChatResponse:
     @pytest.fixture
     def sample_agent(self):
         return AgentInfo(
-            id="test_agent",
+            id=TEST_AGENT_ID,
             name="Test Agent",
             description="Test description",
             model=LLMModel.GPT_4O,
@@ -479,7 +493,7 @@ class TestGenerateChatResponse:
                 ChatMessage(role="assistant", content="Hi there!"),
                 ChatMessage(role="user", content="How are you?")
             ],
-            agent="test_agent",
+            agent=TEST_AGENT_ID,
             files=None
         )
     
@@ -525,11 +539,11 @@ class TestGenerateChatResponse:
         """Test chat response generation with file upload."""
         # Create request with file
         mock_file = MagicMock(spec=UploadFile)
-        mock_file.filename = "test.jpg"
+        mock_file.filename = TEST_IMAGE_FILE
         
         request_with_file = ChatRequest(
             messages=[ChatMessage(role="user", content="Analyze this image")],
-            agent="test_agent",
+            agent=TEST_AGENT_ID,
             files=[mock_file]
         )
         
@@ -572,11 +586,11 @@ class TestGenerateChatResponse:
     async def test_generate_chat_response_with_file_no_content(self, chat_service, sample_agent):
         """Test chat response when file processing returns None."""
         mock_file = MagicMock(spec=UploadFile)
-        mock_file.filename = "test.jpg"
+        mock_file.filename = TEST_IMAGE_FILE
         
         request_with_file = ChatRequest(
             messages=[ChatMessage(role="user", content="Analyze this image")],
-            agent="test_agent",
+            agent=TEST_AGENT_ID,
             files=[mock_file]
         )
         
@@ -684,7 +698,7 @@ class TestGenerateStreamingChatResponse:
     @pytest.fixture
     def sample_agent(self):
         return AgentInfo(
-            id="test_agent",
+            id=TEST_AGENT_ID,
             name="Test Agent",
             description="Test description",
             model=LLMModel.GPT_4O,
@@ -702,16 +716,33 @@ class TestGenerateStreamingChatResponse:
                 ChatMessage(role="assistant", content="Hi there!"),
                 ChatMessage(role="user", content="How are you?")
             ],
-            agent="test_agent",
+            agent=TEST_AGENT_ID,
+            session_id=TEST_SESSION_ID,  # Valid MongoDB ObjectId format
             files=None
         )
     
     async def collect_stream(self, async_gen):
-        """Helper method to collect all items from an async generator."""
-        items = []
-        async for item in async_gen:
-            items.append(item)
-        return items
+        """Helper method to collect content from ChatStreamChunk objects."""
+        content_items = []
+        chunks = []
+        async for chunk in async_gen:
+            chunks.append(chunk)
+            if isinstance(chunk, ChatStreamChunk) and chunk.content:
+                content_items.append(chunk.content)
+        return content_items, chunks
+    
+    def setup_base_mocks(self, chat_service, mock_model, sample_agent, session_id=TEST_SESSION_ID):
+        """Helper method to setup common mocks for streaming tests."""
+        mock_history = AsyncMock()
+        mock_history._session_id = session_id
+        mock_history.aget_messages.return_value = []
+        
+        return {
+            'history_patch': patch('app.services.chat.chat_service.MongoDBChatHistory', return_value=mock_history),
+            'model_patch': patch.object(chat_service, '_get_chat_model', return_value=mock_model),
+            'agent_patch': patch.object(AgentService, 'get_agent', new=AsyncMock(return_value=sample_agent)),
+            'mock_history': mock_history
+        }
     
     @pytest.mark.asyncio
     async def test_generate_streaming_chat_response_success_string_tokens(self, chat_service, sample_agent, sample_chat_request):
@@ -727,18 +758,25 @@ class TestGenerateStreamingChatResponse:
         mock_graph = AsyncMock()
         mock_graph.astream = mock_astream
         
-        with patch.object(chat_service, '_get_chat_model', return_value=mock_model), \
-             patch.object(AgentService, 'get_agent', new=AsyncMock(return_value=sample_agent)), \
+        mocks = self.setup_base_mocks(chat_service, mock_model, sample_agent)
+        
+        with mocks['model_patch'], mocks['agent_patch'], mocks['history_patch'], \
              patch('app.services.chat.chat_service.create_react_agent') as mock_create_agent:
             
             mock_create_agent.return_value = mock_graph
             
-            result = await self.collect_stream(
+            content_items, chunks = await self.collect_stream(
                 chat_service.generate_streaming_chat_response(sample_chat_request)
             )
         
         expected_tokens = ["Hello", " there", "!", " How", " can", " I", " help", "?"]
-        assert result == expected_tokens
+        assert content_items == expected_tokens
+        
+        # Verify we got ChatStreamChunk objects
+        assert len(chunks) > len(expected_tokens)  # Should include completion chunk
+        content_chunks = [c for c in chunks if c.content]
+        assert all(isinstance(chunk, ChatStreamChunk) for chunk in chunks)
+        assert chunks[0].session_id == TEST_SESSION_ID  # First chunk should have session_id
         
         # Verify create_react_agent was called
         mock_create_agent.assert_called_once()
@@ -765,18 +803,19 @@ class TestGenerateStreamingChatResponse:
         mock_graph = AsyncMock()
         mock_graph.astream = mock_astream
         
-        with patch.object(chat_service, '_get_chat_model', return_value=mock_model), \
-             patch.object(AgentService, 'get_agent', new=AsyncMock(return_value=sample_agent)), \
+        mocks = self.setup_base_mocks(chat_service, mock_model, sample_agent)
+        
+        with mocks['model_patch'], mocks['agent_patch'], mocks['history_patch'], \
              patch('app.services.chat.chat_service.create_react_agent') as mock_create_agent:
             
             mock_create_agent.return_value = mock_graph
             
-            result = await self.collect_stream(
+            content_items, chunks = await self.collect_stream(
                 chat_service.generate_streaming_chat_response(sample_chat_request)
             )
         
         expected_tokens = ["Hello", " world", "!"]
-        assert result == expected_tokens
+        assert content_items == expected_tokens
     
     @pytest.mark.asyncio
     async def test_generate_streaming_chat_response_list_content(self, chat_service, sample_agent, sample_chat_request):
@@ -799,28 +838,31 @@ class TestGenerateStreamingChatResponse:
         mock_graph = AsyncMock()
         mock_graph.astream = mock_astream
         
-        with patch.object(chat_service, '_get_chat_model', return_value=mock_model), \
-             patch.object(AgentService, 'get_agent', new=AsyncMock(return_value=sample_agent)), \
+        mocks = self.setup_base_mocks(chat_service, mock_model, sample_agent)
+        
+        with mocks['model_patch'], mocks['agent_patch'], mocks['history_patch'], \
              patch('app.services.chat.chat_service.create_react_agent') as mock_create_agent:
             
             mock_create_agent.return_value = mock_graph
             
-            result = await self.collect_stream(
+            content_items, chunks = await self.collect_stream(
                 chat_service.generate_streaming_chat_response(sample_chat_request)
             )
         
-        expected_tokens = ["First part", " second part", " third part"]
-        assert result == expected_tokens
+        # List content should be concatenated into a single token
+        expected_tokens = ["First part second part third part"]
+        assert content_items == expected_tokens
     
     @pytest.mark.asyncio
     async def test_generate_streaming_chat_response_with_file(self, chat_service, sample_agent):
         """Test streaming with file upload."""
         mock_file = MagicMock(spec=UploadFile)
-        mock_file.filename = "test.jpg"
+        mock_file.filename = TEST_IMAGE_FILE
         
         request_with_file = ChatRequest(
             messages=[ChatMessage(role="user", content="Analyze this image")],
-            agent="test_agent",
+            agent=TEST_AGENT_ID,
+            session_id=TEST_SESSION_ID,
             files=[mock_file]
         )
         
@@ -841,19 +883,20 @@ class TestGenerateStreamingChatResponse:
         mock_graph = AsyncMock()
         mock_graph.astream = mock_astream
         
-        with patch.object(chat_service, '_get_chat_model', return_value=mock_model), \
+        mocks = self.setup_base_mocks(chat_service, mock_model, sample_agent)
+        
+        with mocks['model_patch'], mocks['agent_patch'], mocks['history_patch'], \
              patch.object(chat_service, '_get_file_content', new=AsyncMock(return_value=mock_file_content)), \
-             patch.object(AgentService, 'get_agent', new=AsyncMock(return_value=sample_agent)), \
              patch('app.services.chat.chat_service.create_react_agent') as mock_create_agent:
             
             mock_create_agent.return_value = mock_graph
             
-            result = await self.collect_stream(
+            content_items, chunks = await self.collect_stream(
                 chat_service.generate_streaming_chat_response(request_with_file)
             )
         
         expected_tokens = ["I can see", " the image", " clearly"]
-        assert result == expected_tokens
+        assert content_items == expected_tokens
     
     @pytest.mark.asyncio
     async def test_generate_streaming_chat_response_empty_stream(self, chat_service, sample_agent, sample_chat_request):
@@ -868,17 +911,18 @@ class TestGenerateStreamingChatResponse:
         mock_graph = AsyncMock()
         mock_graph.astream = mock_astream
         
-        with patch.object(chat_service, '_get_chat_model', return_value=mock_model), \
-             patch.object(AgentService, 'get_agent', new=AsyncMock(return_value=sample_agent)), \
+        mocks = self.setup_base_mocks(chat_service, mock_model, sample_agent)
+        
+        with mocks['model_patch'], mocks['agent_patch'], mocks['history_patch'], \
              patch('app.services.chat.chat_service.create_react_agent') as mock_create_agent:
             
             mock_create_agent.return_value = mock_graph
             
-            result = await self.collect_stream(
+            content_items, chunks = await self.collect_stream(
                 chat_service.generate_streaming_chat_response(sample_chat_request)
             )
         
-        assert result == []
+        assert content_items == []
     
     @pytest.mark.asyncio
     async def test_generate_streaming_chat_response_mixed_token_types(self, chat_service, sample_agent, sample_chat_request):
@@ -900,18 +944,19 @@ class TestGenerateStreamingChatResponse:
         mock_graph = AsyncMock()
         mock_graph.astream = mock_astream
         
-        with patch.object(chat_service, '_get_chat_model', return_value=mock_model), \
-             patch.object(AgentService, 'get_agent', new=AsyncMock(return_value=sample_agent)), \
+        mocks = self.setup_base_mocks(chat_service, mock_model, sample_agent)
+        
+        with mocks['model_patch'], mocks['agent_patch'], mocks['history_patch'], \
              patch('app.services.chat.chat_service.create_react_agent') as mock_create_agent:
             
             mock_create_agent.return_value = mock_graph
             
-            result = await self.collect_stream(
+            content_items, chunks = await self.collect_stream(
                 chat_service.generate_streaming_chat_response(sample_chat_request)
             )
         
         expected_tokens = ["Hello", " world", "!", " How are", " you?"]
-        assert result == expected_tokens
+        assert content_items == expected_tokens
     
     @pytest.mark.asyncio
     async def test_generate_streaming_chat_response_format_error(self, chat_service, sample_agent, sample_chat_request):
@@ -927,18 +972,23 @@ class TestGenerateStreamingChatResponse:
         mock_graph = AsyncMock()
         mock_graph.astream = mock_astream
         
-        with patch.object(chat_service, '_get_chat_model', return_value=mock_model), \
-             patch.object(AgentService, 'get_agent', new=AsyncMock(return_value=sample_agent)), \
+        mocks = self.setup_base_mocks(chat_service, mock_model, sample_agent)
+        
+        with mocks['model_patch'], mocks['agent_patch'], mocks['history_patch'], \
              patch('app.services.chat.chat_service.create_react_agent') as mock_create_agent, \
              patch.object(chat_service, '_parse_format_error', return_value="Format error message") as mock_parse:
             
             mock_create_agent.return_value = mock_graph
             
-            result = await self.collect_stream(
+            content_items, chunks = await self.collect_stream(
                 chat_service.generate_streaming_chat_response(sample_chat_request)
             )
         
-        assert result == ["Format error message"]
+        assert content_items == ["Format error message"]
+        # Should have error chunk with session_id
+        error_chunks = [c for c in chunks if c.content == "Format error message"]
+        assert len(error_chunks) == 1
+        assert error_chunks[0].is_complete == True
         mock_parse.assert_called_once_with("Unsupported media_type: image/webp")
     
     @pytest.mark.asyncio
@@ -954,18 +1004,19 @@ class TestGenerateStreamingChatResponse:
         mock_graph = AsyncMock()
         mock_graph.astream = mock_astream
         
-        with patch.object(chat_service, '_get_chat_model', return_value=mock_model), \
-             patch.object(AgentService, 'get_agent', new=AsyncMock(return_value=sample_agent)), \
+        mocks = self.setup_base_mocks(chat_service, mock_model, sample_agent)
+        
+        with mocks['model_patch'], mocks['agent_patch'], mocks['history_patch'], \
              patch('app.services.chat.chat_service.create_react_agent') as mock_create_agent:
             
             mock_create_agent.return_value = mock_graph
             
-            result = await self.collect_stream(
+            content_items, chunks = await self.collect_stream(
                 chat_service.generate_streaming_chat_response(sample_chat_request)
             )
         
-        assert len(result) == 1
-        assert "❌ Request Error" in result[0]
+        assert len(content_items) == 1
+        assert "❌ Request Error" in content_items[0]
     
     @pytest.mark.asyncio
     async def test_generate_streaming_chat_response_bad_request_error_type(self, chat_service, sample_agent, sample_chat_request):
@@ -984,18 +1035,19 @@ class TestGenerateStreamingChatResponse:
         mock_graph = AsyncMock()
         mock_graph.astream = mock_astream
         
-        with patch.object(chat_service, '_get_chat_model', return_value=mock_model), \
-             patch.object(AgentService, 'get_agent', new=AsyncMock(return_value=sample_agent)), \
+        mocks = self.setup_base_mocks(chat_service, mock_model, sample_agent)
+        
+        with mocks['model_patch'], mocks['agent_patch'], mocks['history_patch'], \
              patch('app.services.chat.chat_service.create_react_agent') as mock_create_agent:
             
             mock_create_agent.return_value = mock_graph
             
-            result = await self.collect_stream(
+            content_items, chunks = await self.collect_stream(
                 chat_service.generate_streaming_chat_response(sample_chat_request)
             )
         
-        assert len(result) == 1
-        assert "❌ Request Error" in result[0]
+        assert len(content_items) == 1
+        assert "❌ Request Error" in content_items[0]
     
     @pytest.mark.asyncio
     async def test_generate_streaming_chat_response_generic_error(self, chat_service, sample_agent, sample_chat_request):
@@ -1010,25 +1062,26 @@ class TestGenerateStreamingChatResponse:
         mock_graph = AsyncMock()
         mock_graph.astream = mock_astream
         
-        with patch.object(chat_service, '_get_chat_model', return_value=mock_model), \
-             patch.object(AgentService, 'get_agent', new=AsyncMock(return_value=sample_agent)), \
+        mocks = self.setup_base_mocks(chat_service, mock_model, sample_agent)
+        
+        with mocks['model_patch'], mocks['agent_patch'], mocks['history_patch'], \
              patch('app.services.chat.chat_service.create_react_agent') as mock_create_agent:
             
             mock_create_agent.return_value = mock_graph
             
-            result = await self.collect_stream(
+            content_items, chunks = await self.collect_stream(
                 chat_service.generate_streaming_chat_response(sample_chat_request)
             )
         
-        assert len(result) == 1
-        assert "❌ An error occurred" in result[0]
+        assert len(content_items) == 1
+        assert "❌ An error occurred" in content_items[0]
     
     @pytest.mark.asyncio
     async def test_generate_streaming_chat_response_with_tools(self, chat_service, sample_agent, sample_chat_request):
         """Test streaming with agent that has tools configured."""
         # Modify agent to have tools
         agent_with_tools = AgentInfo(
-            id="test_agent",
+            id=TEST_AGENT_ID,
             name="Test Agent",
             description="Test description",
             model=LLMModel.GPT_4O,
@@ -1048,19 +1101,20 @@ class TestGenerateStreamingChatResponse:
         mock_graph = AsyncMock()
         mock_graph.astream = mock_astream
         
-        with patch.object(chat_service, '_get_chat_model', return_value=mock_model), \
+        mocks = self.setup_base_mocks(chat_service, mock_model, agent_with_tools)
+        
+        with mocks['model_patch'], mocks['agent_patch'], mocks['history_patch'], \
              patch.object(chat_service, '_load_mcp_tools', new=AsyncMock(return_value=mock_tools)), \
-             patch.object(AgentService, 'get_agent', new=AsyncMock(return_value=agent_with_tools)), \
              patch('app.services.chat.chat_service.create_react_agent') as mock_create_agent:
             
             mock_create_agent.return_value = mock_graph
             
-            result = await self.collect_stream(
+            content_items, chunks = await self.collect_stream(
                 chat_service.generate_streaming_chat_response(sample_chat_request)
             )
         
         expected_tokens = ["Using tools to", " help you"]
-        assert result == expected_tokens
+        assert content_items == expected_tokens
         
         # Verify create_react_agent was called with tools
         mock_create_agent.assert_called_once()
@@ -1082,18 +1136,73 @@ class TestGenerateStreamingChatResponse:
         mock_graph = AsyncMock()
         mock_graph.astream = mock_astream
         
-        with patch.object(chat_service, '_get_chat_model', return_value=mock_model), \
-             patch.object(AgentService, 'get_agent', new=AsyncMock(return_value=sample_agent)), \
+        mocks = self.setup_base_mocks(chat_service, mock_model, sample_agent)
+        
+        with mocks['model_patch'], mocks['agent_patch'], mocks['history_patch'], \
              patch('app.services.chat.chat_service.create_react_agent') as mock_create_agent:
             
             mock_create_agent.return_value = mock_graph
             
-            result = await self.collect_stream(
+            content_items, chunks = await self.collect_stream(
                 chat_service.generate_streaming_chat_response(sample_chat_request)
             )
         
         # Should only get the valid token, not the one without content
-        assert result == ["Valid token"]
+        assert content_items == ["Valid token"]
+    
+    @pytest.mark.asyncio
+    async def test_generate_streaming_chat_response_session_id_management(self, chat_service, sample_agent):
+        """Test session ID management in streaming response."""
+        mock_model = MagicMock()
+        
+        # Test with empty session_id (new conversation)
+        empty_session_request = ChatRequest(
+            messages=[ChatMessage(role="user", content="Hello")],
+            agent=TEST_AGENT_ID,
+            session_id="",
+            files=None
+        )
+        
+        # Mock MongoDB chat history for new conversation
+        mock_history = AsyncMock()
+        mock_history._session_id = TEST_ALTERNATE_SESSION_ID  # Different valid ObjectId
+        mock_history.aget_messages.return_value = []
+        
+        async def mock_astream(*args, **kwargs):
+            yield "Hello", {}
+            yield " user", {}
+        
+        mock_graph = AsyncMock()
+        mock_graph.astream = mock_astream
+        
+        with patch.object(chat_service, '_get_chat_model', return_value=mock_model), \
+             patch.object(AgentService, 'get_agent', new=AsyncMock(return_value=sample_agent)), \
+             patch('app.services.chat.chat_service.create_react_agent') as mock_create_agent, \
+             patch('app.services.chat.chat_service.MongoDBChatHistory', return_value=mock_history):
+            
+            mock_create_agent.return_value = mock_graph
+            
+            content_items, chunks = await self.collect_stream(
+                chat_service.generate_streaming_chat_response(empty_session_request)
+            )
+        
+        # Verify content
+        assert content_items == ["Hello", " user"]
+        
+        # Verify session ID behavior
+        content_chunks = [c for c in chunks if c.content]
+        completion_chunks = [c for c in chunks if c.is_complete]
+        
+        # First content chunk should have session_id
+        assert content_chunks[0].session_id == TEST_ALTERNATE_SESSION_ID
+        # Other content chunks should not have session_id
+        for chunk in content_chunks[1:]:
+            assert chunk.session_id == ""
+        
+        # Completion chunk should have session_id
+        assert len(completion_chunks) == 1
+        assert completion_chunks[0].session_id == TEST_ALTERNATE_SESSION_ID
+        assert completion_chunks[0].is_complete == True
     
     @pytest.mark.asyncio
     async def test_generate_streaming_chat_response_token_with_empty_content(self, chat_service, sample_agent, sample_chat_request):
@@ -1112,18 +1221,19 @@ class TestGenerateStreamingChatResponse:
         mock_graph = AsyncMock()
         mock_graph.astream = mock_astream
         
-        with patch.object(chat_service, '_get_chat_model', return_value=mock_model), \
-             patch.object(AgentService, 'get_agent', new=AsyncMock(return_value=sample_agent)), \
+        mocks = self.setup_base_mocks(chat_service, mock_model, sample_agent)
+        
+        with mocks['model_patch'], mocks['agent_patch'], mocks['history_patch'], \
              patch('app.services.chat.chat_service.create_react_agent') as mock_create_agent:
             
             mock_create_agent.return_value = mock_graph
             
-            result = await self.collect_stream(
+            content_items, chunks = await self.collect_stream(
                 chat_service.generate_streaming_chat_response(sample_chat_request)
             )
         
         # Should only get the token with valid content
-        assert result == ["Valid content"]
+        assert content_items == ["Valid content"]
     
     
 class TestGetModels:

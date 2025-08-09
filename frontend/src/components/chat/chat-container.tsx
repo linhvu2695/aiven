@@ -254,15 +254,6 @@ const ChatContainerContent = () => {
             justifyContent="space-between"
             data-testid="chat-container"
         >
-            {/* Session Status */}
-            {sessionId && (
-                <Box p={2} bg="gray.900" borderRadius="md" mx={4} mt={2}>
-                    <Text fontSize="sm" color="gray.300">
-                        Session: {sessionId}
-                    </Text>
-                </Box>
-            )}
-
             {/* Messages */}
             <Stack spaceY={3} align="stretch" overflowY="auto" p={4}>
                 {messages.map((msg, idx) => (
