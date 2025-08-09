@@ -1,4 +1,5 @@
 import logging, base64, mimetypes, re
+from datetime import datetime, timezone
 from typing import Optional, AsyncGenerator
 from pathlib import Path
 from fastapi import UploadFile
@@ -32,7 +33,7 @@ from app.core.constants import (
 from app.services.agent.agent_service import AgentService
 from app.services.tool.tool_service import ToolService
 from app.services.chat.chat_history import MongoDBChatHistory
-
+from app.core.database import update_document
 
 GPT_DEFAULT_MODEL = LLMModel.GPT_4O_MINI
 
@@ -220,6 +221,74 @@ class ChatService:
             persona=agent.persona,
             tone=agent.tone,
         )
+
+    async def _generate_conversation_name_if_needed(self, history: MongoDBChatHistory, agent_id: str) -> None:
+        """
+        Generate a conversation name using AI for new conversations.
+        Only generates a name if the conversation has 2-4 messages and doesn't already have a name.
+        """
+        conversation = await history._aget_conversation()
+        if not conversation:
+            return
+        
+        # Only generate name for new conversations (2-4 messages) without existing names
+        message_count = len(conversation.messages)
+        if message_count < 2 or message_count > 4 or (conversation.name and conversation.name.strip()):
+            return
+        
+        try:
+            # Get agent and model configuration
+            agent = await AgentService().get_agent(agent_id)
+            naming_model = self._get_chat_model(agent.model)
+            
+            # Configure model for concise naming (limit token output)
+            naming_model = naming_model.bind(temperature=0.3, max_tokens=20)
+            
+            # Get the first few messages to generate a meaningful name
+            messages_for_naming = conversation.messages[:3]  # Use first 3 messages
+            
+            # Create a simple conversation context for naming
+            conversation_context = ""
+            for msg in messages_for_naming:
+                role = "User" if msg.__class__.__name__ == "HumanMessage" else "Assistant"
+                content = msg.content[:200] if isinstance(msg.content, str) else str(msg.content)[:200]  # Truncate for efficiency
+                conversation_context += f"{role}: {content}\n"
+            
+            # Create a prompt for generating conversation names
+            naming_prompt = f"""Based on the following conversation, generate a short, descriptive name (2-5 words) that captures the main topic or purpose. Be concise and specific.
+
+Conversation:
+{conversation_context}
+
+Name (2-5 words only):"""
+            
+            # Generate the name
+            response = await naming_model.ainvoke([HumanMessage(content=naming_prompt)])
+            
+            # Handle response content properly (it might be a string or list)
+            content = response.content
+            if isinstance(content, list):
+                # If it's a list, join the text parts
+                generated_name = " ".join(str(item) for item in content if isinstance(item, str))
+            else:
+                generated_name = str(content)
+            
+            generated_name = generated_name.strip().strip('"').strip("'")
+            
+            # Clean up the name (remove quotes, limit length)
+            if len(generated_name) > 50:
+                generated_name = generated_name[:50].strip()
+            
+            # Update the conversation with the generated name
+            await update_document("conversation", history._session_id, {
+                "name": generated_name,
+                "updated_at": datetime.now(timezone.utc)
+            })
+            
+            logging.getLogger("uvicorn.info").info(f"Generated conversation name: '{generated_name}' for session {history._session_id}")
+            
+        except Exception as e:
+            logging.getLogger("uvicorn.error").error(f"Error generating conversation name: {e}")
 
     async def generate_chat_response(self, request: ChatRequest) -> ChatResponse:
         """
@@ -436,14 +505,21 @@ class ChatService:
                 except Exception as persist_error:
                     logging.getLogger("uvicorn.error").error(f"Failed to persist assistant message: {persist_error}")
             
-            # Step 9: Send final completion chunk with session_id
+            # Step 9: Generate conversation name for new conversations
+            if history and assistant_response.strip():
+                try:
+                    await self._generate_conversation_name_if_needed(history, request.agent)
+                except Exception as name_error:
+                    logging.getLogger("uvicorn.error").error(f"Failed to generate conversation name: {name_error}")
+            
+            # Step 10: Send final completion chunk with session_id
             if history:
                 yield ChatStreamChunk(
                     content="",
                     session_id=history._session_id,
                     is_complete=True
                 )
-
+                
     async def get_models(self) -> dict[str, list[dict[str, str]]]:
         def model_info(model: LLMModel) -> dict[str, str]:
             return {"value": model.value, "label": model.value}

@@ -1,10 +1,10 @@
-import asyncio
+from collections.abc import Sequence
+import asyncio, logging
 from datetime import datetime, timezone
 from langchain_core.chat_history import BaseChatMessageHistory
 from langchain_core.messages.base import BaseMessage
-from app.core.database import get_document, update_document, insert_document
-from app.classes.conversation import Conversation
-from collections.abc import Sequence
+from app.core.database import get_document, update_document, insert_document, get_mongodb_conn
+from app.classes.conversation import Conversation, ConversationInfo
 
 CONVERSATION_COLLECTION = "conversation"
 
@@ -19,6 +19,7 @@ class MongoDBChatHistory(BaseChatMessageHistory):
         
         return Conversation(
             id=str(data.get("_id", "")),
+            name=data.get("name", ""),
             messages=data.get("messages", []),
             created_at=data.get("created_at", datetime.now(timezone.utc)),
             updated_at=data.get("updated_at", datetime.now(timezone.utc))
@@ -41,6 +42,7 @@ class MongoDBChatHistory(BaseChatMessageHistory):
         if self._session_id == "":
             # Create new empty conversation
             session_id = await insert_document(CONVERSATION_COLLECTION, {
+                "name": "",
                 "messages": [],
                 "created_at": datetime.now(timezone.utc),
                 "updated_at": datetime.now(timezone.utc)
@@ -69,3 +71,44 @@ class MongoDBChatHistory(BaseChatMessageHistory):
             "messages": []
         })
 
+class ConversationRepository:
+    _instance = None
+
+    def __new__(cls, *args, **kwargs):
+        if not hasattr(cls, "_instance") or cls._instance is None:
+            cls._instance = super(ConversationRepository, cls).__new__(cls)
+        return cls._instance
+
+    async def get_conversations(self, limit: int) -> list[ConversationInfo]:
+        """
+        Retrieve the latest n conversations from MongoDB, sorted by updated_at in descending order.
+        
+        Args:
+            limit: Maximum number of conversations to retrieve
+            
+        Returns:
+            List of ConversationInfo objects
+        """
+        try:
+            db = get_mongodb_conn()
+            
+            # Query conversations, sort by updated_at desc, limit results
+            cursor = db[CONVERSATION_COLLECTION].find(
+                {},  # No filter - get all conversations
+                {"_id": 1, "name": 1, "updated_at": 1}
+            ).sort("updated_at", -1).limit(limit)
+            
+            conversations = []
+            async for doc in cursor:
+                conversation_info = ConversationInfo(
+                    session_id=str(doc["_id"]),
+                    name=doc.get("name", ""),
+                    updated_at=doc["updated_at"]
+                )
+                conversations.append(conversation_info)
+            
+            return conversations
+            
+        except Exception as e:
+            logging.getLogger("uvicorn.error").error(f"Error retrieving conversations: {e}")
+            return []

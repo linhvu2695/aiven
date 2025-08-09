@@ -3,7 +3,7 @@ from motor.motor_asyncio import AsyncIOMotorClient, AsyncIOMotorDatabase
 import logging
 from bson import ObjectId
 
-def _get_mongodb_conn() -> AsyncIOMotorDatabase:
+def get_mongodb_conn() -> AsyncIOMotorDatabase:
     host = settings.mongodb_host
     port = settings.mongodb_port
     user = settings.mongodb_root_username
@@ -18,7 +18,7 @@ def _get_mongodb_conn() -> AsyncIOMotorDatabase:
 
 async def check_mongodb_health():
     try:
-        conn = _get_mongodb_conn()
+        conn = get_mongodb_conn()
         await conn.command("ping")
         logging.getLogger("uvicorn.info").info("Successfully connected to MongoDB")
         return True
@@ -32,7 +32,7 @@ async def get_document(collection_name: str, id: str) -> dict:
     except Exception:
         raise ValueError("Invalid document id format")
     
-    db = _get_mongodb_conn()
+    db = get_mongodb_conn()
     document = await db[collection_name].find_one({"_id": obj_id})
 
     if not document:
@@ -40,12 +40,12 @@ async def get_document(collection_name: str, id: str) -> dict:
     return document
 
 async def insert_document(collection_name: str, document: dict) -> str:
-    db = _get_mongodb_conn()
+    db = get_mongodb_conn()
     result = await db[collection_name].insert_one(document)
     return str(result.inserted_id)
     
 async def update_document(collection_name: str, id: str, document: dict) -> str | None:
-    db = _get_mongodb_conn()
+    db = get_mongodb_conn()
     result = await db[collection_name].update_one(
         {"_id": ObjectId(id)},
         {"$set": document},
@@ -54,7 +54,7 @@ async def update_document(collection_name: str, id: str, document: dict) -> str 
     return result.upserted_id
 
 async def list_documents(collection_name: str) -> list[dict]:
-    db = _get_mongodb_conn()
+    db = get_mongodb_conn()
     cursor = db[collection_name].find()
     documents = []
     async for document in cursor:
@@ -63,7 +63,7 @@ async def list_documents(collection_name: str) -> list[dict]:
 
 async def find_documents_by_field(collection_name: str, field_name: str, field_value: str) -> list[dict]:
     """Find documents where a specific field matches a given value."""
-    db = _get_mongodb_conn()
+    db = get_mongodb_conn()
     cursor = db[collection_name].find({field_name: field_value})
     documents = []
     async for document in cursor:
@@ -71,6 +71,6 @@ async def find_documents_by_field(collection_name: str, field_name: str, field_v
     return documents
 
 async def delete_document(collection_name: str, id: str) -> bool:
-    db = _get_mongodb_conn()
+    db = get_mongodb_conn()
     result = await db[collection_name].delete_one({"_id": ObjectId(id)})
     return result.deleted_count > 0

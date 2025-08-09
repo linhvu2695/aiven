@@ -4,6 +4,7 @@ from typing import List, Optional
 import json
 from app.classes.chat import ChatRequest, ChatResponse, ChatMessage, ChatStreamChunk
 from app.services.chat.chat_service import ChatService
+from app.services.chat.chat_history import ConversationRepository
 
 router = APIRouter()
 
@@ -58,13 +59,15 @@ async def parse_chat_request(
         try:
             chat_message = ChatMessage(**message_data)
             return ChatRequest(
-                message=chat_message, 
-                agent=agent_id, 
+                message=chat_message,
+                agent=agent_id,
                 session_id=session_id or "",
-                files=None
+                files=None,
             )
         except Exception as e:
-            raise HTTPException(status_code=400, detail=f"Invalid message format: {str(e)}")
+            raise HTTPException(
+                status_code=400, detail=f"Invalid message format: {str(e)}"
+            )
 
     else:
         raise HTTPException(status_code=400, detail="Invalid request format")
@@ -101,41 +104,40 @@ async def stream_chat_endpoint(
     Supports both JSON requests and FormData (with file uploads).
     """
     chat_request = await parse_chat_request(request, message, agent, session_id, files)
-    
+
     async def generate_sse():
         """Generate Server-Sent Events format for streaming."""
         try:
             chat_service = ChatService()
-            async for chunk in chat_service.generate_streaming_chat_response(chat_request):
+            async for chunk in chat_service.generate_streaming_chat_response(
+                chat_request
+            ):
                 # Handle ChatStreamChunk objects
                 if isinstance(chunk, ChatStreamChunk):
-                    response_data = {
-                        'token': chunk.content,
-                        'type': 'token'
-                    }
-                    
+                    response_data = {"token": chunk.content, "type": "token"}
+
                     # Include session_id if present (typically in first chunk or completion)
                     if chunk.session_id:
-                        response_data['session_id'] = chunk.session_id
-                    
+                        response_data["session_id"] = chunk.session_id
+
                     # Mark completion if this is the final chunk
                     if chunk.is_complete:
-                        response_data['type'] = 'done'
-                    
+                        response_data["type"] = "done"
+
                     # Format as Server-Sent Events
                     yield f"data: {json.dumps(response_data)}\n\n"
-                    
+
                     # If this is completion chunk, we're done
                     if chunk.is_complete:
                         return
                 else:
                     # Fallback for backward compatibility (if somehow string is yielded)
                     yield f"data: {json.dumps({'content': str(chunk), 'type': 'token'})}\n\n"
-            
+
         except Exception as e:
             # Send error signal
             yield f"data: {json.dumps({'type': 'error', 'message': str(e)})}\n\n"
-    
+
     return StreamingResponse(
         generate_sse(),
         media_type="text/plain",
@@ -144,10 +146,17 @@ async def stream_chat_endpoint(
             "Connection": "keep-alive",
             "Access-Control-Allow-Origin": "*",  # Adjust for your frontend domain
             "Access-Control-Allow-Headers": "Content-Type",
-        }
+        },
     )
 
 
 @router.get("/models")
 async def get_models():
     return await ChatService().get_models()
+
+
+@router.get("/conversation")
+async def get_conversations(
+    limit: int = 10,
+):
+    return await ConversationRepository().get_conversations(limit)

@@ -10,7 +10,7 @@ from app.classes.agent import AgentInfo
 from app.core.constants import LLMModel
 
 # Test constants
-TEST_SESSION_ID = "test-session-id"
+TEST_SESSION_ID = "507f1f77bcf86cd799439011"  # Valid 24-character hex MongoDB ObjectId
 TEST_NEW_SESSION_ID = "test-new-session-id"
 TEST_AGENT_ID = "test-agent"
 TEST_OPENAI_API_KEY = "test-openai-key"
@@ -571,10 +571,17 @@ class TestGenerateChatResponse:
         mock_graph = AsyncMock()
         mock_graph.ainvoke.return_value = {"messages": [mock_response_message]}
         
+        # Mock history to return the user message that would be added
+        from langchain_core.messages import HumanMessage
+        user_message = HumanMessage(content="Analyze this image")
+        mock_history = AsyncMock()
+        mock_history.aget_messages.return_value = [user_message]
+        
         with patch.object(chat_service, '_get_chat_model', return_value=mock_model), \
              patch.object(chat_service, '_get_file_content', new=AsyncMock(return_value=mock_file_content)), \
              patch.object(AgentService, 'get_agent', new=AsyncMock(return_value=sample_agent)), \
-             patch('app.services.chat.chat_service.create_react_agent') as mock_create_agent:
+             patch('app.services.chat.chat_service.create_react_agent') as mock_create_agent, \
+             patch('app.services.chat.chat_service.MongoDBChatHistory', return_value=mock_history):
             
             mock_create_agent.return_value = mock_graph
             
@@ -611,10 +618,17 @@ class TestGenerateChatResponse:
         mock_graph = AsyncMock()
         mock_graph.ainvoke.return_value = {"messages": [mock_response_message]}
         
+        # Mock history to return the user message that would be added
+        from langchain_core.messages import HumanMessage
+        user_message = HumanMessage(content="Analyze this image")
+        mock_history = AsyncMock()
+        mock_history.aget_messages.return_value = [user_message]
+        
         with patch.object(chat_service, '_get_chat_model', return_value=mock_model), \
              patch.object(chat_service, '_get_file_content', new=AsyncMock(return_value=None)), \
              patch.object(AgentService, 'get_agent', new=AsyncMock(return_value=sample_agent)), \
-             patch('app.services.chat.chat_service.create_react_agent') as mock_create_agent:
+             patch('app.services.chat.chat_service.create_react_agent') as mock_create_agent, \
+             patch('app.services.chat.chat_service.MongoDBChatHistory', return_value=mock_history):
             
             mock_create_agent.return_value = mock_graph
             
@@ -637,9 +651,13 @@ class TestGenerateChatResponse:
         mock_graph = AsyncMock()
         mock_graph.ainvoke.side_effect = Exception("Unsupported media_type: image/webp")
         
+        mock_history = AsyncMock()
+        mock_history.aget_messages.return_value = []
+        
         with patch.object(chat_service, '_get_chat_model', return_value=mock_model), \
              patch.object(AgentService, 'get_agent', new=AsyncMock(return_value=sample_agent)), \
              patch('app.services.chat.chat_service.create_react_agent') as mock_create_agent, \
+             patch('app.services.chat.chat_service.MongoDBChatHistory', return_value=mock_history), \
              patch.object(chat_service, '_parse_format_error', return_value="Format error message") as mock_parse:
             
             mock_create_agent.return_value = mock_graph
@@ -664,9 +682,13 @@ class TestGenerateChatResponse:
         mock_graph = AsyncMock()
         mock_graph.ainvoke.side_effect = MockBadRequestError("Bad request")
         
+        mock_history = AsyncMock()
+        mock_history.aget_messages.return_value = []
+        
         with patch.object(chat_service, '_get_chat_model', return_value=mock_model), \
              patch.object(AgentService, 'get_agent', new=AsyncMock(return_value=sample_agent)), \
-             patch('app.services.chat.chat_service.create_react_agent') as mock_create_agent:
+             patch('app.services.chat.chat_service.create_react_agent') as mock_create_agent, \
+             patch('app.services.chat.chat_service.MongoDBChatHistory', return_value=mock_history):
             
             mock_create_agent.return_value = mock_graph
             
@@ -684,9 +706,13 @@ class TestGenerateChatResponse:
         mock_graph = AsyncMock()
         mock_graph.ainvoke.side_effect = Exception("Generic error")
         
+        mock_history = AsyncMock()
+        mock_history.aget_messages.return_value = []
+        
         with patch.object(chat_service, '_get_chat_model', return_value=mock_model), \
              patch.object(AgentService, 'get_agent', new=AsyncMock(return_value=sample_agent)), \
-             patch('app.services.chat.chat_service.create_react_agent') as mock_create_agent:
+             patch('app.services.chat.chat_service.create_react_agent') as mock_create_agent, \
+             patch('app.services.chat.chat_service.MongoDBChatHistory', return_value=mock_history):
             
             mock_create_agent.return_value = mock_graph
             
@@ -1283,4 +1309,168 @@ class TestGetModels:
         
         gemini_models = result["google_genai"]
         gemini_values = [model["value"] for model in gemini_models]
-        assert LLMModel.GEMINI_2_0_FLASH.value in gemini_values 
+        assert LLMModel.GEMINI_2_0_FLASH.value in gemini_values
+
+
+class TestConversationNaming:
+    """Test conversation naming functionality."""
+    
+    @pytest.fixture
+    def chat_service(self):
+        ChatService._instance = None
+        return ChatService()
+    
+    @pytest.mark.asyncio
+    @patch('app.services.chat.chat_history.get_document')
+    @patch('app.services.chat.chat_service.update_document')
+    @patch('app.services.agent.agent_service.AgentService.get_agent')
+    async def test_generate_conversation_name_if_needed_for_new_conversation(
+        self, mock_get_agent, mock_update_document, mock_get_document, chat_service
+    ):
+        """Test that conversation names are generated for new conversations."""
+        from app.classes.conversation import Conversation
+        from langchain_core.messages import HumanMessage, AIMessage
+        from datetime import datetime, timezone
+        
+        # Mock agent
+        mock_agent = AgentInfo(
+            id=TEST_AGENT_ID,
+            name="Test Agent",
+            description="Test description",
+            avatar="test-avatar",
+            persona="Test persona",
+            tone="friendly",
+            model=LLMModel.GPT_4O_MINI,
+            tools=[]
+        )
+        mock_get_agent.return_value = mock_agent
+        
+        # Mock conversation data with 2 messages (should trigger naming)
+        mock_conversation_data = {
+            "_id": TEST_SESSION_ID,
+            "name": "",  # Empty name
+            "messages": [
+                HumanMessage(content="Hello, can you help me with Python?").model_dump(),
+                AIMessage(content="Of course! I'd be happy to help you with Python.").model_dump()
+            ],
+            "created_at": datetime.now(timezone.utc),
+            "updated_at": datetime.now(timezone.utc)
+        }
+        
+        mock_get_document.return_value = mock_conversation_data
+        
+        # Mock the chat model and AI response
+        mock_ai_response = MagicMock()
+        mock_ai_response.content = "Python Help Session"
+        
+        with patch.object(chat_service, '_get_chat_model') as mock_get_chat_model:
+            # Create a mock for the bound model
+            mock_bound_model = AsyncMock()
+            mock_bound_model.ainvoke = AsyncMock(return_value=mock_ai_response)
+            
+            # Create a mock for the base model
+            mock_model = MagicMock()
+            mock_model.bind = MagicMock(return_value=mock_bound_model)
+            mock_get_chat_model.return_value = mock_model
+            
+            # Create mock history and call the naming method
+            mock_history = AsyncMock()
+            mock_history._session_id = TEST_SESSION_ID
+            mock_history._aget_conversation.return_value = Conversation(
+                id=TEST_SESSION_ID,
+                name="",
+                messages=mock_conversation_data["messages"],
+                created_at=mock_conversation_data["created_at"],
+                updated_at=mock_conversation_data["updated_at"]
+            )
+            
+            await chat_service._generate_conversation_name_if_needed(mock_history, TEST_AGENT_ID)
+        
+        # Verify that the update was called with the generated name
+        mock_update_document.assert_called_once()
+        args, kwargs = mock_update_document.call_args
+        assert args[0] == "conversation"
+        assert args[1] == TEST_SESSION_ID
+        assert "name" in args[2]
+        assert args[2]["name"] == "Python Help Session"
+    
+    @pytest.mark.asyncio
+    @patch('app.services.chat.chat_history.get_document')
+    @patch('app.services.chat.chat_service.update_document')
+    async def test_generate_conversation_name_if_needed_skips_existing_name(
+        self, mock_update_document, mock_get_document, chat_service
+    ):
+        """Test that naming is skipped for conversations that already have names."""
+        from app.classes.conversation import Conversation
+        from langchain_core.messages import HumanMessage, AIMessage
+        from datetime import datetime, timezone
+        
+        # Mock conversation data with existing name
+        mock_conversation_data = {
+            "_id": TEST_SESSION_ID,
+            "name": "Existing Name",  # Already has a name
+            "messages": [
+                HumanMessage(content="Hello").model_dump(),
+                AIMessage(content="Hi there!").model_dump()
+            ],
+            "created_at": datetime.now(timezone.utc),
+            "updated_at": datetime.now(timezone.utc)
+        }
+        
+        mock_get_document.return_value = mock_conversation_data
+        
+        # Create mock history and call the naming method
+        mock_history = AsyncMock()
+        mock_history._session_id = TEST_SESSION_ID
+        mock_history._aget_conversation.return_value = Conversation(
+            id=TEST_SESSION_ID,
+            name="Existing Name",
+            messages=mock_conversation_data["messages"],
+            created_at=mock_conversation_data["created_at"],
+            updated_at=mock_conversation_data["updated_at"]
+        )
+        
+        await chat_service._generate_conversation_name_if_needed(mock_history, TEST_AGENT_ID)
+        
+        # Verify that update was NOT called
+        mock_update_document.assert_not_called()
+    
+    @pytest.mark.asyncio
+    @patch('app.services.chat.chat_history.get_document')
+    @patch('app.services.chat.chat_service.update_document')
+    async def test_generate_conversation_name_if_needed_skips_too_few_messages(
+        self, mock_update_document, mock_get_document, chat_service
+    ):
+        """Test that naming is skipped for conversations with too few messages."""
+        from app.classes.conversation import Conversation
+        from langchain_core.messages import HumanMessage
+        from datetime import datetime, timezone
+        
+        # Mock conversation data with only 1 message
+        mock_conversation_data = {
+            "_id": TEST_SESSION_ID,
+            "name": "",
+            "messages": [
+                HumanMessage(content="Hello").model_dump()
+            ],
+            "created_at": datetime.now(timezone.utc),
+            "updated_at": datetime.now(timezone.utc)
+        }
+        
+        mock_get_document.return_value = mock_conversation_data
+        
+        # Create mock history and call the naming method
+        mock_history = AsyncMock()
+        mock_history._session_id = TEST_SESSION_ID
+        mock_history._aget_conversation.return_value = Conversation(
+            id=TEST_SESSION_ID,
+            name="",
+            messages=mock_conversation_data["messages"],
+            created_at=mock_conversation_data["created_at"],
+            updated_at=mock_conversation_data["updated_at"]
+        )
+        
+        await chat_service._generate_conversation_name_if_needed(mock_history, TEST_AGENT_ID)
+        
+        # Verify that update was NOT called
+        mock_update_document.assert_not_called() 

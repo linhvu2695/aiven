@@ -4,7 +4,7 @@ from bson import ObjectId
 from bson.errors import InvalidId
 
 from app.core.database import (
-    _get_mongodb_conn,
+    get_mongodb_conn,
     check_mongodb_health,
     get_document,
     insert_document,
@@ -54,7 +54,7 @@ class TestGetMongodbConn:
         mock_settings.mongodb_db_name = "testdb"
         
         # Act
-        result = _get_mongodb_conn()
+        result = get_mongodb_conn()
         
         # Assert
         expected_uri = "mongodb://admin:password@localhost:27017"
