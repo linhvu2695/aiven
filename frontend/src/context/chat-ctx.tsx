@@ -18,15 +18,10 @@ export const useChat = () => {
 };
 
 export const ChatProvider = ({ children }: { children: ReactNode }) => {
-    const baseMessage = { role: "assistant", content: "Hello. What can I do for you?" };
-    const [messages, setMessages] = useState<ChatMessageInfo[]>([
-        baseMessage,
-    ]);
+    const [messages, setMessages] = useState<ChatMessageInfo[]>([]);
 
     const resetMessages = () => {
-        setMessages([
-            baseMessage,
-        ]);
+        setMessages([]);
     };
 
     return (

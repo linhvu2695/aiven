@@ -4,7 +4,7 @@ from pathlib import Path
 from fastapi import UploadFile
 from langchain.chat_models import init_chat_model
 from langchain_core.language_models.chat_models import BaseChatModel
-from langchain_core.messages import HumanMessage
+from langchain_core.messages import HumanMessage, AIMessage
 from langchain_core.runnables import RunnableConfig
 from langchain_core.tools import BaseTool
 from langchain_mcp_adapters.client import MultiServerMCPClient
@@ -15,6 +15,7 @@ from app.classes.chat import (
     ChatMessage,
     ChatRequest,
     ChatResponse,
+    ChatStreamChunk,
 )
 from app.classes.agent import AgentInfo
 from app.core.config import settings
@@ -30,6 +31,7 @@ from app.core.constants import (
 )
 from app.services.agent.agent_service import AgentService
 from app.services.tool.tool_service import ToolService
+from app.services.chat.chat_history import MongoDBChatHistory
 
 
 GPT_DEFAULT_MODEL = LLMModel.GPT_4O_MINI
@@ -301,19 +303,26 @@ class ChatService:
                 response=f"❌ An error occurred while processing your request. Please try again or contact support if the issue persists."
             )
 
-    async def generate_streaming_chat_response(self, request: ChatRequest) -> AsyncGenerator[str, None]:
+    async def generate_streaming_chat_response(self, request: ChatRequest) -> AsyncGenerator[ChatStreamChunk, None]:
         """
         Generate a streaming chat response using LangGraph's streaming capabilities.
         Yields individual tokens as they are produced by the LLM.
+        After streaming completes, persists the assistant's response to chat history.
         """
+        assistant_response = "" 
+        history = None
+        first_chunk_sent = False
+        
         try:
             # Step 1: Get agent and model
             agent = await AgentService().get_agent(request.agent)
             model = self._get_chat_model(agent.model)
 
-            # Step 2: Convert messages to LangChain format
-            messages = request.messages
-            lc_messages = chat_utils.convert_chat_messages(messages)
+            # Step 2: Build history
+            last_message = chat_utils.convert_chat_messages(request.messages[-1:])
+            history = MongoDBChatHistory(request.session_id)
+            await history.aadd_messages(last_message)
+            lc_messages = await history.aget_messages()
 
             # Step 3: Process uploaded files if any
             if request.files:
@@ -352,34 +361,74 @@ class ChatService:
                 stream_mode="messages"
             ):
                 # Stream individual tokens as they are produced
+                token_content = ""
                 if isinstance(token, str):
-                    yield token
+                    token_content = token
                 elif hasattr(token, 'content') and token.content:
                     if isinstance(token.content, str):
-                        yield token.content
+                        token_content = token.content
                     elif isinstance(token.content, list):
                         # Handle list content (like tool calls or complex content)
                         for item in token.content:
                             if isinstance(item, str):
-                                yield item
+                                token_content += item
                             elif isinstance(item, dict) and "text" in item:
-                                yield item["text"]
+                                token_content += item["text"]
+                
+                # Yield token as ChatStreamChunk
+                if token_content:
+                    chunk = ChatStreamChunk(
+                        content=token_content,
+                        session_id=history._session_id if not first_chunk_sent else "",
+                        is_complete=False
+                    )
+                    first_chunk_sent = True
+                    yield chunk
+                    
+                    # Accumulate the response content
+                    assistant_response += token_content
 
         except Exception as e:
             error_msg = str(e)
+            logging.getLogger("uvicorn.error").error(f"Error: {error_msg}")
 
-            # Check for specific format/media type errors
+            # Determine error response
+            error_response = ""
             if any(
                 keyword in error_msg.lower()
                 for keyword in ["media_type", "format", "image/", "audio/", "video/"]
             ):
-                yield self._parse_format_error(error_msg)
-            # Handle other API errors
+                error_response = self._parse_format_error(error_msg)
             elif "BadRequestError" in str(type(e)) or "400" in error_msg:
-                yield f"❌ Request Error: There was an issue with your request. Please check your input and try again."
+                error_response = f"❌ Request Error: There was an issue with your request. Please check your input and try again."
             else:
-                # Generic error handling
-                yield f"❌ An error occurred while processing your request. Please try again or contact support if the issue persists."
+                error_response = f"❌ An error occurred while processing your request. Please try again or contact support if the issue persists."
+            
+            # Yield error as ChatStreamChunk
+            assistant_response = error_response
+            yield ChatStreamChunk(
+                content=error_response,
+                session_id=history._session_id if history else "",
+                is_complete=True
+            )
+        
+        finally:
+            # Step 8: Persist the assistant's response to chat history after streaming completes
+            if history and assistant_response.strip():
+                try:
+                    assistant_message = AIMessage(content=assistant_response)
+                    await history.aadd_messages([assistant_message])
+                    logging.getLogger("uvicorn.info").info(f"Persisted assistant response to session {history._session_id}")
+                except Exception as persist_error:
+                    logging.getLogger("uvicorn.error").error(f"Failed to persist assistant message: {persist_error}")
+            
+            # Step 9: Send final completion chunk with session_id
+            if history:
+                yield ChatStreamChunk(
+                    content="",
+                    session_id=history._session_id,
+                    is_complete=True
+                )
 
     async def get_models(self) -> dict[str, list[dict[str, str]]]:
         def model_info(model: LLMModel) -> dict[str, str]:

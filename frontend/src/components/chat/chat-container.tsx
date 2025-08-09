@@ -6,10 +6,13 @@ import {
     Spinner,
     useFileUploadContext,
     Float,
+    Text,
+    Box,
 } from "@chakra-ui/react";
 import { FileUpload } from "@chakra-ui/react";
 import { useRef, useState } from "react";
 import { FaPaperclip, FaPaperPlane } from "react-icons/fa";
+import { LuRefreshCw } from "react-icons/lu";
 import { ChatMessage } from "./chat-message";
 import { BASE_URL } from "@/App";
 import { useAgent } from "@/context/agent-ctx";
@@ -35,6 +38,7 @@ const ChatContainerContent = () => {
     const messagesEndRef = useRef<HTMLDivElement | null>(null);
     const [input, setInput] = useState("");
     const [isLoading, setIsLoading] = useState(false);
+    const [sessionId, setSessionId] = useState<string | null>(null);
     const fileUpload = useFileUploadContext();
 
     const scrollToBottom = () => {
@@ -42,6 +46,11 @@ const ChatContainerContent = () => {
             behavior: "smooth",
             block: "end",
         });
+    };
+
+    const startNewConversation = () => {
+        setSessionId(null);
+        setMessages([]);
     };
 
     const handleStreamingResponse = async (response: Response, assistantMessageIndex: number) => {
@@ -68,7 +77,12 @@ const ChatContainerContent = () => {
                         try {
                             const data = JSON.parse(dataStr);
                             
-                            if (data.type === 'token') {
+                            // Capture session_id if present (first chunk or completion)
+                            if (data.session_id && !sessionId) {
+                                setSessionId(data.session_id);
+                            }
+                            
+                            if (data.type === 'token' && data.token) {
                                 // Update assistant message with new token
                                 setMessages((prev) => {
                                     const newMessages = [...prev];
@@ -79,6 +93,11 @@ const ChatContainerContent = () => {
                                     return newMessages;
                                 });
                             } else if (data.type === 'done') {
+                                // Final session_id confirmation (safety net)
+                                if (data.session_id && !sessionId) {
+                                    setSessionId(data.session_id);
+                                }
+
                                 // Streaming completed
                                 return;
                             } else if (data.type === 'error') {
@@ -117,6 +136,11 @@ const ChatContainerContent = () => {
             formData.append("agent", agent.id);
         }
 
+        // Add session ID
+        if (sessionId) {
+            formData.append("session_id", sessionId);
+        }
+
         // Add files
         fileUpload.acceptedFiles.forEach((file) => {
             formData.append(`files`, file);
@@ -148,8 +172,9 @@ const ChatContainerContent = () => {
                 },
             ],
             agent: agent?.id,
+            session_id: sessionId ?? "",
         };
-
+        
         const response = await fetch(BASE_URL + "/api/chat/stream", {
             method: "POST",
             headers: {
@@ -229,6 +254,15 @@ const ChatContainerContent = () => {
             justifyContent="space-between"
             data-testid="chat-container"
         >
+            {/* Session Status */}
+            {sessionId && (
+                <Box p={2} bg="gray.900" borderRadius="md" mx={4} mt={2}>
+                    <Text fontSize="sm" color="gray.300">
+                        Session: {sessionId}
+                    </Text>
+                </Box>
+            )}
+
             {/* Messages */}
             <Stack spaceY={3} align="stretch" overflowY="auto" p={4}>
                 {messages.map((msg, idx) => (
@@ -258,6 +292,20 @@ const ChatContainerContent = () => {
                 <FileUploadList />
 
                 <Stack flexDirection={"row"} alignItems={"center"}>
+                    {/* New conversation button */}
+                    <Button
+                        bg={"none"}
+                        color={"white"}
+                        w={"40px"}
+                        onClick={startNewConversation}
+                        title="Start new conversation"
+                        _hover={{
+                            transform: "scale(1.1)",
+                            bgColor: "teal.500",
+                        }}
+                    >
+                        <LuRefreshCw size={"1.5rem"} />
+                    </Button>
 
                     {/* Media upload button */}
                     <FileUpload.HiddenInput />

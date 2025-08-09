@@ -8,11 +8,17 @@ class ChatMessage(BaseModel):
 
 class ChatRequest(BaseModel):
     messages: List[ChatMessage]
+    session_id: str = ""
     agent: str
     files: Optional[List[UploadFile]] = None
 
 class ChatResponse(BaseModel):
     response: str
+
+class ChatStreamChunk(BaseModel):
+    content: str = ""
+    session_id: str = ""
+    is_complete: bool = False
 
 class ChatFileContent(BaseModel):
     type: str
