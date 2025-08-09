@@ -6,6 +6,9 @@ import {
     Button,
     Separator
 } from "@chakra-ui/react";
+import { useChat } from "@/context/chat-ctx";
+import { BASE_URL } from "@/App";
+import type { ChatMessageInfo } from "@/components/chat/chat-message-info";
 
 export interface ConversationInfo {
     session_id: string;
@@ -17,27 +20,75 @@ interface ConversationDrawerProps {
     isOpen: boolean;
     onClose: () => void;
     conversations: ConversationInfo[];
-    onConversationSelect?: (sessionId: string) => void;
 }
 
 export const ConversationDrawer = ({ 
     isOpen, 
     onClose, 
-    conversations, 
-    onConversationSelect 
+    conversations 
 }: ConversationDrawerProps) => {
+    const { setSessionId, setMessages } = useChat();
+
     const formatDate = (dateString: string) => {
         const date = new Date(dateString);
         return date.toLocaleDateString() + " " + date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
     };
 
-    const handleConversationClick = (sessionId: string) => {
-        if (onConversationSelect) {
-            onConversationSelect(sessionId);
-        } else {
-            // Fallback behavior
-            console.log("Selected conversation:", sessionId);
+    const convertMessagesToChatMessageInfo = (messages: any[]): ChatMessageInfo[] => {
+        return messages.map((msg) => {
+            // Handle different message types from LangChain BaseMessage
+            let role = "assistant"; // default
+            
+            if (msg.type === "human" || msg.type === "user") {
+                role = "user";
+            } else if (msg.type === "ai" || msg.type === "assistant") {
+                role = "assistant";
+            } else if (msg.type === "system") {
+                role = "system";
+            }
+
+            return {
+                content: msg.content || "",
+                role: role,
+                // Note: Files are not preserved in stored conversations for now
+                file: undefined,
+                filePreview: null
+            };
+        });
+    };
+
+    const loadConversation = async (sessionId: string) => {
+        try {
+            const response = await fetch(
+                `${BASE_URL}/api/chat/conversations/${sessionId}`,
+                {
+                    method: "GET",
+                    headers: {
+                        "Content-Type": "application/json",
+                    },
+                }
+            );
+
+            if (!response.ok) {
+                throw new Error("Failed to fetch conversation");
+            }
+
+            const conversation = await response.json();
+            
+            // Convert messages from BaseMessage format to ChatMessageInfo format
+            const chatMessages = convertMessagesToChatMessageInfo(conversation.messages || []);
+            
+            // Update chat context with loaded conversation
+            setSessionId(sessionId);
+            setMessages(chatMessages);
+            
+        } catch (error) {
+            console.error("Error loading conversation:", error);
         }
+    };
+
+    const handleConversationClick = async (sessionId: string) => {
+        await loadConversation(sessionId);
         onClose();
     };
 

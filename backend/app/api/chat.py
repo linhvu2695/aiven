@@ -155,8 +155,11 @@ async def get_models():
     return await ChatService().get_models()
 
 
-@router.get("/conversation")
-async def get_conversations(
-    limit: int = 10,
-):
+@router.get("/conversations")
+async def get_conversations(limit: int = 10):
     return await ConversationRepository().get_conversations(limit)
+
+
+@router.get("/conversations/{id}")
+async def get_conversation(id: str):
+    return await ConversationRepository().get_conversation(id)

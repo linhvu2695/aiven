@@ -19,7 +19,7 @@ export const AgentChatPage = () => {
     const fetchConversations = async () => {
         try {
             const response = await fetch(
-                BASE_URL + "/api/chat/conversation?limit=100",
+                BASE_URL + "/api/chat/conversations?limit=100",
                 {
                     method: "GET",
                     headers: {
@@ -60,10 +60,6 @@ export const AgentChatPage = () => {
         fetchAgent();
     }, [agent?.id]);
 
-    const handleConversationSelect = (sessionId: string) => {
-        // TODO: Navigate to conversation or load it
-        console.log("Selected conversation:", sessionId);
-    };
 
     return (
         <>
@@ -100,7 +96,6 @@ export const AgentChatPage = () => {
                 isOpen={isDrawerOpen}
                 onClose={() => setIsDrawerOpen(false)}
                 conversations={conversations}
-                onConversationSelect={handleConversationSelect}
             />
         </>
     );

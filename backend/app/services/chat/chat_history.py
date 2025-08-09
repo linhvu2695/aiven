@@ -112,3 +112,30 @@ class ConversationRepository:
         except Exception as e:
             logging.getLogger("uvicorn.error").error(f"Error retrieving conversations: {e}")
             return []
+        
+    async def get_conversation(self, id: str) -> Conversation | None:
+        """
+        Retrieve a conversation by its ID.
+        
+        Args:
+            id: The ID of the conversation to retrieve
+            
+        Returns:
+            Conversation object if found, None otherwise
+        """
+        try:
+            data = await get_document(CONVERSATION_COLLECTION, id)
+            if not data:
+                return None
+            
+            return Conversation(
+                id=str(data.get("_id", "")),
+                name=data.get("name", ""),
+                messages=data.get("messages", []),
+                created_at=data.get("created_at", datetime.now(timezone.utc)),
+                updated_at=data.get("updated_at", datetime.now(timezone.utc))
+            )
+            
+        except Exception as e:
+            logging.getLogger("uvicorn.error").error(f"Error retrieving conversation: {e}")
+            return None
