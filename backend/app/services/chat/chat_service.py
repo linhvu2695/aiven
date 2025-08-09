@@ -207,7 +207,7 @@ class ChatService:
             "agent_id": request.agent,
             "agent_name": agent.name,
             "model": agent.model,
-            "message_count": len(request.messages),
+            "message_content_length": len(request.message.content),
             "has_files": bool(request.files),
             "file_count": len(request.files) if request.files else 0,
         }
@@ -224,16 +224,21 @@ class ChatService:
     async def generate_chat_response(self, request: ChatRequest) -> ChatResponse:
         """
         Generate a chat response using LangGraph's invoke capabilities.
-        The response is not persisted to chat history.
+        Persists messages to chat history and returns the complete response.
         """
+        history = None
+        assistant_response = ""
+        
         try:
             # Step 1: Get agent and model
             agent = await AgentService().get_agent(request.agent)
             model = self._get_chat_model(agent.model)
 
-            # Step 2: Convert messages to LangChain format
-            messages = request.messages
-            lc_messages = chat_utils.convert_chat_messages(messages)
+            # Step 2: Build history and add current message
+            current_message = chat_utils.convert_chat_messages([request.message])
+            history = MongoDBChatHistory(request.session_id)
+            await history.aadd_messages(current_message)
+            lc_messages = await history.aget_messages()
 
             # Step 3: Process uploaded files if any
             if request.files:
@@ -273,15 +278,24 @@ class ChatService:
             response_content = response_message.content
             if isinstance(response_content, list):
                 # If content is a list, extract text from it
-                response_text = ""
+                assistant_response = ""
                 for item in response_content:
                     if isinstance(item, str):
-                        response_text += item
+                        assistant_response += item
                     elif isinstance(item, dict) and "text" in item:
-                        response_text += item["text"]
-                return ChatResponse(response=response_text)
+                        assistant_response += item["text"]
             else:
-                return ChatResponse(response=str(response_content))
+                assistant_response = str(response_content)
+
+            # Step 9: Persist the assistant's response to chat history
+            if history and assistant_response.strip():
+                try:
+                    assistant_message = AIMessage(content=assistant_response)
+                    await history.aadd_messages([assistant_message])
+                except Exception as persist_error:
+                    logging.getLogger("uvicorn.error").error(f"Failed to persist assistant message: {persist_error}")
+
+            return ChatResponse(response=assistant_response)
 
         except Exception as e:
             error_msg = str(e)
@@ -320,9 +334,9 @@ class ChatService:
             model = self._get_chat_model(agent.model)
 
             # Step 2: Build history
-            last_message = chat_utils.convert_chat_messages(request.messages[-1:])
+            current_message = chat_utils.convert_chat_messages([request.message])
             history = MongoDBChatHistory(request.session_id)
-            await history.aadd_messages(last_message)
+            await history.aadd_messages(current_message)
             lc_messages = await history.aget_messages()
 
             # Step 3: Process uploaded files if any
@@ -419,7 +433,6 @@ class ChatService:
                 try:
                     assistant_message = AIMessage(content=assistant_response)
                     await history.aadd_messages([assistant_message])
-                    logging.getLogger("uvicorn.info").info(f"Persisted assistant response to session {history._session_id}")
                 except Exception as persist_error:
                     logging.getLogger("uvicorn.error").error(f"Failed to persist assistant message: {persist_error}")
             

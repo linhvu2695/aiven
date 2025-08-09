@@ -7,7 +7,7 @@ class ChatMessage(BaseModel):
     content: str
 
 class ChatRequest(BaseModel):
-    messages: List[ChatMessage]
+    message: ChatMessage
     session_id: str = ""
     agent: str
     files: Optional[List[UploadFile]] = None

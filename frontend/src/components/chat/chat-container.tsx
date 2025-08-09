@@ -34,11 +34,10 @@ export const ChatContainer = () => {
 
 const ChatContainerContent = () => {
     const { agent } = useAgent();
-    const { messages, setMessages } = useChat();
+    const { messages, setMessages, sessionId, setSessionId, resetSession } = useChat();
     const messagesEndRef = useRef<HTMLDivElement | null>(null);
     const [input, setInput] = useState("");
     const [isLoading, setIsLoading] = useState(false);
-    const [sessionId, setSessionId] = useState<string | null>(null);
     const fileUpload = useFileUploadContext();
 
     const scrollToBottom = () => {
@@ -46,11 +45,6 @@ const ChatContainerContent = () => {
             behavior: "smooth",
             block: "end",
         });
-    };
-
-    const startNewConversation = () => {
-        setSessionId(null);
-        setMessages([]);
     };
 
     const handleStreamingResponse = async (response: Response, assistantMessageIndex: number) => {
@@ -113,22 +107,18 @@ const ChatContainerContent = () => {
     };
 
     const sendStreamingRequestWithFiles = async (
-        messageHistory: ChatMessageInfo[],
         userInput: string,
         assistantMessageIndex: number
     ) => {
         const formData = new FormData();
 
-        // Add messages data
+        // Add current message data
         formData.append(
-            "messages",
-            JSON.stringify([
-                ...messageHistory,
-                {
-                    role: "user",
-                    content: userInput,
-                },
-            ])
+            "message",
+            JSON.stringify({
+                role: "user",
+                content: userInput,
+            })
         );
 
         // Add agent ID
@@ -159,18 +149,14 @@ const ChatContainerContent = () => {
     };
 
     const sendStreamingRequestJSON = async (
-        messageHistory: ChatMessageInfo[],
         userInput: string,
         assistantMessageIndex: number
     ) => {
         const requestBody = {
-            messages: [
-                ...messageHistory,
-                {
-                    role: "user",
-                    content: userInput,
-                },
-            ],
+            message: {
+                role: "user",
+                content: userInput,
+            },
             agent: agent?.id,
             session_id: sessionId ?? "",
         };
@@ -209,7 +195,6 @@ const ChatContainerContent = () => {
         };
 
         const currentInput = input;
-        const currentMessages = messages;
         
         setMessages((prev) => [...prev, userMessage]);
         setInput("");
@@ -221,9 +206,9 @@ const ChatContainerContent = () => {
 
         try {
             if (fileUpload.acceptedFiles.length > 0) {
-                await sendStreamingRequestWithFiles(currentMessages, currentInput, assistantMessageIndex);
+                await sendStreamingRequestWithFiles(currentInput, assistantMessageIndex);
             } else {
-                await sendStreamingRequestJSON(currentMessages, currentInput, assistantMessageIndex);
+                await sendStreamingRequestJSON(currentInput, assistantMessageIndex);
             }
 
             // Clear uploaded files after successful send
@@ -288,7 +273,7 @@ const ChatContainerContent = () => {
                         bg={"none"}
                         color={"white"}
                         w={"40px"}
-                        onClick={startNewConversation}
+                        onClick={resetSession}
                         title="Start new conversation"
                         _hover={{
                             transform: "scale(1.1)",

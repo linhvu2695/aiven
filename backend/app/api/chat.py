@@ -10,7 +10,7 @@ router = APIRouter()
 
 async def parse_chat_request(
     request: Request,
-    messages: Optional[str] = None,
+    message: Optional[str] = None,
     agent: Optional[str] = None,
     session_id: Optional[str] = None,
     files: Optional[List[UploadFile]] = None,
@@ -23,42 +23,42 @@ async def parse_chat_request(
 
     # Handle FormData (when files are uploaded)
     if content_type.startswith("multipart/form-data"):
-        if messages is None or agent is None:
+        if message is None or agent is None:
             raise HTTPException(
-                status_code=400, detail="Messages and agent are required"
+                status_code=400, detail="Message and agent are required"
             )
 
         try:
-            messages_data = json.loads(messages)
-            chat_messages = [ChatMessage(**msg) for msg in messages_data]
+            message_data = json.loads(message)
+            chat_message = ChatMessage(**message_data)
 
             # Create ChatRequest with files
             return ChatRequest(
-                messages=chat_messages,
+                message=chat_message,
                 agent=agent,
                 session_id=session_id or "",
                 files=files if files and len(files) > 0 and files[0].filename else None,
             )
         except json.JSONDecodeError:
-            raise HTTPException(status_code=400, detail="Invalid messages format")
+            raise HTTPException(status_code=400, detail="Invalid message format")
 
     # Handle JSON (when no files)
     elif content_type.startswith("application/json"):
         # Get the JSON body
         body = await request.json()
-        messages_data = body.get("messages", [])
+        message_data = body.get("message")
         agent_id = body.get("agent")
         session_id = body.get("session_id", "")
 
-        if not messages_data or not agent_id:
+        if not message_data or not agent_id:
             raise HTTPException(
-                status_code=400, detail="Messages and agent are required"
+                status_code=400, detail="Message and agent are required"
             )
 
         try:
-            chat_messages = [ChatMessage(**msg) for msg in messages_data]
+            chat_message = ChatMessage(**message_data)
             return ChatRequest(
-                messages=chat_messages, 
+                message=chat_message, 
                 agent=agent_id, 
                 session_id=session_id or "",
                 files=None
@@ -74,7 +74,7 @@ async def parse_chat_request(
 async def chat_endpoint(
     request: Request,
     # FormData parameters
-    messages: Optional[str] = Form(None),
+    message: Optional[str] = Form(None),
     agent: Optional[str] = Form(None),
     session_id: Optional[str] = Form(None),
     files: List[UploadFile] = File(None),
@@ -83,7 +83,7 @@ async def chat_endpoint(
     Chat endpoint that returns a chat response.
     Supports both JSON requests and FormData (with file uploads).
     """
-    chat_request = await parse_chat_request(request, messages, agent, session_id, files)
+    chat_request = await parse_chat_request(request, message, agent, session_id, files)
     return await ChatService().generate_chat_response(chat_request)
 
 
@@ -91,7 +91,7 @@ async def chat_endpoint(
 async def stream_chat_endpoint(
     request: Request,
     # FormData parameters
-    messages: Optional[str] = Form(None),
+    message: Optional[str] = Form(None),
     agent: Optional[str] = Form(None),
     session_id: Optional[str] = Form(None),
     files: List[UploadFile] = File(None),
@@ -100,7 +100,7 @@ async def stream_chat_endpoint(
     Streaming chat endpoint that returns Server-Sent Events (SSE).
     Supports both JSON requests and FormData (with file uploads).
     """
-    chat_request = await parse_chat_request(request, messages, agent, session_id, files)
+    chat_request = await parse_chat_request(request, message, agent, session_id, files)
     
     async def generate_sse():
         """Generate Server-Sent Events format for streaming."""

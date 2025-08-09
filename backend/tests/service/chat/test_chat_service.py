@@ -488,11 +488,7 @@ class TestGenerateChatResponse:
     @pytest.fixture
     def sample_chat_request(self):
         return ChatRequest(
-            messages=[
-                ChatMessage(role="user", content="Hello"),
-                ChatMessage(role="assistant", content="Hi there!"),
-                ChatMessage(role="user", content="How are you?")
-            ],
+            message=ChatMessage(role="user", content="Hello"),
             agent=TEST_AGENT_ID,
             files=None
         )
@@ -511,9 +507,22 @@ class TestGenerateChatResponse:
         mock_graph = AsyncMock()
         mock_graph.ainvoke.return_value = {"messages": [mock_response_message]}
         
+        # Mock existing chat history with 2 previous messages + 1 new message to simulate ongoing conversation
+        from langchain_core.messages import HumanMessage, AIMessage
+        all_messages = [
+            HumanMessage(content="Hi there!"),
+            AIMessage(content="Hello! How can I help you?"),
+            HumanMessage(content="Hello")  # This will be the new message from the request
+        ]
+        
+        # Mock the chat history to return all messages (including new one after aadd_messages is called)
+        mock_history = AsyncMock()
+        mock_history.aget_messages.return_value = all_messages
+        
         with patch.object(chat_service, '_get_chat_model', return_value=mock_model), \
              patch.object(AgentService, 'get_agent', new=AsyncMock(return_value=sample_agent)), \
-             patch('app.services.chat.chat_service.create_react_agent') as mock_create_agent:
+             patch('app.services.chat.chat_service.create_react_agent') as mock_create_agent, \
+             patch('app.services.chat.chat_service.MongoDBChatHistory', return_value=mock_history):
             
             # Set up the mock to return our mock graph
             mock_create_agent.return_value = mock_graph
@@ -532,7 +541,7 @@ class TestGenerateChatResponse:
         # Verify the correct arguments were passed to ainvoke
         call_args, call_kwargs = mock_graph.ainvoke.call_args
         assert "messages" in call_args[0]
-        assert len(call_args[0]["messages"]) == 3  # 3 request messages (no system message since it's passed separately)
+        assert len(call_args[0]["messages"]) == 3  # 3 request messages (2 existing + 1 new, no system message since it's passed separately)
     
     @pytest.mark.asyncio
     async def test_generate_chat_response_with_file(self, chat_service, sample_agent):
@@ -542,7 +551,7 @@ class TestGenerateChatResponse:
         mock_file.filename = TEST_IMAGE_FILE
         
         request_with_file = ChatRequest(
-            messages=[ChatMessage(role="user", content="Analyze this image")],
+            message=ChatMessage(role="user", content="Analyze this image"),
             agent=TEST_AGENT_ID,
             files=[mock_file]
         )
@@ -589,7 +598,7 @@ class TestGenerateChatResponse:
         mock_file.filename = TEST_IMAGE_FILE
         
         request_with_file = ChatRequest(
-            messages=[ChatMessage(role="user", content="Analyze this image")],
+            message=ChatMessage(role="user", content="Analyze this image"),
             agent=TEST_AGENT_ID,
             files=[mock_file]
         )
@@ -711,11 +720,7 @@ class TestGenerateStreamingChatResponse:
     @pytest.fixture
     def sample_chat_request(self):
         return ChatRequest(
-            messages=[
-                ChatMessage(role="user", content="Hello"),
-                ChatMessage(role="assistant", content="Hi there!"),
-                ChatMessage(role="user", content="How are you?")
-            ],
+            message=ChatMessage(role="user", content="Hello"),
             agent=TEST_AGENT_ID,
             session_id=TEST_SESSION_ID,  # Valid MongoDB ObjectId format
             files=None
@@ -860,7 +865,7 @@ class TestGenerateStreamingChatResponse:
         mock_file.filename = TEST_IMAGE_FILE
         
         request_with_file = ChatRequest(
-            messages=[ChatMessage(role="user", content="Analyze this image")],
+            message=ChatMessage(role="user", content="Analyze this image"),
             agent=TEST_AGENT_ID,
             session_id=TEST_SESSION_ID,
             files=[mock_file]
@@ -1157,7 +1162,7 @@ class TestGenerateStreamingChatResponse:
         
         # Test with empty session_id (new conversation)
         empty_session_request = ChatRequest(
-            messages=[ChatMessage(role="user", content="Hello")],
+            message=ChatMessage(role="user", content="Hello"),
             agent=TEST_AGENT_ID,
             session_id="",
             files=None
