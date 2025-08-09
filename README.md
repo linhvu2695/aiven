@@ -1,8 +1,12 @@
 # Project Overview
 
-This project consists of a **frontend** (React + Vite) and a **backend** (Flask API) designed for seamless local development using Docker and Makefile commands.
+This is a project of constructing a cosmodrome for AI Agents.
+
+![image.png](public/image.png)
 
 ---
+
+This project consists of a **frontend** (React + Vite) and a **backend** (Flask API) designed for seamless local development using Docker and Makefile commands.
 
 ## Prerequisites
 
