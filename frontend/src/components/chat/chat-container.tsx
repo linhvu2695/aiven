@@ -6,8 +6,6 @@ import {
     Spinner,
     useFileUploadContext,
     Float,
-    Text,
-    Box,
 } from "@chakra-ui/react";
 import { FileUpload } from "@chakra-ui/react";
 import { useRef, useState } from "react";
@@ -34,7 +32,8 @@ export const ChatContainer = () => {
 
 const ChatContainerContent = () => {
     const { agent } = useAgent();
-    const { messages, setMessages, sessionId, setSessionId, resetSession } = useChat();
+    const { messages, setMessages, sessionId, setSessionId, resetSession } =
+        useChat();
     const messagesEndRef = useRef<HTMLDivElement | null>(null);
     const [input, setInput] = useState("");
     const [isLoading, setIsLoading] = useState(false);
@@ -47,13 +46,16 @@ const ChatContainerContent = () => {
         });
     };
 
-    const handleStreamingResponse = async (response: Response, assistantMessageIndex: number) => {
+    const handleStreamingResponse = async (
+        response: Response,
+        assistantMessageIndex: number
+    ) => {
         const reader = response.body?.getReader();
         const decoder = new TextDecoder();
 
         if (reader) {
             let buffer = "";
-            
+
             while (true) {
                 const { done, value } = await reader.read();
                 if (done) break;
@@ -62,31 +64,33 @@ const ChatContainerContent = () => {
                 buffer += decoder.decode(value, { stream: true });
 
                 // Process complete lines
-                const lines = buffer.split('\n');
+                const lines = buffer.split("\n");
                 buffer = lines.pop() || ""; // Keep incomplete line in buffer
 
                 for (const line of lines) {
-                    if (line.startsWith('data: ')) {
+                    if (line.startsWith("data: ")) {
                         const dataStr = line.slice(6); // Remove 'data: ' prefix
                         try {
                             const data = JSON.parse(dataStr);
-                            
+
                             // Capture session_id if present (first chunk or completion)
                             if (data.session_id && !sessionId) {
                                 setSessionId(data.session_id);
                             }
-                            
-                            if (data.type === 'token' && data.token) {
+
+                            if (data.type === "token" && data.token) {
                                 // Update assistant message with new token
                                 setMessages((prev) => {
                                     const newMessages = [...prev];
                                     newMessages[assistantMessageIndex] = {
                                         ...newMessages[assistantMessageIndex],
-                                        content: newMessages[assistantMessageIndex].content + data.token
+                                        content:
+                                            newMessages[assistantMessageIndex]
+                                                .content + data.token,
                                     };
                                     return newMessages;
                                 });
-                            } else if (data.type === 'done') {
+                            } else if (data.type === "done") {
                                 // Final session_id confirmation (safety net)
                                 if (data.session_id && !sessionId) {
                                     setSessionId(data.session_id);
@@ -94,11 +98,13 @@ const ChatContainerContent = () => {
 
                                 // Streaming completed
                                 return;
-                            } else if (data.type === 'error') {
-                                throw new Error(data.message || 'Streaming error');
+                            } else if (data.type === "error") {
+                                throw new Error(
+                                    data.message || "Streaming error"
+                                );
                             }
                         } catch (e) {
-                            console.warn('Failed to parse SSE data:', dataStr);
+                            console.warn("Failed to parse SSE data:", dataStr);
                         }
                     }
                 }
@@ -160,7 +166,7 @@ const ChatContainerContent = () => {
             agent: agent?.id,
             session_id: sessionId ?? "",
         };
-        
+
         const response = await fetch(BASE_URL + "/api/chat/stream", {
             method: "POST",
             headers: {
@@ -195,7 +201,7 @@ const ChatContainerContent = () => {
         };
 
         const currentInput = input;
-        
+
         setMessages((prev) => [...prev, userMessage]);
         setInput("");
         setIsLoading(true);
@@ -206,22 +212,29 @@ const ChatContainerContent = () => {
 
         try {
             if (fileUpload.acceptedFiles.length > 0) {
-                await sendStreamingRequestWithFiles(currentInput, assistantMessageIndex);
+                await sendStreamingRequestWithFiles(
+                    currentInput,
+                    assistantMessageIndex
+                );
             } else {
-                await sendStreamingRequestJSON(currentInput, assistantMessageIndex);
+                await sendStreamingRequestJSON(
+                    currentInput,
+                    assistantMessageIndex
+                );
             }
 
             // Clear uploaded files after successful send
             fileUpload.clearFiles();
         } catch (error) {
-            console.error('Streaming error:', error);
-            
+            console.error("Streaming error:", error);
+
             // Update the assistant message with error
             setMessages((prev) => {
                 const newMessages = [...prev];
                 newMessages[assistantMessageIndex] = {
                     ...newMessages[assistantMessageIndex],
-                    content: "❌ An error occurred while processing your request. Please try again."
+                    content:
+                        "❌ An error occurred while processing your request. Please try again.",
                 };
                 return newMessages;
             });
