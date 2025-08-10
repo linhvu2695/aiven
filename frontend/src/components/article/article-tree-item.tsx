@@ -6,9 +6,13 @@ import {
     IconButton,
     useDisclosure,
     Collapsible,
+    Dialog,
+    Portal,
+    Button,
 } from "@chakra-ui/react";
 import { FaChevronRight, FaChevronDown, FaPlus, FaTrash } from "react-icons/fa";
 import { useDraggable, useDroppable } from "@dnd-kit/core";
+import { useState } from "react";
 import type { ArticleItemInfo } from "./article-item-info";
 import { useArticle, type Article } from "../../context/article-ctx";
 import { BASE_URL } from "@/App";
@@ -27,6 +31,8 @@ export const ArticleTreeItem = ({
     level = 0,
 }: ArticleTreeItemProps) => {
     const { open, onToggle } = useDisclosure({ defaultOpen: true });
+    const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+    const [articleToDelete, setArticleToDelete] = useState<ArticleItemInfo | null>(null);
     const {
         articles,
         setArticles,
@@ -106,6 +112,27 @@ export const ArticleTreeItem = ({
                 type: "error",
             });
         }
+    };
+
+    const handleDeleteClick = (article: ArticleItemInfo, event: React.MouseEvent) => {
+        event.stopPropagation(); // Prevent triggering article selection
+        setArticleToDelete(article);
+        setDeleteDialogOpen(true);
+    };
+
+    const handleDeleteConfirm = async () => {
+        if (!articleToDelete) return;
+        
+        await handleDeleteArticle(articleToDelete.id);
+        
+        // Close dialog and reset state
+        setDeleteDialogOpen(false);
+        setArticleToDelete(null);
+    };
+
+    const handleDeleteCancel = () => {
+        setDeleteDialogOpen(false);
+        setArticleToDelete(null);
     };
 
     const style = transform
@@ -208,10 +235,7 @@ export const ArticleTreeItem = ({
                     size="xs"
                     opacity={0}
                     transition="opacity 0.2s"
-                    onClick={(e) => {
-                        e.stopPropagation();
-                        handleDeleteArticle(article.id);
-                    }}
+                    onClick={(e) => handleDeleteClick(article, e)}
                 >
                     <FaTrash />
                 </IconButton>
@@ -233,6 +257,46 @@ export const ArticleTreeItem = ({
                     </Collapsible.Content>
                 </Collapsible.Root>
             )}
+
+            {/* Delete confirmation dialog */}
+            <Dialog.Root
+                open={deleteDialogOpen}
+                onOpenChange={(e) => {
+                    if (!e.open) handleDeleteCancel();
+                }}
+                size="sm"
+                placement="center"
+            >
+                <Portal>
+                    <Dialog.Backdrop />
+                    <Dialog.Positioner>
+                        <Dialog.Content>
+                            <Dialog.Header>
+                                <Dialog.Title>Delete Article</Dialog.Title>
+                            </Dialog.Header>
+                            <Dialog.Body>
+                                Are you sure you want to delete the article <b>"{articleToDelete?.title || "Untitled"}"</b>? 
+                                <br />
+                                <br />
+                                This action cannot be undone and will also delete all child articles.
+                            </Dialog.Body>
+                            <Dialog.Footer>
+                                <Dialog.ActionTrigger asChild>
+                                    <Button variant="solid" onClick={handleDeleteCancel}>Cancel</Button>
+                                </Dialog.ActionTrigger>
+                                <Button
+                                    variant="outline"
+                                    colorScheme="red"
+                                    onClick={handleDeleteConfirm}
+                                >
+                                    Delete
+                                </Button>
+                            </Dialog.Footer>
+                            <Dialog.CloseTrigger />
+                        </Dialog.Content>
+                    </Dialog.Positioner>
+                </Portal>
+            </Dialog.Root>
         </Box>
     );
 };
