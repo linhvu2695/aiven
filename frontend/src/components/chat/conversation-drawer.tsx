@@ -2,10 +2,16 @@ import {
     Box, 
     Drawer,
     VStack,
+    HStack,
     Text,
     Button,
-    Separator
+    IconButton,
+    Separator,
+    Dialog,
+    Portal
 } from "@chakra-ui/react";
+import { Trash2 } from "lucide-react";
+import { useState } from "react";
 import { useChat } from "@/context/chat-ctx";
 import { BASE_URL } from "@/App";
 import type { ChatMessageInfo } from "@/components/chat/chat-message-info";
@@ -20,14 +26,18 @@ interface ConversationDrawerProps {
     isOpen: boolean;
     onClose: () => void;
     conversations: ConversationInfo[];
+    onConversationDeleted?: (sessionId: string) => void;
 }
 
 export const ConversationDrawer = ({ 
     isOpen, 
     onClose, 
-    conversations 
+    conversations,
+    onConversationDeleted 
 }: ConversationDrawerProps) => {
     const { setSessionId, setMessages } = useChat();
+    const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+    const [conversationToDelete, setConversationToDelete] = useState<ConversationInfo | null>(null);
 
     const formatDate = (dateString: string) => {
         const date = new Date(dateString);
@@ -92,7 +102,49 @@ export const ConversationDrawer = ({
         onClose();
     };
 
+    const handleDeleteClick = (conversation: ConversationInfo, event: React.MouseEvent) => {
+        event.stopPropagation(); // Prevent triggering conversation click
+        setConversationToDelete(conversation);
+        setDeleteDialogOpen(true);
+    };
+
+    const handleDeleteConfirm = async () => {
+        if (!conversationToDelete) return;
+        
+        try {
+            const response = await fetch(
+                `${BASE_URL}/api/chat/conversations/${conversationToDelete.session_id}`,
+                {
+                    method: "DELETE",
+                    headers: {
+                        "Content-Type": "application/json",
+                    },
+                }
+            );
+
+            if (!response.ok) {
+                throw new Error("Failed to delete conversation");
+            }
+
+            // Notify parent component about deletion
+            onConversationDeleted?.(conversationToDelete.session_id);
+            
+        } catch (error) {
+            console.error("Error deleting conversation:", error);
+        }
+        
+        // Close dialog and reset state
+        setDeleteDialogOpen(false);
+        setConversationToDelete(null);
+    };
+
+    const handleDeleteCancel = () => {
+        setDeleteDialogOpen(false);
+        setConversationToDelete(null);
+    };
+
     return (
+        <>
         <Drawer.Root 
             open={isOpen} 
             onOpenChange={(e) => !e.open && onClose()}
@@ -119,27 +171,47 @@ export const ConversationDrawer = ({
                             ) : (
                                 conversations.map((conversation, index) => (
                                     <Box key={conversation.session_id}>
-                                        <Button
-                                            variant="ghost"
-                                            width="100%"
-                                            height="auto"
-                                            py={3}
-                                            px={4}
-                                            justifyContent="flex-start"
-                                            textAlign="left"
-                                            borderRadius={0}
+                                        <HStack 
+                                            gap={0} 
+                                            align="stretch"
                                             _hover={{ bg: { _dark: "teal.800", base: "gray.200" }}}
-                                            onClick={() => handleConversationClick(conversation.session_id)}
                                         >
-                                            <VStack align="flex-start" gap={1} width="100%">
-                                                <Text fontSize="sm" fontWeight="medium" lineClamp={2}>
-                                                    {conversation.name || `Conversation ${conversation.session_id.slice(-8)}`}
-                                                </Text>
-                                                <Text fontSize="xs" color="gray.500">
-                                                    {formatDate(conversation.updated_at)}
-                                                </Text>
-                                            </VStack>
-                                        </Button>
+                                            <Button
+                                                variant="ghost"
+                                                flex={1}
+                                                height="auto"
+                                                py={3}
+                                                px={4}
+                                                justifyContent="flex-start"
+                                                textAlign="left"
+                                                borderRadius={0}
+                                                _hover={{ bg: "transparent" }}
+                                                onClick={() => handleConversationClick(conversation.session_id)}
+                                            >
+                                                <VStack align="flex-start" gap={1} width="100%">
+                                                    <Text fontSize="sm" fontWeight="medium" lineClamp={2}>
+                                                        {conversation.name || `Conversation ${conversation.session_id.slice(-8)}`}
+                                                    </Text>
+                                                    <Text fontSize="xs" color="gray.500">
+                                                        {formatDate(conversation.updated_at)}
+                                                    </Text>
+                                                </VStack>
+                                            </Button>
+
+                                            {/* Delete button */}
+                                            <IconButton
+                                                aria-label="Delete conversation"
+                                                variant="ghost"
+                                                size="xs"
+                                                margin={2}
+                                                colorScheme="red"
+                                                borderRadius="sm"
+                                                _hover={{ bg: "red.500" }}
+                                                onClick={(e) => handleDeleteClick(conversation, e)}
+                                            >
+                                                <Trash2 size={12} />
+                                            </IconButton>
+                                        </HStack>
                                         {index < conversations.length - 1 && <Separator />}
                                     </Box>
                                 ))
@@ -149,5 +221,46 @@ export const ConversationDrawer = ({
                 </Drawer.Content>
             </Drawer.Positioner>
         </Drawer.Root>
+
+        {/* Delete confirmation dialog */}
+        <Dialog.Root
+            open={deleteDialogOpen}
+            onOpenChange={(e) => {
+                if (!e.open) handleDeleteCancel();
+            }}
+            size="sm"
+            placement="center"
+        >
+            <Portal>
+                <Dialog.Backdrop />
+                <Dialog.Positioner>
+                    <Dialog.Content>
+                        <Dialog.Header>
+                            <Dialog.Title>Delete Conversation</Dialog.Title>
+                        </Dialog.Header>
+                        <Dialog.Body>
+                            Are you sure you want to delete the conversation <b>"{conversationToDelete?.name || `Conversation ${conversationToDelete?.session_id.slice(-8)}`}"</b>? 
+                            <br />
+                            <br />
+                            This action cannot be undone.
+                        </Dialog.Body>
+                        <Dialog.Footer>
+                            <Dialog.ActionTrigger asChild>
+                                <Button variant="solid" onClick={handleDeleteCancel}>Cancel</Button>
+                            </Dialog.ActionTrigger>
+                            <Button
+                                variant="outline"
+                                colorScheme="red"
+                                onClick={handleDeleteConfirm}
+                            >
+                                Delete
+                            </Button>
+                        </Dialog.Footer>
+                        <Dialog.CloseTrigger />
+                    </Dialog.Content>
+                </Dialog.Positioner>
+            </Portal>
+        </Dialog.Root>
+        </>
     );
 };

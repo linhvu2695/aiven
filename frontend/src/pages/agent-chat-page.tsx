@@ -36,6 +36,13 @@ export const AgentChatPage = () => {
         }
     };
 
+    const handleConversationDeleted = (sessionId: string) => {
+        // Remove the deleted conversation from the list
+        setConversations(prevConversations => 
+            prevConversations.filter(conversation => conversation.session_id !== sessionId)
+        );
+    };
+
     useEffect(() => {
         const fetchAgent = async () => {
             try {
@@ -96,6 +103,7 @@ export const AgentChatPage = () => {
                 isOpen={isDrawerOpen}
                 onClose={() => setIsDrawerOpen(false)}
                 conversations={conversations}
+                onConversationDeleted={handleConversationDeleted}
             />
         </>
     );

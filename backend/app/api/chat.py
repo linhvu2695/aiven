@@ -163,3 +163,8 @@ async def get_conversations(limit: int = 10):
 @router.get("/conversations/{id}")
 async def get_conversation(id: str):
     return await ConversationRepository().get_conversation(id)
+
+
+@router.delete("/conversations/{id}")
+async def delete_conversation(id: str):
+    return await ConversationRepository().delete_conversation(id)

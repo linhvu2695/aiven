@@ -1,5 +1,5 @@
 import pytest
-from unittest.mock import patch, AsyncMock, MagicMock, ANY
+from unittest.mock import patch, AsyncMock, MagicMock, ANY, call
 from datetime import datetime, timezone
 from bson import ObjectId
 
@@ -307,3 +307,123 @@ class TestGetConversation:
         # Timestamps should be set to current time when missing
         assert isinstance(conversation.created_at, datetime)
         assert isinstance(conversation.updated_at, datetime)
+
+
+class TestDeleteConversation:
+    """Test delete_conversation method."""
+    
+    @pytest.mark.asyncio
+    @patch('app.services.chat.chat_history.delete_document')
+    async def test_delete_conversation_success(self, mock_delete_document):
+        """Test successful deletion of a conversation."""
+        mock_delete_document.return_value = None  # delete_document doesn't return anything on success
+        
+        repo = ConversationRepository()
+        result = await repo.delete_conversation(TEST_SESSION_ID)
+        
+        mock_delete_document.assert_called_once_with(CONVERSATION_COLLECTION, TEST_SESSION_ID)
+        assert result is True
+    
+    @pytest.mark.asyncio
+    @patch('app.services.chat.chat_history.delete_document')
+    @patch('logging.getLogger')
+    async def test_delete_conversation_database_error(self, mock_get_logger, mock_delete_document):
+        """Test error handling when delete_document fails."""
+        mock_logger = MagicMock()
+        mock_get_logger.return_value = mock_logger
+        
+        mock_delete_document.side_effect = Exception("Database deletion failed")
+        
+        repo = ConversationRepository()
+        result = await repo.delete_conversation(TEST_SESSION_ID)
+        
+        # Should return False on error
+        assert result is False
+        
+        # Should log the error
+        mock_logger.error.assert_called_once()
+        error_message = mock_logger.error.call_args[0][0]
+        assert "Error deleting conversation" in error_message
+        assert "Database deletion failed" in error_message
+    
+    @pytest.mark.asyncio
+    @patch('app.services.chat.chat_history.delete_document')
+    async def test_delete_conversation_nonexistent_id(self, mock_delete_document):
+        """Test deletion of non-existent conversation ID."""
+        mock_delete_document.return_value = None  # delete_document doesn't throw for non-existent docs
+        
+        repo = ConversationRepository()
+        result = await repo.delete_conversation("nonexistent-id")
+        
+        mock_delete_document.assert_called_once_with(CONVERSATION_COLLECTION, "nonexistent-id")
+        assert result is True  # Should still return True as delete_document succeeded
+    
+    @pytest.mark.asyncio
+    @patch('app.services.chat.chat_history.delete_document')
+    async def test_delete_conversation_empty_id(self, mock_delete_document):
+        """Test deletion with empty ID string."""
+        mock_delete_document.return_value = None
+        
+        repo = ConversationRepository()
+        result = await repo.delete_conversation("")
+        
+        mock_delete_document.assert_called_once_with(CONVERSATION_COLLECTION, "")
+        assert result is True
+    
+    @pytest.mark.asyncio
+    @patch('app.services.chat.chat_history.delete_document')
+    async def test_delete_conversation_with_object_id(self, mock_delete_document):
+        """Test deletion using ObjectId string format."""
+        mock_delete_document.return_value = None
+        object_id_string = str(TEST_OBJECT_ID)
+        
+        repo = ConversationRepository()
+        result = await repo.delete_conversation(object_id_string)
+        
+        mock_delete_document.assert_called_once_with(CONVERSATION_COLLECTION, object_id_string)
+        assert result is True
+    
+    @pytest.mark.asyncio
+    @patch('app.services.chat.chat_history.delete_document')
+    @patch('logging.getLogger')
+    async def test_delete_conversation_connection_error(self, mock_get_logger, mock_delete_document):
+        """Test error handling when database connection fails."""
+        mock_logger = MagicMock()
+        mock_get_logger.return_value = mock_logger
+        
+        mock_delete_document.side_effect = ConnectionError("Failed to connect to database")
+        
+        repo = ConversationRepository()
+        result = await repo.delete_conversation(TEST_SESSION_ID)
+        
+        # Should return False on connection error
+        assert result is False
+        
+        # Should log the error with proper context
+        mock_logger.error.assert_called_once()
+        error_message = mock_logger.error.call_args[0][0]
+        assert "Error deleting conversation" in error_message
+        assert "Failed to connect to database" in error_message
+    
+    @pytest.mark.asyncio
+    @patch('app.services.chat.chat_history.delete_document')
+    async def test_delete_conversation_idempotence(self, mock_delete_document):
+        """Test that deleting the same conversation twice is idempotent and doesn't cause issues."""
+        mock_delete_document.return_value = None
+        
+        repo = ConversationRepository()
+        
+        # Delete the same conversation twice
+        result1 = await repo.delete_conversation(TEST_SESSION_ID)
+        assert result1 is True
+        
+        result2 = await repo.delete_conversation(TEST_SESSION_ID)
+        assert result2 is True
+        
+        # Verify both calls were made with the same parameters
+        assert mock_delete_document.call_count == 2
+        mock_delete_document.assert_has_calls([
+            call(CONVERSATION_COLLECTION, TEST_SESSION_ID),
+            call(CONVERSATION_COLLECTION, TEST_SESSION_ID)
+        ])
+    

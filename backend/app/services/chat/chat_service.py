@@ -368,6 +368,7 @@ Name (2-5 words only):"""
 
         except Exception as e:
             error_msg = str(e)
+            logging.getLogger("uvicorn.error").error(f"Chat Error: {error_msg}")
 
             # Check for specific format/media type errors
             if any(
@@ -474,7 +475,7 @@ Name (2-5 words only):"""
 
         except Exception as e:
             error_msg = str(e)
-            logging.getLogger("uvicorn.error").error(f"Error: {error_msg}")
+            logging.getLogger("uvicorn.error").error(f"Chat Streaming Error: {error_msg}")
 
             # Determine error response
             error_response = ""
@@ -519,7 +520,7 @@ Name (2-5 words only):"""
                     session_id=history._session_id,
                     is_complete=True
                 )
-                
+
     async def get_models(self) -> dict[str, list[dict[str, str]]]:
         def model_info(model: LLMModel) -> dict[str, str]:
             return {"value": model.value, "label": model.value}
