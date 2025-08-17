@@ -89,7 +89,13 @@ async def _parse_formdata_request(request: Request) -> ChatRequest:
         )
 
     # Parse chat message
-    message_dict = json.loads(message)
+    try:
+        message_dict = json.loads(message)
+    except json.JSONDecodeError:
+        raise HTTPException(
+            status_code=400, detail="Invalid message format. Expected valid JSON."
+        )
+    
     role = message_dict.get("role", "user")
     content = message_dict.get("content", "")
     if (content.strip() == ""):
@@ -122,20 +128,31 @@ async def _parse_json_request(request: Request) -> ChatRequest:
     Parse JSON request (no files) and return ChatRequest object.
     """
     body = await request.json()
-    message = dict(body.get("message"))
-    agent_id = str(body.get("agent"))
+    message = body.get("message")
+    agent_id = body.get("agent")
     session_id = str(body.get("session_id", ""))
-    role = message.get("role", "user")
-    content = message.get("content", "")
     
-    if (content.strip() == ""):
+    # Validate required fields
+    if not message or not agent_id:
+        raise HTTPException(
+            status_code=400, detail="Message and agent are required"
+        )
+    
+    # Parse message if it's a dict
+    if isinstance(message, dict):
+        role = message.get("role", "user")
+        content = message.get("content", "")
+    else:
+        content = str(message)
+    
+    if content.strip() == "":
         raise HTTPException(
             status_code=400, detail="Message content is empty"
         )
 
     return ChatRequest(
         message=content,
-        agent=agent_id,
+        agent=str(agent_id),
         session_id=session_id or "",
         file_contents=None,
     )

@@ -283,11 +283,10 @@ class TestChatRequestValidation:
                 assert response.status_code == 200
                 assert captured_request is not None
                 assert isinstance(captured_request, ChatRequest)
-                assert captured_request.message.role == "user"
-                assert captured_request.message.content == "How are you?"
+                assert captured_request.message == "How are you?"
                 assert captured_request.agent == "test-agent-123"
                 assert captured_request.session_id == sample_session_id
-                assert captured_request.files is None
+                assert captured_request.file_contents is None
 
     @pytest.mark.asyncio
     async def test_chat_request_with_files(self, sample_chat_message, sample_session_id, sample_chat_response):
@@ -316,6 +315,6 @@ class TestChatRequestValidation:
                 assert response.status_code == 200
                 assert captured_request is not None
                 assert isinstance(captured_request, ChatRequest)
-                assert captured_request.files is not None
-                assert len(captured_request.files) == 1
-                assert captured_request.files[0].filename == "test.txt" 
+                assert captured_request.file_contents is not None
+                assert len(captured_request.file_contents) == 1
+                assert captured_request.file_contents[0].type == "text" 

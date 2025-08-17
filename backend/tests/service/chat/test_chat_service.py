@@ -213,136 +213,6 @@ class TestParseFormatError:
         assert "❌ File Upload Error: Some random error" == result
 
 
-class TestGetFileTypeCategory:
-    """Test _get_file_type_category method."""
-    
-    @pytest.fixture
-    def chat_service(self):
-        ChatService._instance = None
-        return ChatService()
-    
-    def test_image_mime_type(self, chat_service):
-        """Test image mime type categorization."""
-        assert chat_service._get_file_type_category("image/jpeg") == "image"
-        assert chat_service._get_file_type_category("image/png") == "image"
-        assert chat_service._get_file_type_category("image/gif") == "image"
-    
-    def test_audio_mime_type(self, chat_service):
-        """Test audio mime type categorization."""
-        assert chat_service._get_file_type_category("audio/mp3") == "audio"
-        assert chat_service._get_file_type_category("audio/wav") == "audio"
-    
-    def test_video_mime_type(self, chat_service):
-        """Test video mime type categorization."""
-        assert chat_service._get_file_type_category("video/mp4") == "video"
-        assert chat_service._get_file_type_category("video/avi") == "video"
-    
-    def test_text_mime_type(self, chat_service):
-        """Test text mime type categorization."""
-        assert chat_service._get_file_type_category("text/plain") == "text"
-        assert chat_service._get_file_type_category("text/html") == "text"
-    
-    def test_document_mime_type(self, chat_service):
-        """Test document mime type categorization."""
-        assert chat_service._get_file_type_category("application/pdf") == "document"
-    
-    def test_application_mime_type(self, chat_service):
-        """Test application mime type categorization."""
-        assert chat_service._get_file_type_category("application/json") == "application"
-        assert chat_service._get_file_type_category("application/zip") == "application"
-    
-    def test_unknown_mime_type(self, chat_service):
-        """Test unknown mime type categorization."""
-        assert chat_service._get_file_type_category("unknown/type") == "file"
-        assert chat_service._get_file_type_category("") == "file"
-        assert chat_service._get_file_type_category(None) == "file"
-
-
-class TestGetFileContent:
-    """Test _get_file_content method."""
-    
-    @pytest.fixture
-    def chat_service(self):
-        ChatService._instance = None
-        return ChatService()
-    
-    @pytest.mark.asyncio
-    async def test_get_file_content_success(self, chat_service):
-        """Test successful file content processing."""
-        # Create mock file
-        file_content = b"test file content"
-        mock_file = MagicMock(spec=UploadFile)
-        mock_file.filename = TEST_TEXT_FILE
-        mock_file.read = AsyncMock(return_value=file_content)
-        mock_file.seek = AsyncMock()
-        
-        with patch('mimetypes.guess_type', return_value=('text/plain', None)):
-            result = await chat_service._get_file_content(mock_file)
-        
-        assert result is not None
-        assert isinstance(result, ChatFileContent)
-        assert result.type == "text"
-        assert result.source_type == "base64"
-        assert result.mime_type == "text/plain"
-        assert result.data == base64.b64encode(file_content).decode('utf-8')
-        
-        mock_file.read.assert_called_once()
-        mock_file.seek.assert_called_once_with(0)
-    
-    @pytest.mark.asyncio
-    async def test_get_file_content_no_file(self, chat_service):
-        """Test handling of None file."""
-        result = await chat_service._get_file_content(None)
-        assert result is None
-    
-    @pytest.mark.asyncio
-    async def test_get_file_content_no_filename(self, chat_service):
-        """Test handling of file without filename."""
-        mock_file = MagicMock(spec=UploadFile)
-        mock_file.filename = None
-        
-        result = await chat_service._get_file_content(mock_file)
-        assert result is None
-    
-    @pytest.mark.asyncio
-    async def test_get_file_content_empty_filename(self, chat_service):
-        """Test handling of file with empty filename."""
-        mock_file = MagicMock(spec=UploadFile)
-        mock_file.filename = ""
-        
-        result = await chat_service._get_file_content(mock_file)
-        assert result is None
-    
-    @pytest.mark.asyncio
-    async def test_get_file_content_exception(self, chat_service):
-        """Test handling of exception during file processing."""
-        mock_file = MagicMock(spec=UploadFile)
-        mock_file.filename = TEST_TEXT_FILE
-        mock_file.read = AsyncMock(side_effect=Exception("File read error"))
-        
-        with patch('builtins.print') as mock_print:
-            result = await chat_service._get_file_content(mock_file)
-        
-        assert result is None
-        mock_print.assert_called_once_with("Error processing file test.txt: File read error")
-    
-    @pytest.mark.asyncio
-    async def test_get_file_content_unknown_mime_type(self, chat_service):
-        """Test handling of unknown mime type."""
-        file_content = b"unknown content"
-        mock_file = MagicMock(spec=UploadFile)
-        mock_file.filename = TEST_UNKNOWN_FILE
-        mock_file.read = AsyncMock(return_value=file_content)
-        mock_file.seek = AsyncMock()
-        
-        with patch('mimetypes.guess_type', return_value=(None, None)):
-            result = await chat_service._get_file_content(mock_file)
-        
-        assert result is not None
-        assert result.mime_type == "application/octet-stream"
-        assert result.type == "application"
-
-
 class TestGetAgentSystemPrompt:
     """Test _get_agent_system_prompt method."""
     
@@ -488,9 +358,8 @@ class TestGenerateChatResponse:
     @pytest.fixture
     def sample_chat_request(self):
         return ChatRequest(
-            message=ChatMessage(role="user", content="Hello"),
-            agent=TEST_AGENT_ID,
-            files=None
+            message="Hello",
+            agent=TEST_AGENT_ID
         )
     
     @pytest.mark.asyncio
@@ -541,26 +410,23 @@ class TestGenerateChatResponse:
         # Verify the correct arguments were passed to ainvoke
         call_args, call_kwargs = mock_graph.ainvoke.call_args
         assert "messages" in call_args[0]
-        assert len(call_args[0]["messages"]) == 3  # 3 request messages (2 existing + 1 new, no system message since it's passed separately)
+        assert len(call_args[0]["messages"]) == 4  # 4 messages (3 from history + 1 new message added by service)
     
     @pytest.mark.asyncio
     async def test_generate_chat_response_with_file(self, chat_service, sample_agent):
         """Test chat response generation with file upload."""
-        # Create request with file
-        mock_file = MagicMock(spec=UploadFile)
-        mock_file.filename = TEST_IMAGE_FILE
-        
-        request_with_file = ChatRequest(
-            message=ChatMessage(role="user", content="Analyze this image"),
-            agent=TEST_AGENT_ID,
-            files=[mock_file]
-        )
-        
+        # Create mock file content since file handling is now done via file_contents
         mock_file_content = ChatFileContent(
             type="image",
-            source_type="base64",
+            source_type="base64", 
             data="base64_data",
             mime_type="image/jpeg"
+        )
+        
+        request_with_file = ChatRequest(
+            message="Analyze this image",
+            agent=TEST_AGENT_ID,
+            file_contents=[mock_file_content]
         )
         
         # Set up mocks
@@ -578,7 +444,6 @@ class TestGenerateChatResponse:
         mock_history.aget_messages.return_value = [user_message]
         
         with patch.object(chat_service, '_get_chat_model', return_value=mock_model), \
-             patch.object(chat_service, '_get_file_content', new=AsyncMock(return_value=mock_file_content)), \
              patch.object(AgentService, 'get_agent', new=AsyncMock(return_value=sample_agent)), \
              patch('app.services.chat.chat_service.create_react_agent') as mock_create_agent, \
              patch('app.services.chat.chat_service.MongoDBChatHistory', return_value=mock_history):
@@ -600,14 +465,11 @@ class TestGenerateChatResponse:
     
     @pytest.mark.asyncio
     async def test_generate_chat_response_with_file_no_content(self, chat_service, sample_agent):
-        """Test chat response when file processing returns None."""
-        mock_file = MagicMock(spec=UploadFile)
-        mock_file.filename = TEST_IMAGE_FILE
-        
+        """Test chat response when no file content is provided."""
         request_with_file = ChatRequest(
-            message=ChatMessage(role="user", content="Analyze this image"),
+            message="Analyze this image",
             agent=TEST_AGENT_ID,
-            files=[mock_file]
+            file_contents=[]
         )
         
         # Set up mocks
@@ -625,7 +487,6 @@ class TestGenerateChatResponse:
         mock_history.aget_messages.return_value = [user_message]
         
         with patch.object(chat_service, '_get_chat_model', return_value=mock_model), \
-             patch.object(chat_service, '_get_file_content', new=AsyncMock(return_value=None)), \
              patch.object(AgentService, 'get_agent', new=AsyncMock(return_value=sample_agent)), \
              patch('app.services.chat.chat_service.create_react_agent') as mock_create_agent, \
              patch('app.services.chat.chat_service.MongoDBChatHistory', return_value=mock_history):
@@ -640,7 +501,7 @@ class TestGenerateChatResponse:
         # Verify that no file message was added
         call_args, call_kwargs = mock_graph.ainvoke.call_args
         assert "messages" in call_args[0]
-        assert len(call_args[0]["messages"]) == 1  # user message only (no system message since it's passed separately)
+        assert len(call_args[0]["messages"]) == 2  # 2 messages (1 from history + 1 new message added by service)
     
     @pytest.mark.asyncio
     async def test_generate_chat_response_format_error(self, chat_service, sample_agent, sample_chat_request):
@@ -746,10 +607,9 @@ class TestGenerateStreamingChatResponse:
     @pytest.fixture
     def sample_chat_request(self):
         return ChatRequest(
-            message=ChatMessage(role="user", content="Hello"),
+            message="Hello",
             agent=TEST_AGENT_ID,
-            session_id=TEST_SESSION_ID,  # Valid MongoDB ObjectId format
-            files=None
+            session_id=TEST_SESSION_ID  # Valid MongoDB ObjectId format
         )
     
     async def collect_stream(self, async_gen):
@@ -887,21 +747,18 @@ class TestGenerateStreamingChatResponse:
     @pytest.mark.asyncio
     async def test_generate_streaming_chat_response_with_file(self, chat_service, sample_agent):
         """Test streaming with file upload."""
-        mock_file = MagicMock(spec=UploadFile)
-        mock_file.filename = TEST_IMAGE_FILE
-        
-        request_with_file = ChatRequest(
-            message=ChatMessage(role="user", content="Analyze this image"),
-            agent=TEST_AGENT_ID,
-            session_id=TEST_SESSION_ID,
-            files=[mock_file]
-        )
-        
         mock_file_content = ChatFileContent(
             type="image",
             source_type="base64",
             data="base64_data",
             mime_type="image/jpeg"
+        )
+        
+        request_with_file = ChatRequest(
+            message="Analyze this image",
+            agent=TEST_AGENT_ID,
+            session_id=TEST_SESSION_ID,
+            file_contents=[mock_file_content]
         )
         
         mock_model = MagicMock()
@@ -917,7 +774,6 @@ class TestGenerateStreamingChatResponse:
         mocks = self.setup_base_mocks(chat_service, mock_model, sample_agent)
         
         with mocks['model_patch'], mocks['agent_patch'], mocks['history_patch'], \
-             patch.object(chat_service, '_get_file_content', new=AsyncMock(return_value=mock_file_content)), \
              patch('app.services.chat.chat_service.create_react_agent') as mock_create_agent:
             
             mock_create_agent.return_value = mock_graph
@@ -1188,10 +1044,9 @@ class TestGenerateStreamingChatResponse:
         
         # Test with empty session_id (new conversation)
         empty_session_request = ChatRequest(
-            message=ChatMessage(role="user", content="Hello"),
+            message="Hello",
             agent=TEST_AGENT_ID,
-            session_id="",
-            files=None
+            session_id=""
         )
         
         # Mock MongoDB chat history for new conversation
@@ -1364,13 +1219,9 @@ class TestConversationNaming:
         mock_ai_response.content = "Python Help Session"
         
         with patch.object(chat_service, '_get_chat_model') as mock_get_chat_model:
-            # Create a mock for the bound model
-            mock_bound_model = AsyncMock()
-            mock_bound_model.ainvoke = AsyncMock(return_value=mock_ai_response)
-            
-            # Create a mock for the base model
-            mock_model = MagicMock()
-            mock_model.bind = MagicMock(return_value=mock_bound_model)
+            # Create a mock for the model that supports ainvoke
+            mock_model = AsyncMock()
+            mock_model.ainvoke = AsyncMock(return_value=mock_ai_response)
             mock_get_chat_model.return_value = mock_model
             
             # Create mock history and call the naming method
