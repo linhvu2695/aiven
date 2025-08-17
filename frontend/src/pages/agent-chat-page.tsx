@@ -1,7 +1,6 @@
 import { BASE_URL } from "@/App";
-import { AgentContainer } from "@/components/agent/agent-container";
-import { ChatContainer } from "@/components/chat/chat-container";
-import { ConversationDrawer, type ConversationInfo } from "@/components/chat/conversation-drawer";
+import { AgentContainer } from "@/components/agent";
+import { ChatContainer, ConversationDrawer, type ConversationInfo } from "@/components/chat";
 import { useAgent } from "@/context/agent-ctx";
 import { 
     Box, 

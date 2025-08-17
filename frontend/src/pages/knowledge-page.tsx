@@ -5,9 +5,7 @@ import { BASE_URL } from "@/App";
 
 import { Tooltip } from "@/components/ui/tooltip";
 import { useArticle } from "@/context/article-ctx";
-import { ArticleTreePanel } from "@/components/article/article-tree-panel";
-import { ArticleView } from "@/components/article/article-view";
-import type { ArticleItemInfo } from "@/components/article/article-item-info";
+import { ArticleTreePanel, ArticleView, type ArticleItemInfo } from "@/components/article";
 import type { Article } from "@/context/article-ctx";
 import { toaster } from "@/components/ui/toaster";
 

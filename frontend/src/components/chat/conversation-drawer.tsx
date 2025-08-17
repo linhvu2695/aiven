@@ -14,7 +14,7 @@ import { Trash2 } from "lucide-react";
 import { useState } from "react";
 import { useChat } from "@/context/chat-ctx";
 import { BASE_URL } from "@/App";
-import type { ChatMessageInfo } from "@/components/chat/chat-message-info";
+import type { ChatMessageInfo } from "./chat-message-info";
 
 export interface ConversationInfo {
     session_id: string;

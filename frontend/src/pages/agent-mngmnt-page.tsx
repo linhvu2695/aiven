@@ -12,14 +12,12 @@ import {
     CloseButton,
 } from "@chakra-ui/react";
 import { FaArrowLeft, FaArrowRight, FaUserSlash, FaPlus } from "react-icons/fa";
-import { AgentGridItem } from "@/components/agent/agent-grid-item";
+import { AgentGridItem, AgentCard, type AgentItemInfo } from "@/components/agent";
 import { useState, useMemo, useEffect } from "react";
 import { BASE_URL } from "@/App";
 import { useColorMode } from "@/components/ui/color-mode";
 import { Tooltip } from "@/components/ui/tooltip";
 import { AgentProvider, useAgent } from "@/context/agent-ctx";
-import { AgentCard } from "@/components/agent/agent-card";
-import type { AgentItemInfo } from "@/components/agent/agent-item-info";
 
 const AGENTS_PER_PAGE = 5;
 
