@@ -1,6 +1,6 @@
 import { Box, Container, Flex, Text, IconButton } from "@chakra-ui/react";
 import { ColorModeButton } from "@/components/ui/color-mode";
-import { FaBook, FaComment } from "react-icons/fa";
+import { FaBook, FaComment, FaSeedling } from "react-icons/fa";
 import { Tooltip } from "@/components/ui/tooltip";
 import { useNavigate } from "react-router-dom";
 import { FaRobot } from "react-icons/fa6";
@@ -78,6 +78,18 @@ function Navbar() {
                                     onClick={() => navigate("/knowledge")}
                                 >
                                     <FaBook />
+                                </IconButton>
+                            </Tooltip>
+
+                            {/* Plant page */}
+                            <Tooltip content="Plant" showArrow>
+                                <IconButton
+                                    aria-label="Plant"
+                                    variant="ghost"
+                                    size="xl"
+                                    onClick={() => navigate("/plant")}
+                                >
+                                    <FaSeedling />
                                 </IconButton>
                             </Tooltip>
                         </Flex>

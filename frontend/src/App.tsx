@@ -4,6 +4,7 @@ import Navbar from "./components/navbar";
 import { AgentChatPage } from "./pages/agent-chat-page";
 import { AgentManagementPage } from "./pages/agent-mngmnt-page";
 import KnowledgePage from "./pages/knowledge-page";
+import PlantPage from "./pages/plant-page";
 import { AgentProvider } from "./context/agent-ctx";
 import { ArticleProvider } from "./context/article-ctx";
 import { ChatProvider } from "./context/chat-ctx";
@@ -42,6 +43,10 @@ function App() {
                                     <KnowledgePage />
                                 </ArticleProvider>
                             }
+                        />
+                        <Route
+                            path="/plant"
+                            element={<PlantPage />}
                         />
                     </Routes>
                 </ChatProvider>
