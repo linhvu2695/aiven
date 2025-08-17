@@ -240,8 +240,8 @@ Name (2-5 words only):"""
         Generate a chat response using LangGraph's invoke capabilities.
         Persists messages to chat history and returns the complete response.
         """
-        history = None
         assistant_response = ""
+        history = None
         
         try:
             logging.getLogger("uvicorn.info").info("Step 1: Starting chat response")
@@ -262,7 +262,7 @@ Name (2-5 words only):"""
                 ]
                 current_message = HumanMessage(content=multimodal_content)
             else:
-                # Text-only message
+                # Use the converted content as-is (handles both string and multimodal)
                 current_message = HumanMessage(content=request.message)
             await history.aadd_messages([current_message])
             history_messages.append(current_message)
@@ -291,11 +291,11 @@ Name (2-5 words only):"""
             logging.getLogger("uvicorn.info").info("Step 7: Invoking the graph with messages")
             result = await graph.ainvoke({"messages": history_messages}, config=config)
 
-            # Step 8: Extract the final response from the graph result
+            # Extract the final response from the graph result
             response_message = result["messages"][-1]
             response_content = response_message.content
             if isinstance(response_content, list):
-                # If content is a list, extract text from it
+                # Handle list content (like tool calls or complex content)
                 assistant_response = ""
                 for item in response_content:
                     if isinstance(item, str):
@@ -305,37 +305,42 @@ Name (2-5 words only):"""
             else:
                 assistant_response = str(response_content)
 
-            # Step 9: Persist the assistant's response to chat history
-            if history and assistant_response.strip():
-                try:
-                    assistant_message = AIMessage(content=assistant_response)
-                    await history.aadd_messages([assistant_message])
-                except Exception as persist_error:
-                    logging.getLogger("uvicorn.error").error(f"Failed to persist assistant message: {persist_error}")
-
             return ChatResponse(response=assistant_response)
 
         except Exception as e:
             error_msg = str(e)
             logging.getLogger("uvicorn.error").error(f"Chat Error: {error_msg}")
 
-            # Check for specific format/media type errors
+            # Determine error response
+            error_response = ""
             if any(
                 keyword in error_msg.lower()
                 for keyword in ["media_type", "format", "image/", "audio/", "video/"]
             ):
-                return ChatResponse(response=self._parse_format_error(error_msg))
-
-            # Handle other API errors
-            if "BadRequestError" in str(type(e)) or "400" in error_msg:
-                return ChatResponse(
-                    response=f"❌ Request Error: There was an issue with your request. Please check your input and try again."
-                )
-
-            # Generic error handling
-            return ChatResponse(
-                response=f"❌ An error occurred while processing your request. Please try again or contact support if the issue persists."
-            )
+                error_response = self._parse_format_error(error_msg)
+            elif "BadRequestError" in str(type(e)) or "400" in error_msg:
+                error_response = f"❌ Request Error: There was an issue with your request. Please check your input and try again."
+            else:
+                error_response = f"❌ An error occurred while processing your request. Please try again or contact support if the issue persists."
+            
+            assistant_response = error_response
+            return ChatResponse(response=error_response)
+        
+        finally:
+            logging.getLogger("uvicorn.info").info("Step 8: Persisting assistant's response to chat history")
+            if history and assistant_response.strip():
+                try:
+                    assistant_message = AIMessage(content=assistant_response)
+                    await history.aadd_messages([assistant_message])
+                except Exception as persist_error:
+                    logging.getLogger("uvicorn.error").error(f"Failed to persist assistant message: {persist_error}")
+            
+            logging.getLogger("uvicorn.info").info("Step 9: Generating conversation name for new conversations")
+            if history and assistant_response.strip():
+                try:
+                    await self._generate_conversation_name_if_needed(history, request.agent)
+                except Exception as name_error:
+                    logging.getLogger("uvicorn.error").error(f"Failed to generate conversation name: {name_error}")
 
     async def generate_streaming_chat_response(self, request: ChatRequest) -> AsyncGenerator[ChatStreamChunk, None]:
         """
