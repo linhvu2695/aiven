@@ -4,60 +4,64 @@ import remarkGfm from "remark-gfm";
 import remarkBreaks from "remark-breaks";
 import { useAgent } from "@/context/agent-ctx";
 import type { ChatMessageInfo } from "./chat-message-info";
+import { FilePreview } from "./file-preview";
+
+interface ParsedMessageContent {
+    text: string;
+    file: File | null;
+    filePreview: string | null;
+    imageData: string | null;
+    mimeType: string | null;
+    hasFileContent: boolean;
+    isImageContent: boolean;
+}
+
+const parseMessageContent = (msg: ChatMessageInfo): ParsedMessageContent => {
+    let text = "";
+    let file: File | null = null;
+    let filePreview: string | null = null;
+    let imageData: string | null = null;
+    let mimeType: string | null = null;
+
+    if (typeof msg.content === "string") {
+        // Frontend message
+        text = msg.content;
+        file = msg.file || null;
+        filePreview = msg.filePreview || null;
+    } else {
+        // Backend message
+        msg.content.forEach((item) => {
+            if (item.type === "image") {
+                imageData = item.data || null;
+                mimeType = item.mime_type || null;
+            } else if (item.type === "text") {
+                text = item.text || "";
+            }
+        });
+    }
+
+    // Check if we have any file content (either frontend File or backend image data)
+    const hasFileContent = Boolean(file || imageData);
+    
+    // Check if content is an image
+    const isFileImage = file && file.type?.startsWith("image/");
+    const isMimeTypeImage = mimeType && String(mimeType).startsWith("image/");
+    const isImageContent = Boolean(isFileImage || isMimeTypeImage);
+
+    return {
+        text,
+        file,
+        filePreview,
+        imageData,
+        mimeType,
+        hasFileContent,
+        isImageContent,
+    };
+};
 
 const roleBgColor: Record<string, string> = {
     user: "teal.500",
     assistant: "gray.600",
-};
-
-const FilePreview = ({
-    file,
-    filePreview,
-}: {
-    file: File;
-    filePreview?: string | null;
-}) => {
-    const previewUrl =
-        filePreview ||
-        (file.type.startsWith("image/") ? URL.createObjectURL(file) : null);
-
-    if (file.type.startsWith("image/")) {
-        return previewUrl ? (
-            <img
-                src={previewUrl}
-                alt={file.name}
-                style={{ maxWidth: "200px", borderRadius: 8 }}
-                onError={(e) => {
-                    console.error("Image failed to load:", previewUrl);
-                    e.currentTarget.style.display = "none";
-                }}
-            />
-        ) : (
-            <span>🖼️ {file.name}</span>
-        );
-    }
-
-    if (file.type.startsWith("audio/")) {
-        return previewUrl ? (
-            <audio controls src={previewUrl} style={{ maxWidth: "200px" }} />
-        ) : (
-            <span>🎵 {file.name}</span>
-        );
-    }
-
-    if (file.type === "application/pdf") {
-        return (
-            <a
-                href={previewUrl || "#"}
-                target="_blank"
-                rel="noopener noreferrer"
-            >
-                📄 {file.name}
-            </a>
-        );
-    }
-
-    return <span>📎 {file.name}</span>;
 };
 
 const MessageContent = ({ content }: { content: string }) => (
@@ -139,28 +143,41 @@ const MessageBubble = ({
 
 export const ChatMessage = (msg: ChatMessageInfo) => {
     const { agent } = useAgent();
-    const hasFile = !!msg.file;
-    const hasText = !!msg.content.trim();
+    
+    const {
+        text,
+        file,
+        filePreview,
+        imageData,
+        mimeType,
+        hasFileContent,
+        isImageContent,
+    } = parseMessageContent(msg);
 
     // Render separate bubbles for file and text
-    if (hasFile && hasText) {
+    if (hasFileContent && text) {
         return (
             <VStack
                 gap={2}
                 alignItems={msg.role === "user" ? "flex-end" : "flex-start"}
             >
+                {/* File Preview */}
                 <MessageBubble
                     role={msg.role}
                     agent={agent}
-                    isImage={msg.file?.type.startsWith("image/")}
+                    isImage={isImageContent}
                 >
                     <FilePreview
-                        file={msg.file!}
-                        filePreview={msg.filePreview}
+                        file={file}
+                        filePreview={filePreview}
+                        imageData={imageData}
+                        mimeType={mimeType}
                     />
                 </MessageBubble>
+
+                {/* Text Content */}
                 <MessageBubble role={msg.role} agent={agent}>
-                    <MessageContent content={msg.content} />
+                    <MessageContent content={text} />
                 </MessageBubble>
             </VStack>
         );
@@ -168,16 +185,22 @@ export const ChatMessage = (msg: ChatMessageInfo) => {
 
     // Single bubble for file or text only
     return (
-        <MessageBubble role={msg.role} agent={agent}>
-            {hasFile && (
-                <Box mb={hasText ? 2 : 0}>
+        <MessageBubble 
+            role={msg.role} 
+            agent={agent}
+            isImage={isImageContent && !text}
+        >
+            {hasFileContent && (
+                <Box mb={text ? 2 : 0}>
                     <FilePreview
-                        file={msg.file!}
-                        filePreview={msg.filePreview}
+                        file={file}
+                        filePreview={filePreview}
+                        imageData={imageData}
+                        mimeType={mimeType}
                     />
                 </Box>
             )}
-            {hasText && <MessageContent content={msg.content} />}
+            {text && <MessageContent content={text} />}
         </MessageBubble>
     );
 };

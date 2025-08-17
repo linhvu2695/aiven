@@ -77,7 +77,6 @@ export const ModelSelector = ({
     }, [agentDraft]);
 
     const handleProviderChange = (value: string) => {
-        console.log("handleProviderChange", value);
         setProvider(value);
         if (providerOptions[value] && providerOptions[value][0]) {
             updateAgentDraft("model", providerOptions[value][0].value);

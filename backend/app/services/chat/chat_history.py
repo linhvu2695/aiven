@@ -13,6 +13,9 @@ class MongoDBChatHistory(BaseChatMessageHistory):
         self._session_id = session_id
 
     async def _aget_conversation(self) -> Conversation | None:
+        if self._session_id == "":
+            await self._acreate_new_conversation()
+        
         data = await get_document(CONVERSATION_COLLECTION, self._session_id)
         if not data:
             return None
@@ -29,6 +32,15 @@ class MongoDBChatHistory(BaseChatMessageHistory):
     def messages(self) -> list[BaseMessage]:
         return asyncio.run(self.aget_messages())
     
+    async def _acreate_new_conversation(self) -> None:
+        session_id = await insert_document(CONVERSATION_COLLECTION, {
+                "name": "",
+                "messages": [],
+                "created_at": datetime.now(timezone.utc),
+                "updated_at": datetime.now(timezone.utc)
+            })
+        self._session_id = session_id
+        
     async def aget_messages(self) -> list[BaseMessage]:
         conversation = await self._aget_conversation()
         if not conversation:
@@ -40,14 +52,7 @@ class MongoDBChatHistory(BaseChatMessageHistory):
 
     async def aadd_messages(self, messages: Sequence[BaseMessage]) -> None:
         if self._session_id == "":
-            # Create new empty conversation
-            session_id = await insert_document(CONVERSATION_COLLECTION, {
-                "name": "",
-                "messages": [],
-                "created_at": datetime.now(timezone.utc),
-                "updated_at": datetime.now(timezone.utc)
-            })
-            self._session_id = session_id
+            await self._acreate_new_conversation()
 
         all_messages = await self.aget_messages()
         all_messages.extend(messages)

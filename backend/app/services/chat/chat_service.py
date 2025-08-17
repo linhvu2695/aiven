@@ -1,8 +1,7 @@
-import logging, base64, mimetypes, re
+import logging, re
 from datetime import datetime, timezone
-from typing import Optional, AsyncGenerator
+from typing import AsyncGenerator
 from pathlib import Path
-from fastapi import UploadFile
 from langchain.chat_models import init_chat_model
 from langchain_core.language_models.chat_models import BaseChatModel
 from langchain_core.messages import HumanMessage, AIMessage
@@ -11,8 +10,6 @@ from langchain_core.tools import BaseTool
 from langchain_mcp_adapters.client import MultiServerMCPClient
 from langgraph.prebuilt import create_react_agent
 from app.classes.chat import (
-    ChatFileContent,
-    ChatFileUrl,
     ChatMessage,
     ChatRequest,
     ChatResponse,
@@ -152,55 +149,6 @@ class ChatService:
 
         return f"❌ File Upload Error: {error_message}"
 
-    def _get_file_type_category(self, mime_type: str) -> str:
-        """Determine the file type category based on mime type."""
-        if not mime_type:
-            return "file"
-
-        if mime_type.startswith("image/"):
-            return "image"
-        elif mime_type.startswith("audio/"):
-            return "audio"
-        elif mime_type.startswith("video/"):
-            return "video"
-        elif mime_type.startswith("text/"):
-            return "text"
-        elif mime_type in ["application/pdf"]:
-            return "document"
-        elif mime_type.startswith("application/"):
-            return "application"
-        else:
-            return "file"
-
-    async def _get_file_content(self, file: UploadFile) -> Optional[ChatFileContent]:
-        """Convert uploaded file to ChatFileContent with base64 encoding."""
-        if not file or not file.filename:
-            return None
-
-        try:
-            content = await file.read()
-            mime_type = (
-                mimetypes.guess_type(file.filename)[0] or "application/octet-stream"
-            )
-            file_type = self._get_file_type_category(mime_type)
-
-            # Convert to base64
-            base64_data = base64.b64encode(content).decode("utf-8")
-
-            # Reset file pointer for potential future reads
-            await file.seek(0)
-
-            return ChatFileContent(
-                type=file_type,
-                source_type="base64",
-                data=base64_data,
-                mime_type=mime_type,
-            )
-
-        except Exception as e:
-            print(f"Error processing file {file.filename}: {str(e)}")
-            return None
-
     async def _get_trace_metadata(self, request: ChatRequest) -> dict:
         agent = await AgentService().get_agent(request.agent)
 
@@ -208,9 +156,9 @@ class ChatService:
             "agent_id": request.agent,
             "agent_name": agent.name,
             "model": agent.model,
-            "message_content_length": len(request.message.content),
-            "has_files": bool(request.files),
-            "file_count": len(request.files) if request.files else 0,
+            "text_length": len(request.message),
+            "has_files": bool(request.file_contents),
+            "file_count": len(request.file_contents) if request.file_contents else 0,
         }
         return trace_metadata
 
@@ -240,9 +188,6 @@ class ChatService:
             # Get agent and model configuration
             agent = await AgentService().get_agent(agent_id)
             naming_model = self._get_chat_model(agent.model)
-            
-            # Configure model for concise naming (limit token output)
-            naming_model = naming_model.bind(temperature=0.3, max_tokens=20)
             
             # Get the first few messages to generate a meaningful name
             messages_for_naming = conversation.messages[:3]  # Use first 3 messages
@@ -299,38 +244,42 @@ Name (2-5 words only):"""
         assistant_response = ""
         
         try:
-            # Step 1: Get agent and model
+            logging.getLogger("uvicorn.info").info("Step 1: Starting chat response")
             agent = await AgentService().get_agent(request.agent)
             model = self._get_chat_model(agent.model)
 
-            # Step 2: Build history and add current message
-            current_message = chat_utils.convert_chat_messages([request.message])
+            logging.getLogger("uvicorn.info").info("Step 2: Retrieve conversation history")
             history = MongoDBChatHistory(request.session_id)
-            await history.aadd_messages(current_message)
-            lc_messages = await history.aget_messages()
+            history_messages = await history.aget_messages()
 
-            # Step 3: Process uploaded files if any
-            if request.files:
-                file = request.files[0]  # expect only one file
-                file_content = await self._get_file_content(file)
+            logging.getLogger("uvicorn.info").info("Step 3: Building current message with file content")
+            if request.file_contents and len(request.file_contents) > 0:
+                # Create multimodal message with both text and file content
+                file_content = request.file_contents[0]  # expect only one file
+                multimodal_content = [
+                    {"type": "text", "text": request.message},
+                    file_content.model_dump()
+                ]
+                current_message = HumanMessage(content=multimodal_content)
+            else:
+                # Text-only message
+                current_message = HumanMessage(content=request.message)
+            await history.aadd_messages([current_message])
+            history_messages.append(current_message)
 
-                if file_content:
-                    file_message = HumanMessage(content=[file_content.model_dump()])
-                    lc_messages.append(file_message)
-
-            # Step 4: Load MCP tools based on agent configuration
+            logging.getLogger("uvicorn.info").info("Step 4: Loading MCP tools")
             functions = []
             if agent.tools is not None and len(agent.tools) > 0:
                 functions = await self._load_mcp_tools(agent.tools)
 
-            # Step 5: Create LangGraph react agent with MCP tools
+            logging.getLogger("uvicorn.info").info("Step 5: Creating LangGraph react agent")
             graph = create_react_agent(
                 model,
                 functions,
                 prompt=await self._get_agent_system_prompt(agent),
             )
 
-            # Step 6: Add custom metadata and tags to the LLM call for better tracing
+            logging.getLogger("uvicorn.info").info("Step 6: Adding custom metadata and tags")
             config = RunnableConfig(
                 metadata=await self._get_trace_metadata(request),
                 tags=[
@@ -339,8 +288,8 @@ Name (2-5 words only):"""
                 run_name=f"Chat with {agent.name}",
             )
 
-            # Step 7: Invoke the graph with messages
-            result = await graph.ainvoke({"messages": lc_messages}, config=config)
+            logging.getLogger("uvicorn.info").info("Step 7: Invoking the graph with messages")
+            result = await graph.ainvoke({"messages": history_messages}, config=config)
 
             # Step 8: Extract the final response from the graph result
             response_message = result["messages"][-1]
@@ -399,38 +348,42 @@ Name (2-5 words only):"""
         first_chunk_sent = False
         
         try:
-            # Step 1: Get agent and model
+            logging.getLogger("uvicorn.info").info("Step 1: Starting getting LLM stream chat response")
             agent = await AgentService().get_agent(request.agent)
             model = self._get_chat_model(agent.model)
 
-            # Step 2: Build history
-            current_message = chat_utils.convert_chat_messages([request.message])
+            logging.getLogger("uvicorn.info").info("Step 2: Retrieve conversation history")
             history = MongoDBChatHistory(request.session_id)
-            await history.aadd_messages(current_message)
-            lc_messages = await history.aget_messages()
+            history_messages = await history.aget_messages()
 
-            # Step 3: Process uploaded files if any
-            if request.files:
-                file = request.files[0]  # expect only one file
-                file_content = await self._get_file_content(file)
+            logging.getLogger("uvicorn.info").info("Step 3: Building current message with file content")
+            if request.file_contents and len(request.file_contents) > 0:
+                # Create multimodal message with both text and file content
+                file_content = request.file_contents[0]  # expect only one file
+                multimodal_content = [
+                        {"type": "text", "text": request.message},
+                        file_content.model_dump()
+                    ]
+                current_message = HumanMessage(content=multimodal_content)
+            else:
+                # Use the converted content as-is (handles both string and multimodal)
+                current_message = HumanMessage(content=request.message)
+            await history.aadd_messages([current_message])
+            history_messages.append(current_message)
 
-                if file_content:
-                    file_message = HumanMessage(content=[file_content.model_dump()])
-                    lc_messages.append(file_message)
-
-            # Step 4: Load MCP tools based on agent configuration
+            logging.getLogger("uvicorn.info").info("Step 4: Loading MCP tools")
             functions = []
             if agent.tools is not None and len(agent.tools) > 0:
                 functions = await self._load_mcp_tools(agent.tools)
 
-            # Step 5: Create LangGraph react agent with MCP tools
+            logging.getLogger("uvicorn.info").info("Step 5: Creating LangGraph react agent")
             graph = create_react_agent(
                 model,
                 functions,
                 prompt=await self._get_agent_system_prompt(agent),
             )
 
-            # Step 6: Add custom metadata and tags to the LLM call for better tracing
+            logging.getLogger("uvicorn.info").info("Step 6: Adding custom metadata and tags")
             config = RunnableConfig(
                 metadata=await self._get_trace_metadata(request),
                 tags=[
@@ -439,9 +392,9 @@ Name (2-5 words only):"""
                 run_name=f"Streaming Chat with {agent.name}",
             )
 
-            # Step 7: Stream the graph response using "messages" mode for token-level streaming
+            logging.getLogger("uvicorn.info").info("Step 7: Streaming graph response")
             async for token, metadata in graph.astream(
-                {"messages": lc_messages}, 
+                {"messages": history_messages}, 
                 config=config,
                 stream_mode="messages"
             ):
@@ -498,7 +451,7 @@ Name (2-5 words only):"""
             )
         
         finally:
-            # Step 8: Persist the assistant's response to chat history after streaming completes
+            logging.getLogger("uvicorn.info").info("Step 8: Persisting assistant's response to chat history")
             if history and assistant_response.strip():
                 try:
                     assistant_message = AIMessage(content=assistant_response)
@@ -506,14 +459,14 @@ Name (2-5 words only):"""
                 except Exception as persist_error:
                     logging.getLogger("uvicorn.error").error(f"Failed to persist assistant message: {persist_error}")
             
-            # Step 9: Generate conversation name for new conversations
+            logging.getLogger("uvicorn.info").info("Step 9: Generating conversation name for new conversations")
             if history and assistant_response.strip():
                 try:
                     await self._generate_conversation_name_if_needed(history, request.agent)
                 except Exception as name_error:
                     logging.getLogger("uvicorn.error").error(f"Failed to generate conversation name: {name_error}")
             
-            # Step 10: Send final completion chunk with session_id
+            logging.getLogger("uvicorn.info").info(f"Step 10: Sending final completion chunk with session_id {history._session_id if history else 'None'}")
             if history:
                 yield ChatStreamChunk(
                     content="",

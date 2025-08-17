@@ -1,109 +1,185 @@
-from fastapi import APIRouter, Form, UploadFile, File, HTTPException, Request
+from fastapi import APIRouter, HTTPException, Request, UploadFile
+from starlette.datastructures import UploadFile as StarletteUploadFile
 from fastapi.responses import StreamingResponse
 from typing import List, Optional
-import json
-from app.classes.chat import ChatRequest, ChatResponse, ChatMessage, ChatStreamChunk
+import json, logging, base64, mimetypes
+from app.classes.chat import ChatRequest, ChatResponse, ChatMessage, ChatStreamChunk, ChatFileContent
 from app.services.chat.chat_service import ChatService
 from app.services.chat.chat_history import ConversationRepository
 
 router = APIRouter()
 
 
-async def parse_chat_request(
-    request: Request,
-    message: Optional[str] = None,
-    agent: Optional[str] = None,
-    session_id: Optional[str] = None,
-    files: Optional[List[UploadFile]] = None,
-) -> ChatRequest:
+def _get_file_type_category(mime_type: str) -> str:
+    """Determine the file type category based on mime type."""
+    if not mime_type:
+        return "file"
+
+    if mime_type.startswith("image/"):
+        return "image"
+    elif mime_type.startswith("audio/"):
+        return "audio"
+    elif mime_type.startswith("video/"):
+        return "video"
+    elif mime_type.startswith("text/"):
+        return "text"
+    elif mime_type in ["application/pdf"]:
+        return "document"
+    elif mime_type.startswith("application/"):
+        return "application"
+    else:
+        return "file"
+
+
+async def _process_upload_file(file: UploadFile) -> Optional[ChatFileContent]:
+    """Convert uploaded file to ChatFileContent with base64 encoding."""
+    if not file or not file.filename:
+        return None
+
+    try:
+        logging.getLogger("uvicorn.info").info(f"Processing file: {file.filename}")
+        
+        # Read file content immediately while the file is still open
+        content = await file.read()
+        
+        if not content:
+            logging.getLogger("uvicorn.warning").warning(f"File {file.filename} appears to be empty")
+            return None
+
+        mime_type = (
+            mimetypes.guess_type(file.filename)[0] or "application/octet-stream"
+        )
+        file_type = _get_file_type_category(mime_type)
+
+        # Convert to base64
+        base64_data = base64.b64encode(content).decode("utf-8")
+        logging.getLogger("uvicorn.info").info(f"Successfully converted file to base64 (length: {len(base64_data)})")
+
+        return ChatFileContent(
+            type=file_type,
+            source_type="base64",
+            data=base64_data,
+            mime_type=mime_type,
+        )
+
+    except Exception as e:
+        logging.getLogger("uvicorn.error").error(f"Error processing file {file.filename}: {str(e)}")
+        return None
+
+
+async def _parse_formdata_request(request: Request) -> ChatRequest:
     """
-    Parse chat request from either FormData (with files) or JSON format.
-    Returns a ChatRequest object ready for processing.
+    Parse FormData request (with files) and return ChatRequest object.
+    """
+    form = await request.form()
+
+    if (form == None):
+        raise HTTPException(
+            status_code=400, detail="Form data is empty"
+        )
+    
+    # Extract fields from form (ensure they are strings)
+    message = str(form.get("message", ""))
+    agent = str(form.get("agent", ""))
+    session_id = str(form.get("session_id", ""))
+    
+    if message == "" or agent == "":
+        raise HTTPException(
+            status_code=400, detail="Message and agent are required"
+        )
+
+    # Parse chat message
+    message_dict = json.loads(message)
+    role = message_dict.get("role", "user")
+    content = message_dict.get("content", "")
+    if (content.strip() == ""):
+        raise HTTPException(
+            status_code=400, detail="Message content is empty"
+        )
+
+    # Process files from form data
+    file_contents = []
+    files = form.getlist("files")
+    if files:
+        for file in files:
+            if isinstance(file, StarletteUploadFile): # Cast to FastAPI UploadFile
+                file = UploadFile(file=file.file, filename=file.filename, headers=file.headers)
+            if (isinstance(file, UploadFile)):
+                processed_file = await _process_upload_file(file)
+                if processed_file:
+                    file_contents.append(processed_file)
+
+    return ChatRequest(
+        message=content,
+        agent=agent,
+        session_id=session_id or "",
+        file_contents=file_contents if file_contents else None,
+    )
+
+
+async def _parse_json_request(request: Request) -> ChatRequest:
+    """
+    Parse JSON request (no files) and return ChatRequest object.
+    """
+    body = await request.json()
+    message = dict(body.get("message"))
+    agent_id = str(body.get("agent"))
+    session_id = str(body.get("session_id", ""))
+    role = message.get("role", "user")
+    content = message.get("content", "")
+    
+    if (content.strip() == ""):
+        raise HTTPException(
+            status_code=400, detail="Message content is empty"
+        )
+
+    return ChatRequest(
+        message=content,
+        agent=agent_id,
+        session_id=session_id or "",
+        file_contents=None,
+    )
+
+
+async def _parse_request(request: Request) -> ChatRequest:
+    """
+    Unified parser that handles both FormData and JSON from request body only.
+    Extracts message, agent, session_id, and files directly from the request.
     """
     content_type = request.headers.get("content-type", "")
 
     # Handle FormData (when files are uploaded)
     if content_type.startswith("multipart/form-data"):
-        if message is None or agent is None:
-            raise HTTPException(
-                status_code=400, detail="Message and agent are required"
-            )
-
-        try:
-            message_data = json.loads(message)
-            chat_message = ChatMessage(**message_data)
-
-            # Create ChatRequest with files
-            return ChatRequest(
-                message=chat_message,
-                agent=agent,
-                session_id=session_id or "",
-                files=files if files and len(files) > 0 and files[0].filename else None,
-            )
-        except json.JSONDecodeError:
-            raise HTTPException(status_code=400, detail="Invalid message format")
+        return await _parse_formdata_request(request)
 
     # Handle JSON (when no files)
     elif content_type.startswith("application/json"):
-        # Get the JSON body
-        body = await request.json()
-        message_data = body.get("message")
-        agent_id = body.get("agent")
-        session_id = body.get("session_id", "")
-
-        if not message_data or not agent_id:
-            raise HTTPException(
-                status_code=400, detail="Message and agent are required"
-            )
-
-        try:
-            chat_message = ChatMessage(**message_data)
-            return ChatRequest(
-                message=chat_message,
-                agent=agent_id,
-                session_id=session_id or "",
-                files=None,
-            )
-        except Exception as e:
-            raise HTTPException(
-                status_code=400, detail=f"Invalid message format: {str(e)}"
-            )
+        return await _parse_json_request(request)
 
     else:
-        raise HTTPException(status_code=400, detail="Invalid request format")
+        raise HTTPException(
+            status_code=400, 
+            detail="Invalid request format. Expected 'multipart/form-data' or 'application/json'"
+        )
 
 
 @router.post("/", response_model=ChatResponse)
-async def chat_endpoint(
-    request: Request,
-    # FormData parameters
-    message: Optional[str] = Form(None),
-    agent: Optional[str] = Form(None),
-    session_id: Optional[str] = Form(None),
-    files: List[UploadFile] = File(None),
-):
+async def chat_endpoint(request: Request):
     """
     Chat endpoint that returns a chat response.
     Supports both JSON requests and FormData (with file uploads).
     """
-    chat_request = await parse_chat_request(request, message, agent, session_id, files)
+    chat_request = await _parse_request(request)
     return await ChatService().generate_chat_response(chat_request)
 
 
 @router.post("/stream")
-async def stream_chat_endpoint(
-    request: Request,
-    # FormData parameters
-    message: Optional[str] = Form(None),
-    agent: Optional[str] = Form(None),
-    session_id: Optional[str] = Form(None),
-    files: List[UploadFile] = File(None),
-):
+async def stream_chat_endpoint(request: Request):
     """
     Streaming chat endpoint that returns Server-Sent Events (SSE).
     Supports both JSON requests and FormData (with file uploads).
     """
-    chat_request = await parse_chat_request(request, message, agent, session_id, files)
+    chat_request = await _parse_request(request)
 
     async def generate_sse():
         """Generate Server-Sent Events format for streaming."""

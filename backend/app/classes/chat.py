@@ -1,16 +1,17 @@
 from pydantic import BaseModel
-from typing import List, Optional
-from fastapi import UploadFile
+from typing import List, Optional, Union, Any, Dict
+
+class MessageContentItem(BaseModel):
+    type: str
+    text: Optional[str] = None
+    source_type: Optional[str] = None
+    data: Optional[str] = None
+    mime_type: Optional[str] = None
+    url: Optional[str] = None
 
 class ChatMessage(BaseModel):
-    role: str  # "user", "assistant", etc.
-    content: str
-
-class ChatRequest(BaseModel):
-    message: ChatMessage
-    session_id: str = ""
-    agent: str
-    files: Optional[List[UploadFile]] = None
+    role: str
+    content: Union[str, List[MessageContentItem]]  # support multimodal
 
 class ChatResponse(BaseModel):
     response: str
@@ -30,3 +31,9 @@ class ChatFileUrl(BaseModel):
     type: str
     source_type: str = "url"
     url: str
+
+class ChatRequest(BaseModel):
+    message: str
+    session_id: str = ""
+    agent: str
+    file_contents: Optional[List[ChatFileContent]] = None
