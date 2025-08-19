@@ -1,12 +1,18 @@
 from typing import Optional
 from pydantic import BaseModel
 from app.core.constants import LLMModel
+from app.classes.image import ImageInfo, ImageType
+
+class AgentAvatarInfo(ImageInfo):#     
+    def __init__(self, **data):
+        super().__init__(**data)
+        self.image_type = ImageType.AGENT_AVATAR
 
 class AgentInfo(BaseModel):
     id: str | None
     name: str
     description: str
-    avatar: str
+    avatar: AgentAvatarInfo
     model: LLMModel
     persona: str
     tone: str
