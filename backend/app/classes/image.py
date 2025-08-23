@@ -45,7 +45,6 @@ class ImageMetadata(BaseModel):
     color_mode: Optional[str] = None  # RGB, RGBA, etc.
     dpi: Optional[tuple[int, int]] = None
     exif_data: Optional[Dict[str, Any]] = None
-    ai_analysis: Optional[Dict[str, Any]] = None  # AI-generated analysis
 
 class ImageInfo(BaseModel):
     """Comprehensive image information model"""
@@ -60,8 +59,6 @@ class ImageInfo(BaseModel):
     # Storage information
     storage_path: str  # Path in Firebase Storage
     storage_url: Optional[str] = None  # Public URL
-    presigned_url: Optional[str] = None  # Temporary access URL
-    presigned_url_expires_at: Optional[datetime] = None
     
     # Classification
     image_type: ImageType
@@ -83,11 +80,6 @@ class ImageInfo(BaseModel):
     # Tags and categorization
     tags: list[str] = Field(default_factory=list)
     is_deleted: bool = False
-    
-    # AI and analysis
-    ai_processed: bool = False
-    ai_tags: list[str] = Field(default_factory=list)
-    content_moderation: Optional[Dict[str, Any]] = None
     
     class Config:
         json_encoders = {
@@ -123,9 +115,7 @@ class UpdateImageRequest(BaseModel):
     description: Optional[str] = None
     alt_text: Optional[str] = None
     tags: Optional[list[str]] = None
-    is_public: Optional[bool] = None
-    entity_id: Optional[str] = None
-    entity_type: Optional[str] = None
+    notes: Optional[str] = None
 
 class ImageUploadResponse(BaseModel):
     """Response model for image upload operations"""
@@ -154,14 +144,6 @@ class ImageUrlResponse(BaseModel):
     success: bool
     url: str
     expires_at: Optional[datetime] = None
-    message: str
-
-class ImageProcessingResponse(BaseModel):
-    """Response model for image processing operations"""
-    success: bool
-    image_id: str
-    processing_status: ImageProcessingStatus
-    metadata: Optional[ImageMetadata] = None
     message: str
 
 class DeleteImageResponse(BaseModel):

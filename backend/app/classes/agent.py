@@ -12,7 +12,7 @@ class AgentInfo(BaseModel):
     id: str | None
     name: str
     description: str
-    avatar: AgentAvatarInfo
+    avatar: str
     model: LLMModel
     persona: str
     tone: str

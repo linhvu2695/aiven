@@ -2,6 +2,7 @@ from app.core.config import settings
 from motor.motor_asyncio import AsyncIOMotorClient, AsyncIOMotorDatabase
 import logging
 from bson import ObjectId
+from typing import Dict, Any, Optional
 
 def get_mongodb_conn() -> AsyncIOMotorDatabase:
     host = settings.mongodb_host
@@ -69,6 +70,60 @@ async def find_documents_by_field(collection_name: str, field_name: str, field_v
     async for document in cursor:
         documents.append(document)
     return documents
+
+async def find_documents_with_filters(
+    collection_name: str, 
+    filters: Dict[str, Any], 
+    skip: int = 0, 
+    limit: Optional[int] = None,
+    sort_by: Optional[str] = None,
+    asc: bool = True
+) -> list[dict]:
+    """
+    Find documents with multiple field filters and optional pagination/sorting.
+    
+    Args:
+        collection_name: Name of the MongoDB collection
+        filters: Dictionary of field-value pairs to filter by
+        skip: Number of documents to skip (for pagination)
+        limit: Maximum number of documents to return
+        sort_by: Field name to sort by
+        asc: True for ascending, False for descending
+    
+    Returns:
+        List of matching documents
+        
+    Example:
+        # Find images that are plant photos, not deleted, for a specific entity
+        filters = {
+            "image_type": "plant_photo",
+            "is_deleted": False,
+            "entity_id": "plant123"
+        }
+        docs = await find_documents_with_filters("images", filters, limit=10)
+    """
+    db = get_mongodb_conn()
+    cursor = db[collection_name].find(filters)
+    
+    # Apply sorting if specified
+    if sort_by:
+        cursor = cursor.sort(sort_by, 1 if asc else -1)
+    
+    # Apply pagination
+    if skip > 0:
+        cursor = cursor.skip(skip)
+    if limit:
+        cursor = cursor.limit(limit)
+    
+    documents = []
+    async for document in cursor:
+        documents.append(document)
+    return documents
+
+async def count_documents_with_filters(collection_name: str, filters: Dict[str, Any]) -> int:
+    """Count documents matching the given filters."""
+    db = get_mongodb_conn()
+    return await db[collection_name].count_documents(filters)
 
 async def delete_document(collection_name: str, id: str) -> bool:
     db = get_mongodb_conn()

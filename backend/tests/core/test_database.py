@@ -11,6 +11,7 @@ from app.core.database import (
     update_document,
     list_documents,
     find_documents_by_field,
+    find_documents_with_filters,
     delete_document
 )
 
@@ -34,6 +35,7 @@ def mock_motor_client():
         mock_collection.update_one = AsyncMock()
         mock_collection.delete_one = AsyncMock()
         mock_collection.find = MagicMock()
+        mock_collection.count_documents = AsyncMock()
         mock_db.command = AsyncMock()
         
         yield {
@@ -355,6 +357,264 @@ class TestFindDocumentsByField:
         assert result == matching_documents
         mock_motor_client["collection"].find.assert_called_once_with({field_name: field_value})
 
+class TestFindDocumentsWithFilters:
+    
+    def _create_mock_cursor_with_chaining(self, documents):
+        """Helper to create a mock cursor that supports method chaining"""
+        mock_cursor = MagicMock()
+        
+        # Mock the chaining methods to return self
+        mock_cursor.sort.return_value = mock_cursor
+        mock_cursor.skip.return_value = mock_cursor
+        mock_cursor.limit.return_value = mock_cursor
+        
+        # Create async iterator
+        async def async_generator():
+            for doc in documents:
+                yield doc
+        
+        mock_cursor.__aiter__ = lambda x: async_generator()
+        return mock_cursor
+
+    @pytest.mark.asyncio
+    async def test_find_documents_with_basic_filters(self, mock_motor_client):
+        """Test basic filtering with single field"""
+        # Arrange
+        filters = {"status": "active"}
+        matching_documents = [
+            {"_id": ObjectId(), "name": "doc1", "status": "active"},
+            {"_id": ObjectId(), "name": "doc2", "status": "active"}
+        ]
+        
+        mock_cursor = self._create_mock_cursor_with_chaining(matching_documents)
+        mock_motor_client["collection"].find.return_value = mock_cursor
+        
+        # Act
+        result = await find_documents_with_filters("test_collection", filters)
+        
+        # Assert
+        assert result == matching_documents
+        mock_motor_client["collection"].find.assert_called_once_with(filters)
+
+    @pytest.mark.asyncio
+    async def test_find_documents_with_multiple_filters(self, mock_motor_client):
+        """Test filtering with multiple fields"""
+        # Arrange
+        filters = {
+            "status": "active", 
+            "category": "type_a",
+            "is_deleted": False
+        }
+        matching_documents = [
+            {"_id": ObjectId(), "name": "doc1", "status": "active", "category": "type_a", "is_deleted": False}
+        ]
+        
+        mock_cursor = self._create_mock_cursor_with_chaining(matching_documents)
+        mock_motor_client["collection"].find.return_value = mock_cursor
+        
+        # Act
+        result = await find_documents_with_filters("test_collection", filters)
+        
+        # Assert
+        assert result == matching_documents
+        mock_motor_client["collection"].find.assert_called_once_with(filters)
+        mock_cursor.limit.assert_not_called()
+        mock_cursor.sort.assert_not_called()
+
+    @pytest.mark.asyncio
+    async def test_find_documents_with_empty_filters(self, mock_motor_client):
+        """Test with empty filters (should return all documents)"""
+        # Arrange
+        filters = {}
+        all_documents = [
+            {"_id": ObjectId(), "name": "doc1", "status": "active"},
+            {"_id": ObjectId(), "name": "doc2", "status": "inactive"},
+            {"_id": ObjectId(), "name": "doc3", "status": "pending"}
+        ]
+        
+        mock_cursor = self._create_mock_cursor_with_chaining(all_documents)
+        mock_motor_client["collection"].find.return_value = mock_cursor
+        
+        # Act
+        result = await find_documents_with_filters("test_collection", filters)
+        
+        # Assert
+        assert result == all_documents
+        mock_motor_client["collection"].find.assert_called_once_with({})
+
+    @pytest.mark.asyncio
+    async def test_find_documents_no_matches(self, mock_motor_client):
+        """Test filters that match no documents"""
+        # Arrange
+        filters = {"status": "nonexistent"}
+        
+        mock_cursor = self._create_mock_cursor_with_chaining([])
+        mock_motor_client["collection"].find.return_value = mock_cursor
+        
+        # Act
+        result = await find_documents_with_filters("test_collection", filters)
+        
+        # Assert
+        assert result == []
+        mock_motor_client["collection"].find.assert_called_once_with(filters)
+
+    @pytest.mark.asyncio
+    async def test_find_documents_with_skip_and_limit(self, mock_motor_client):
+        """Test pagination with skip and limit"""
+        # Arrange
+        filters = {"status": "active"}
+        skip = 5
+        limit = 10
+        matching_documents = [
+            {"_id": ObjectId(), "name": f"doc{i}", "status": "active"} 
+            for i in range(6, 16)  # Simulating docs 6-15 (after skip=5, limit=10)
+        ]
+        
+        mock_cursor = self._create_mock_cursor_with_chaining(matching_documents)
+        mock_motor_client["collection"].find.return_value = mock_cursor
+        
+        # Act
+        result = await find_documents_with_filters("test_collection", filters, skip=skip, limit=limit)
+        
+        # Assert
+        assert result == matching_documents
+        mock_motor_client["collection"].find.assert_called_once_with(filters)
+        mock_cursor.skip.assert_called_once_with(skip)
+        mock_cursor.limit.assert_called_once_with(limit)
+
+    @pytest.mark.asyncio
+    async def test_find_documents_with_sorting_ascending(self, mock_motor_client):
+        """Test sorting in ascending order"""
+        # Arrange
+        filters = {"category": "test"}
+        sort_by = "name"
+        asc = True
+        matching_documents = [
+            {"_id": ObjectId(), "name": "doc_a", "category": "test"},
+            {"_id": ObjectId(), "name": "doc_b", "category": "test"},
+            {"_id": ObjectId(), "name": "doc_c", "category": "test"}
+        ]
+        
+        mock_cursor = self._create_mock_cursor_with_chaining(matching_documents)
+        mock_motor_client["collection"].find.return_value = mock_cursor
+        
+        # Act
+        result = await find_documents_with_filters("test_collection", filters, sort_by=sort_by, asc=asc)
+        
+        # Assert
+        assert result == matching_documents
+        mock_motor_client["collection"].find.assert_called_once_with(filters)
+        mock_cursor.sort.assert_called_once_with(sort_by, 1)  # 1 for ascending
+
+    @pytest.mark.asyncio
+    async def test_find_documents_with_sorting_descending(self, mock_motor_client):
+        """Test sorting in descending order"""
+        # Arrange
+        filters = {"category": "test"}
+        sort_by = "created_at"
+        asc = False
+        matching_documents = [
+            {"_id": ObjectId(), "name": "doc_c", "category": "test", "created_at": "2023-03-01"},
+            {"_id": ObjectId(), "name": "doc_b", "category": "test", "created_at": "2023-02-01"},
+            {"_id": ObjectId(), "name": "doc_a", "category": "test", "created_at": "2023-01-01"}
+        ]
+        
+        mock_cursor = self._create_mock_cursor_with_chaining(matching_documents)
+        mock_motor_client["collection"].find.return_value = mock_cursor
+        
+        # Act
+        result = await find_documents_with_filters("test_collection", filters, sort_by=sort_by, asc=asc)
+        
+        # Assert
+        assert result == matching_documents
+        mock_motor_client["collection"].find.assert_called_once_with(filters)
+        mock_cursor.sort.assert_called_once_with(sort_by, -1)  # -1 for descending
+
+    @pytest.mark.asyncio
+    async def test_find_documents_with_all_parameters(self, mock_motor_client):
+        """Test with all parameters: filters, pagination, and sorting"""
+        # Arrange
+        filters = {"status": "active", "category": "important"}
+        skip = 2
+        limit = 5
+        sort_by = "priority"
+        asc = False
+        
+        matching_documents = [
+            {"_id": ObjectId(), "name": f"doc{i}", "status": "active", "category": "important", "priority": 10-i} 
+            for i in range(5)  # 5 documents with decreasing priority
+        ]
+        
+        mock_cursor = self._create_mock_cursor_with_chaining(matching_documents)
+        mock_motor_client["collection"].find.return_value = mock_cursor
+        
+        # Act
+        result = await find_documents_with_filters(
+            "test_collection", 
+            filters, 
+            skip=skip, 
+            limit=limit, 
+            sort_by=sort_by, 
+            asc=asc
+        )
+        
+        # Assert
+        assert result == matching_documents
+        mock_motor_client["collection"].find.assert_called_once_with(filters)
+        mock_cursor.sort.assert_called_once_with(sort_by, -1)
+        mock_cursor.skip.assert_called_once_with(skip)
+        mock_cursor.limit.assert_called_once_with(limit)
+
+    @pytest.mark.asyncio
+    async def test_find_documents_skip_zero_not_called(self, mock_motor_client):
+        """Test that skip is not called when skip=0"""
+        # Arrange
+        filters = {"status": "active"}
+        skip = 0
+        matching_documents = [{"_id": ObjectId(), "name": "doc1", "status": "active"}]
+        
+        mock_cursor = self._create_mock_cursor_with_chaining(matching_documents)
+        mock_motor_client["collection"].find.return_value = mock_cursor
+        
+        # Act
+        result = await find_documents_with_filters("test_collection", filters, skip=skip)
+        
+        # Assert
+        assert result == matching_documents
+        mock_cursor.skip.assert_not_called()
+
+    @pytest.mark.asyncio
+    async def test_find_documents_with_complex_filters(self, mock_motor_client):
+        """Test with complex filter values (nested objects, arrays, etc.)"""
+        # Arrange
+        filters = {
+            "metadata.type": "image",
+            "tags": {"$in": ["plant", "flower"]},
+            "size": {"$gte": 1000},
+            "is_deleted": False
+        }
+        matching_documents = [
+            {
+                "_id": ObjectId(), 
+                "name": "plant_image.jpg",
+                "metadata": {"type": "image", "format": "jpeg"},
+                "tags": ["plant", "flower", "nature"],
+                "size": 2048,
+                "is_deleted": False
+            }
+        ]
+        
+        mock_cursor = self._create_mock_cursor_with_chaining(matching_documents)
+        mock_motor_client["collection"].find.return_value = mock_cursor
+        
+        # Act
+        result = await find_documents_with_filters("test_collection", filters)
+        
+        # Assert
+        assert result == matching_documents
+        mock_motor_client["collection"].find.assert_called_once_with(filters)
+
+    
 class TestDeleteDocument:
     @pytest.mark.asyncio
     async def test_delete_document_success(self, mock_motor_client):

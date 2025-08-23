@@ -4,6 +4,7 @@ from typing import BinaryIO
 from app.core.config import settings
 from datetime import timedelta
 from app.core.cache import RedisCache
+from app.utils.string.string_utils import is_empty_string
 
 class FirebaseStorageRepository:
     _instance = None
@@ -43,7 +44,7 @@ class FirebaseStorageRepository:
         Returns:
             str: The presigned URL as a string, or an empty string if filepath is not provided.
         """  
-        if not filepath:
+        if is_empty_string(filepath):
             return ""
         cache_key = f"presigned_url:{filepath}"
         cached_url = await RedisCache().get(cache_key)
