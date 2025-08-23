@@ -24,6 +24,7 @@ import { useAgent, type Tool } from "@/context/agent-ctx";
 import { useState, useRef, useEffect } from "react";
 import { BASE_URL } from "@/App";
 import { FaPencilAlt, FaPlus } from "react-icons/fa";
+import { toaster } from "../ui/toaster";
 
 const missingAgentFieldWarning = (field: string) => (
     <span style={{ color: "#888" }}>No {field} set.</span>
@@ -133,10 +134,10 @@ export const AgentCard = ({
 
     // Load avatar
     useEffect(() => {
-        if (agentDraft?.avatar && agentDraft.avatar.trim() !== "") {
+        if (agentDraft?.avatar_image_url && agentDraft.avatar_image_url.trim() !== "") {
             setIsAvatarLoading(true);
         }
-    }, [agentDraft?.avatar]);
+    }, [agentDraft?.avatar_image_url]);
 
     // Setup Modes
     useEffect(() => {
@@ -146,7 +147,7 @@ export const AgentCard = ({
                 id: "",
                 name: "",
                 description: "",
-                avatar: "",
+                avatar_image_url: "",
                 model: "",
                 persona: "",
                 tone: "",
@@ -219,11 +220,20 @@ export const AgentCard = ({
                     }
                     setAgent(agentDraft);
                     if (onSave) onSave({ ...agentDraft, id: data.id });
+
+                    toaster.create({
+                        description: "Agent saved successfully",
+                        type: "success",
+                    });
                 }
 
                 setIsEditing(false);
             } catch (error) {
                 console.error("Error saving agent:", error);
+                toaster.create({
+                    description: "Failed to save agent",
+                    type: "error",
+                });
             }
         }
 
@@ -246,11 +256,15 @@ export const AgentCard = ({
                 }
                 // Optionally, update agentDraft/avatar with the returned URL
                 const result = await response.json();
-                updateAgentDraft("avatar", result.url);
+                updateAgentDraft("avatar_image_url", result.url);
                 setAvatarFile(null);
                 setAvatarPreview(null);
             } catch (error) {
                 console.error("Error uploading avatar:", error);
+                toaster.create({
+                    description: "Failed to upload avatar",
+                    type: "error",
+                });
             }
         }
     };
@@ -278,7 +292,7 @@ export const AgentCard = ({
                             <Avatar.Image
                                 src={
                                     avatarPreview ||
-                                    agentDraft?.avatar ||
+                                    agentDraft?.avatar_image_url ||
                                     undefined
                                 }
                                 onLoad={() => setIsAvatarLoading(false)}

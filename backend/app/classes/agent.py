@@ -12,7 +12,8 @@ class AgentInfo(BaseModel):
     id: str | None
     name: str
     description: str
-    avatar: str
+    avatar_image_url: str | None
+    avatar_image_id: str | None
     model: LLMModel
     persona: str
     tone: str
@@ -22,6 +23,7 @@ class CreateOrUpdateAgentRequest(BaseModel):
     id: Optional[str] = None
     name: str
     description: str
+    avatar_image_id: Optional[str] = None
     model: LLMModel
     persona: str
     tone: str
@@ -30,6 +32,18 @@ class CreateOrUpdateAgentRequest(BaseModel):
 class CreateOrUpdateAgentResponse(BaseModel):
     success: bool
     id: str
+    message: str
+
+class DeleteAgentResponse(BaseModel):
+    success: bool
+    id: str
+    message: str
+
+class UpdateAgentAvatarResponse(BaseModel):
+    success: bool
+    agent_id: str
+    image_id: str
+    storage_url: str
     message: str
 
 class SearchAgentsResponse(BaseModel):

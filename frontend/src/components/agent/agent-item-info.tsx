@@ -2,5 +2,5 @@ export interface AgentItemInfo {
     id: string;
     name: string;
     description: string;
-    avatar: string;
+    avatar_image_url: string;
 }

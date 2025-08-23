@@ -230,7 +230,8 @@ class TestGetAgentSystemPrompt:
             model=LLMModel.GPT_4O,
             persona="You are a friendly and knowledgeable assistant",
             tone="professional",
-            avatar="test_avatar",
+            avatar_image_id="test_avatar_id",
+            avatar_image_url="http://test.com/avatar.jpg",
             tools=[]
         )
     
@@ -259,7 +260,8 @@ class TestGetAgentSystemPrompt:
             model=LLMModel.GPT_4O,
             persona="",
             tone="",
-            avatar="",
+            avatar_image_id=None,
+            avatar_image_url="",
             tools=[]
         )
         
@@ -284,7 +286,8 @@ class TestGetAgentSystemPrompt:
             model=LLMModel.GPT_4O,
             persona="You are an assistant with 'quotes' and \"double quotes\"",
             tone="casual & friendly",
-            avatar="special_avatar",
+            avatar_image_id="special_avatar_id",
+            avatar_image_url="http://test.com/special_avatar.jpg",
             tools=[]
         )
         
@@ -312,7 +315,8 @@ class TestGetAgentSystemPrompt:
             model=LLMModel.GPT_4O,
             persona="You are helpful.\nYou are knowledgeable.\nYou are friendly.",
             tone="professional\nand courteous",
-            avatar="multiline_avatar",
+            avatar_image_id="multiline_avatar_id",
+            avatar_image_url="http://test.com/multiline_avatar.jpg",
             tools=[]
         )
         
@@ -351,7 +355,8 @@ class TestGenerateChatResponse:
             model=LLMModel.GPT_4O,
             persona="You are a helpful assistant",
             tone="friendly",
-            avatar="test_avatar",
+            avatar_image_id="test_avatar_id",
+            avatar_image_url="http://test.com/avatar.jpg",
             tools=[]
         )
     
@@ -600,7 +605,8 @@ class TestGenerateStreamingChatResponse:
             model=LLMModel.GPT_4O,
             persona="You are a helpful assistant",
             tone="friendly",
-            avatar="test_avatar",
+            avatar_image_id="test_avatar_id",
+            avatar_image_url="http://test.com/avatar.jpg",
             tools=[]
         )
     
@@ -974,7 +980,8 @@ class TestGenerateStreamingChatResponse:
             model=LLMModel.GPT_4O,
             persona="You are a helpful assistant",
             tone="friendly",
-            avatar="test_avatar",
+            avatar_image_id="test_avatar_id",
+            avatar_image_url="http://test.com/avatar.jpg",
             tools=["tool1", "tool2"]
         )
         
@@ -1192,7 +1199,8 @@ class TestConversationNaming:
             id=TEST_AGENT_ID,
             name="Test Agent",
             description="Test description",
-            avatar="test-avatar",
+            avatar_image_id="test_avatar_id",
+            avatar_image_url="http://test.com/test-avatar.jpg",
             persona="Test persona",
             tone="friendly",
             model=LLMModel.GPT_4O_MINI,

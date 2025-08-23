@@ -11,7 +11,7 @@ export type Agent = {
   id: string;
   name: string;
   description: string;
-  avatar: string;
+  avatar_image_url: string;
   model: string;
   persona: string;
   tone: string;

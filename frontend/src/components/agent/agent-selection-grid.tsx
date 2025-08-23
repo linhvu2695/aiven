@@ -13,7 +13,7 @@ const AgentSelectionGridItem = (
             overflow="hidden"
             position="relative"
             cursor={"pointer"}
-            bgImage={`url(${agentInfo.avatar})`}
+            bgImage={`url(${agentInfo.avatar_image_url})`}
             bgSize="cover"
             bgPos="center"
             h="300px"
@@ -61,7 +61,7 @@ export const AgentSelectionGrid = ({ onSelect }: { onSelect?: () => void }) => {
                     id: agent.id,
                     name: agent.name,
                     description: agent.description,
-                    avatar: agent.avatar,
+                    avatar_image_url: agent.avatar_image_url,
                     model: agent.model,
                     persona: agent.persona,
                     tone: agent.tone,

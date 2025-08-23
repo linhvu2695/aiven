@@ -119,7 +119,7 @@ const MessageBubble = ({
     >
         <Avatar.Root size={"sm"}>
             <Avatar.Image
-                src={role === "user" ? "/astronaut2.webp" : agent?.avatar}
+                src={role === "user" ? "/astronaut2.webp" : agent?.avatar_image_url}
                 borderWidth="1px"
                 borderColor="white"
                 _hover={{

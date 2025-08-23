@@ -3,7 +3,7 @@ from httpx import AsyncClient, ASGITransport
 from fastapi import FastAPI
 from unittest.mock import patch, AsyncMock, MagicMock
 from app.api.agent import router
-from app.classes.agent import SearchAgentsResponse, AgentInfo, CreateOrUpdateAgentRequest, CreateOrUpdateAgentResponse
+from app.classes.agent import SearchAgentsResponse, AgentInfo, CreateOrUpdateAgentRequest, CreateOrUpdateAgentResponse, DeleteAgentResponse, UpdateAgentAvatarResponse
 from app.core.constants import LLMModel
 import io
 
@@ -13,8 +13,8 @@ app.include_router(router, prefix="/agents")
 @pytest.mark.asyncio
 async def test_search_agents_api():
     mock_response = SearchAgentsResponse(agents=[
-        AgentInfo(id="1", name="Agent 1", description="Desc 1", model=LLMModel.GPT_3_5_TURBO, persona="helpful", tone="friendly", avatar="http://test/url/avatar1.jpg", tools=["chat", "agent-management"]),
-        AgentInfo(id="2", name="Agent 2", description="Desc 2", model=LLMModel.GPT_4, persona="expert", tone="serious", avatar="http://test/url/avatar2.jpg", tools=["knowledge-base", "file-storage", "system-health"]),
+        AgentInfo(id="1", name="Agent 1", description="Desc 1", model=LLMModel.GPT_3_5_TURBO, persona="helpful", tone="friendly", avatar_image_id="image_1", avatar_image_url="http://test/url/avatar1.jpg", tools=["chat", "agent-management"]),
+        AgentInfo(id="2", name="Agent 2", description="Desc 2", model=LLMModel.GPT_4, persona="expert", tone="serious", avatar_image_id="image_2", avatar_image_url="http://test/url/avatar2.jpg", tools=["knowledge-base", "file-storage", "system-health"]),
     ])
     
     with patch("app.services.agent.agent_service.AgentService.search_agents", new=AsyncMock(return_value=mock_response)):
@@ -30,14 +30,16 @@ async def test_search_agents_api():
             assert data["agents"][0]["model"] == LLMModel.GPT_3_5_TURBO
             assert data["agents"][0]["persona"] == "helpful"
             assert data["agents"][0]["tone"] == "friendly"
-            assert data["agents"][0]["avatar"] == "http://test/url/avatar1.jpg"
+            assert data["agents"][0]["avatar_image_id"] == "image_1"
+            assert data["agents"][0]["avatar_image_url"] == "http://test/url/avatar1.jpg"
             
             assert data["agents"][1]["name"] == "Agent 2"
             assert data["agents"][1]["description"] == "Desc 2"
             assert data["agents"][1]["model"] == LLMModel.GPT_4
             assert data["agents"][1]["persona"] == "expert"
             assert data["agents"][1]["tone"] == "serious"
-            assert data["agents"][1]["avatar"] == "http://test/url/avatar2.jpg"
+            assert data["agents"][1]["avatar_image_id"] == "image_2"
+            assert data["agents"][1]["avatar_image_url"] == "http://test/url/avatar2.jpg"
 
 
 @pytest.mark.asyncio
@@ -49,7 +51,8 @@ async def test_get_agent_api():
         model=LLMModel.GPT_4,
         persona="helpful",
         tone="friendly",
-        avatar="http://test/url/avatar.jpg",
+        avatar_image_id="image_123",
+        avatar_image_url="http://test/url/avatar.jpg",
         tools=["chat", "agent-management"]
     )
     
@@ -65,7 +68,8 @@ async def test_get_agent_api():
             assert data["model"] == LLMModel.GPT_4
             assert data["persona"] == "helpful"
             assert data["tone"] == "friendly"
-            assert data["avatar"] == "http://test/url/avatar.jpg"
+            assert data["avatar_image_id"] == "image_123"
+            assert data["avatar_image_url"] == "http://test/url/avatar.jpg"
 
 
 @pytest.mark.asyncio
@@ -146,79 +150,110 @@ async def test_create_agent_api_failure():
         transport = ASGITransport(app=app)
         async with AsyncClient(transport=transport, base_url="http://test") as ac:
             response = await ac.post("/agents/", json=request_data)
-            assert response.status_code == 200
+            assert response.status_code == 500
             data = response.json()
-            assert data["success"] is False
-            assert data["id"] == ""
-            assert "Missing value for field: name" in data["message"]
+            assert "detail" in data
+            assert "Missing value for field: name" in data["detail"]
 
 
 @pytest.mark.asyncio
 async def test_delete_agent_api_success():
-    with patch("app.services.agent.agent_service.AgentService.delete_agent", new=AsyncMock(return_value=True)):
+    mock_response = DeleteAgentResponse(
+        success=True,
+        id="test_id",
+        message="Agent deleted successfully"
+    )
+    with patch("app.services.agent.agent_service.AgentService.delete_agent", new=AsyncMock(return_value=mock_response)):
         transport = ASGITransport(app=app)
         async with AsyncClient(transport=transport, base_url="http://test") as ac:
             response = await ac.post("/agents/delete", params={"id": "test_id"})
             assert response.status_code == 200
             data = response.json()
-            assert data is True
+            assert data["success"] is True
+            assert data["id"] == "test_id"
+            assert data["message"] == "Agent deleted successfully"
 
 
 @pytest.mark.asyncio
 async def test_delete_agent_api_failure():
-    with patch("app.services.agent.agent_service.AgentService.delete_agent", new=AsyncMock(return_value=False)):
+    mock_response = DeleteAgentResponse(
+        success=False,
+        id="nonexistent_id",
+        message="Agent not found"
+    )
+    with patch("app.services.agent.agent_service.AgentService.delete_agent", new=AsyncMock(return_value=mock_response)):
         transport = ASGITransport(app=app)
         async with AsyncClient(transport=transport, base_url="http://test") as ac:
             response = await ac.post("/agents/delete", params={"id": "nonexistent_id"})
-            assert response.status_code == 200
+            assert response.status_code == 500
             data = response.json()
-            assert data is False
+            assert "detail" in data
+            assert "Agent not found" in data["detail"]
 
 
 @pytest.mark.asyncio
 async def test_update_agent_avatar_api_success():
-    mock_url = "http://test/url/avatar.jpg"
+    mock_response = UpdateAgentAvatarResponse(
+        success=True,
+        agent_id="test_id",
+        image_id="new_image_123",
+        storage_url="http://test/url/avatar.jpg",
+        message="Avatar updated successfully"
+    )
     
     # Create a mock file
     file_content = b"fake image content"
     file_like = io.BytesIO(file_content)
     
-    with patch("app.services.agent.agent_service.AgentService.update_agent_avatar", new=AsyncMock(return_value=mock_url)):
+    with patch("app.services.agent.agent_service.AgentService.update_agent_avatar", new=AsyncMock(return_value=mock_response)):
         transport = ASGITransport(app=app)
         async with AsyncClient(transport=transport, base_url="http://test") as ac:
             files = {"avatar": ("test_avatar.jpg", file_like, "image/jpeg")}
             response = await ac.post("/agents/avatar", params={"id": "test_id"}, files=files)
             assert response.status_code == 200
             data = response.json()
-            assert data["url"] == mock_url
+            assert data["success"] is True
+            assert data["agent_id"] == "test_id"
+            assert data["image_id"] == "new_image_123"
+            assert data["storage_url"] == "http://test/url/avatar.jpg"
+            assert data["message"] == "Avatar updated successfully"
 
 
 @pytest.mark.asyncio
-async def test_update_agent_avatar_api_with_exception():
+async def test_update_agent_avatar_api_failure():
+    mock_response = UpdateAgentAvatarResponse(
+        success=False,
+        agent_id="test_id",
+        image_id="",
+        storage_url="",
+        message="Agent not found"
+    )
+    
     # Create a mock file
     file_content = b"fake image content"
     file_like = io.BytesIO(file_content)
     
-    with patch("app.services.agent.agent_service.AgentService.update_agent_avatar", new=AsyncMock(side_effect=Exception("Storage error"))):
+    with patch("app.services.agent.agent_service.AgentService.update_agent_avatar", new=AsyncMock(return_value=mock_response)):
         transport = ASGITransport(app=app)
         async with AsyncClient(transport=transport, base_url="http://test") as ac:
             files = {"avatar": ("test_avatar.jpg", file_like, "image/jpeg")}
             response = await ac.post("/agents/avatar", params={"id": "test_id"}, files=files)
             assert response.status_code == 500
             data = response.json()
-            assert data["detail"] == "Storage error"
+            assert "detail" in data
+            assert "Agent not found" in data["detail"]
 
 
 @pytest.mark.asyncio
 async def test_update_agent_avatar_api_validation_error():
-    # Test file upload validation error
+    # Test missing id parameter
     file_content = b"fake image content"
     file_like = io.BytesIO(file_content)
     
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as ac:
-        files = {"avatar": ("", file_like, "image/jpeg")}  # Empty filename causes validation error
-        response = await ac.post("/agents/avatar", params={"id": "test_id"}, files=files)
+        files = {"avatar": ("test_avatar.jpg", file_like, "image/jpeg")}
+        response = await ac.post("/agents/avatar", files=files)  # Missing id param
         assert response.status_code == 422  # Validation error
         data = response.json()
         assert "detail" in data
