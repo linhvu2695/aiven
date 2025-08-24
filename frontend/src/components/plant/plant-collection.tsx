@@ -4,15 +4,15 @@ import {
     Text, 
     Card,
     VStack,
-    Button,
-    useDisclosure
+    Button
 } from "@chakra-ui/react";
 import { FaPlus, FaSeedling } from "react-icons/fa";
-import { AddPlantDialog } from "./add-plant-dialog";
-import { toaster } from "../ui/toaster";
 
-export const PlantCollection = () => {
-    const { open, onOpen, onClose } = useDisclosure();
+interface PlantCollectionProps {
+    onAddPlant?: () => void;
+}
+
+export const PlantCollection = ({ onAddPlant }: PlantCollectionProps) => {
     return (
         <Box flex={1}>
             <Heading size="md" mb={4}>Your Plants</Heading>
@@ -38,7 +38,7 @@ export const PlantCollection = () => {
                         <Button 
                             colorScheme="green" 
                             size="sm" 
-                            onClick={onOpen}
+                            onClick={onAddPlant}
                             _hover={{
                                 transform: "scale(1.1)",
                                 bgColor: "teal.500",
@@ -49,19 +49,6 @@ export const PlantCollection = () => {
                     </VStack>
                 </Card.Body>
             </Card.Root>
-            
-            <AddPlantDialog 
-                isOpen={open} 
-                onClose={onClose}
-                onPlantAdded={() => {
-                    // TODO: Refresh plant list when implemented
-                    
-                    toaster.create({
-                        description: "Plant added successfully",
-                        type: "success",
-                    });
-                }}
-            />
         </Box>
     );
 };

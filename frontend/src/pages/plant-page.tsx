@@ -1,20 +1,33 @@
 import { 
     Box, 
     Flex, 
-    VStack
+    VStack,
+    useDisclosure
 } from "@chakra-ui/react";
 import { 
     PlantHeader, 
     PlantCategories, 
     PlantStats, 
-    PlantCollection 
+    PlantCollection,
+    AddPlantDialog
 } from "@/components/plant";
+import { toaster } from "@/components/ui/toaster";
 
 export const PlantPage = () => {
+    const { open, onOpen, onClose } = useDisclosure();
+
+    const handlePlantAdded = () => {
+        // TODO: Refresh plant list when implemented
+        toaster.create({
+            description: "Plant added successfully",
+            type: "success",
+        });
+    };
+
     return (
         <Box h="100vh" overflow="hidden">
             {/* Top Bar */}
-            <PlantHeader />
+            <PlantHeader onAddPlant={onOpen} />
 
             {/* Main Content */}
             <Flex h="calc(100vh - 120px)" p={4} gap={4}>
@@ -28,10 +41,18 @@ export const PlantPage = () => {
                         <PlantStats />
 
                         {/* Plant Collection */}
-                        <PlantCollection />
+                        <PlantCollection 
+                            onAddPlant={onOpen}
+                        />
                     </VStack>
                 </Box>
             </Flex>
+
+            <AddPlantDialog 
+                isOpen={open} 
+                onClose={onClose}
+                onPlantAdded={handlePlantAdded}
+            />
         </Box>
     );
 };

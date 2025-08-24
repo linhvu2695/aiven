@@ -10,7 +10,11 @@ import {
 import { FaPlus, FaSeedling } from "react-icons/fa";
 import { Tooltip } from "@/components/ui/tooltip";
 
-export const PlantHeader = () => {
+interface PlantHeaderProps {
+    onAddPlant?: () => void;
+}
+
+export const PlantHeader = ({ onAddPlant }: PlantHeaderProps) => {
     return (
         <HStack p={4} borderBottom="1px" borderColor="border.default">
             <VStack align="start" gap={0}>
@@ -39,6 +43,11 @@ export const PlantHeader = () => {
                         aria-label="Add new plant"
                         size="sm"
                         colorScheme="green"
+                        onClick={onAddPlant}
+                        _hover={{
+                            transform: "scale(1.1)",
+                            bgColor: "teal.500",
+                        }}
                     >
                         <FaPlus />
                     </IconButton>
