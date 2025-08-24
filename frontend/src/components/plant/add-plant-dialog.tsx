@@ -14,7 +14,7 @@ import { useState, useRef } from "react";
 import { FaUpload, FaMagic, FaPlus } from "react-icons/fa";
 import { BASE_URL } from "@/App";
 import { toaster } from "../ui/toaster";
-import { Dropdown, FormField } from "../ui";
+import { Dropdown, FormField, DeleteItemButton } from "../ui";
 
 // Plant species options based on the backend enum
 const PLANT_SPECIES = [
@@ -277,7 +277,7 @@ export const AddPlantDialog = ({ isOpen, onClose, onPlantAdded }: AddPlantDialog
                         <Dialog.Body>
                             <HStack gap={6} align="start" minH="500px">
                                 {/* Left Column - Image Section */}
-                                <Box flex={1} minW="400px">
+                                <Box flex={1} minW="400px" h="500px">
                                     <VStack gap={4} align="stretch" h="full">
                                         {imagePreview ? (
                                             <Box position="relative" flex={1}>
@@ -291,11 +291,8 @@ export const AddPlantDialog = ({ isOpen, onClose, onPlantAdded }: AddPlantDialog
                                                     border="1px solid"
                                                     borderColor="gray.200"
                                                 />
-                                                <Button
-                                                    size="sm"
-                                                    position="absolute"
-                                                    top={3}
-                                                    right={3}
+                                                <DeleteItemButton
+                                                    aria-label="Remove image"
                                                     onClick={() => {
                                                         setSelectedImage(null);
                                                         setImagePreview(null);
@@ -303,9 +300,7 @@ export const AddPlantDialog = ({ isOpen, onClose, onPlantAdded }: AddPlantDialog
                                                             fileInputRef.current.value = "";
                                                         }
                                                     }}
-                                                >
-                                                    Remove
-                                                </Button>
+                                                />
                                             </Box>
                                         ) : (
                                             <Box
@@ -316,8 +311,8 @@ export const AddPlantDialog = ({ isOpen, onClose, onPlantAdded }: AddPlantDialog
                                                 textAlign="center"
                                                 cursor="pointer"
                                                 onClick={() => fileInputRef.current?.click()}
-                                                _hover={{ borderColor: "green.400" }}
-                                                h="400px"
+                                                _hover={{ bg: "teal.950" }}
+                                                h="100%"
                                                 display="flex"
                                                 alignItems="center"
                                                 justifyContent="center"
@@ -351,6 +346,10 @@ export const AddPlantDialog = ({ isOpen, onClose, onPlantAdded }: AddPlantDialog
                                                 loading={isAnalyzing}
                                                 size="lg"
                                                 w="full"
+                                                _hover={{
+                                                    transform: "scale(1.02)",
+                                                    bgColor: "teal.500",
+                                                }}
                                             >
                                                 <FaMagic /> AI Auto-Fill from Photo
                                             </Button>

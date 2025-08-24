@@ -3,14 +3,13 @@ import {
     Box,
     Text,
     VStack,
-    IconButton,
     Dialog,
     useDisclosure,
     Button,
     CloseButton,
 } from "@chakra-ui/react";
 import { toaster } from "@/components/ui/toaster";
-import { FaTrash } from "react-icons/fa";
+import { DeleteItemButton } from "@/components/ui";
 import { BASE_URL } from "@/App";
 import type { AgentItemInfo } from "./agent-item-info";
 
@@ -75,30 +74,13 @@ export const AgentGridItem = ({
                 onClick={onClick}
             >
                 {/* Delete button */}
-                <IconButton
+                <DeleteItemButton
                     aria-label="Delete agent"
-                    cursor={"pointer"}
-                    size="sm"
-                    bg={"transparent"}
-                    colorScheme="red"
-                    position="absolute"
-                    top={2}
-                    right={2}
-                    zIndex={2}
                     onClick={(e) => {
-                        e.stopPropagation();
+                        e?.stopPropagation();
                         onOpen();
                     }}
-                    _hover={{
-                        transform: "scale(1.3)",
-                        bg: "red.500",
-                        color: "white",
-                        boxShadow: "0 0 0 4px rgba(229,62,62,0.2)",
-                        transition: "all 0.15s cubic-bezier(.4,0,.2,1)",
-                    }}
-                >
-                    <FaTrash />
-                </IconButton>
+                />
 
                 {/* Grid item */}
                 <VStack
