@@ -94,7 +94,7 @@ class PlantInfo(BaseModel):
     temperature_range: Optional[str] = None  # e.g., "65-75°F"
     
     # Tracking data
-    photos: List[PlantPhotoInfo] = Field(default_factory=list)
+    photos: List[str] = Field(default_factory=list)
     care_schedule: Optional[CareSchedule] = None
     
     # AI-generated insights
@@ -110,8 +110,8 @@ class PlantInfo(BaseModel):
 class CreateOrUpdatePlantRequest(BaseModel):
     """Request model for creating or updating a plant"""
     id: Optional[str] = None  # If None/empty, create new plant; if provided, update existing
-    name: str
-    species: PlantSpecies
+    name: Optional[str] = None
+    species: Optional[PlantSpecies] = None
     species_details: Optional[str] = None
     description: Optional[str] = None
     location: Optional[str] = None
@@ -129,14 +129,9 @@ class CreateOrUpdatePlantRequest(BaseModel):
 
 class AddPlantPhotoRequest(BaseModel):
     """Request model for adding a photo to a plant"""
+    plant_id: str
     filename: str
-    image_data: Optional[str] = None  # Base64 encoded image
     file_data: Optional[bytes] = None  # Raw file bytes
-    title: Optional[str] = None
-    description: Optional[str] = None
-    notes: Optional[str] = None
-    tags: List[str] = Field(default_factory=list)
-    captured_at: Optional[datetime] = None
 
 class CreateCareActionRequest(BaseModel):
     """Request model for creating a care action"""
@@ -160,13 +155,11 @@ class PlantResponse(BaseModel):
 class PlantListResponse(BaseModel):
     """Response model for listing plants"""
     plants: List[PlantInfo]
-    total: int
 
 class PlantPhotoResponse(BaseModel):
     """Response model for photo operations"""
     success: bool
-    photo: Optional[PlantPhotoInfo] = None
-    ai_analysis: Optional[dict] = None
+    photo_id: str
     message: str
 
 class CareScheduleResponse(BaseModel):
