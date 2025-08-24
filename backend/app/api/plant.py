@@ -1,13 +1,13 @@
 from fastapi import APIRouter, HTTPException, UploadFile, File, Form
 from typing import Optional
 from app.classes.plant import (
+    AutofillPlantInfoResponse,
     CreateOrUpdatePlantRequest,
     CreateOrUpdatePlantResponse,
     PlantResponse,
     PlantListResponse,
     AddPlantPhotoRequest,
     PlantPhotoResponse,
-    PlantHealthAnalysisResponse,
 )
 from app.services.plant.plant_service import PlantService
 from app.utils.string.string_utils import is_empty_string
@@ -70,10 +70,11 @@ async def add_plant_photo(
         raise HTTPException(status_code=500, detail=f"Failed to upload photo: {str(e)}")
 
 
-@router.post("/{plant_id}/analyze", response_model=PlantHealthAnalysisResponse)
-async def analyze_plant_health(plant_id: str, photo_id: Optional[str] = None):
+@router.post("/autofill", response_model=AutofillPlantInfoResponse)
+async def autofill_plant_info(file: UploadFile = File(...)):
     """Analyze plant health using AI"""
-    response = await PlantService().analyze_plant_health(plant_id, photo_id)
+    file_data = await file.read()
+    response = await PlantService().autofill_plant_info(file_data)
     if not response.success:
         raise HTTPException(status_code=400, detail=response.message)
     return response

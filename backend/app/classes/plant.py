@@ -91,7 +91,7 @@ class PlantInfo(BaseModel):
     fertilizing_frequency_days: Optional[int] = None
     light_requirements: Optional[str] = None  # "low", "medium", "high", "bright indirect"
     humidity_preference: Optional[str] = None  # "low", "medium", "high"
-    temperature_range: Optional[str] = None  # e.g., "65-75°F"
+    temperature_range: Optional[str] = None  # in Celsius
     
     # Tracking data
     photos: List[str] = Field(default_factory=list)
@@ -169,11 +169,8 @@ class CareScheduleResponse(BaseModel):
     upcoming_actions: List[CareAction] = Field(default_factory=list)
     message: str
 
-class PlantHealthAnalysisResponse(BaseModel):
+class AutofillPlantInfoResponse(BaseModel):
     """Response model for AI health analysis"""
     success: bool
-    health_status: PlantHealthStatus
-    analysis: Optional[dict] = None
-    recommendations: List[str] = Field(default_factory=list)
-    care_adjustments: Optional[dict] = None  # Suggested changes to care schedule
+    plant_info: Optional[PlantInfo] = None
     message: str

@@ -5,18 +5,16 @@ import {
     Portal,
     VStack,
     HStack,
-    Input,
     Textarea,
-    Select,
     Image,
     Text,
     CloseButton,
-    createListCollection,
 } from "@chakra-ui/react";
 import { useState, useRef } from "react";
 import { FaUpload, FaMagic, FaPlus } from "react-icons/fa";
 import { BASE_URL } from "@/App";
 import { toaster } from "../ui/toaster";
+import { Dropdown, FormField } from "../ui";
 
 // Plant species options based on the backend enum
 const PLANT_SPECIES = [
@@ -54,7 +52,7 @@ interface AddPlantDialogProps {
 export const AddPlantDialog = ({ isOpen, onClose, onPlantAdded }: AddPlantDialogProps) => {
     const [formData, setFormData] = useState<PlantFormData>({
         name: "",
-        species: "",
+        species: "other",
         species_details: "",
         description: "",
         location: "",
@@ -96,71 +94,57 @@ export const AddPlantDialog = ({ isOpen, onClose, onPlantAdded }: AddPlantDialog
 
         setIsAnalyzing(true);
         try {
-            // First create a temporary plant to get an ID for the photo
-            const tempPlantResponse = await fetch(`${BASE_URL}/api/plant/`, {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                },
-                body: JSON.stringify({
-                    name: "Temporary Plant for Analysis",
-                    species: "other",
-                }),
-            });
-
-            if (!tempPlantResponse.ok) {
-                throw new Error("Failed to create temporary plant");
-            }
-
-            const tempPlantData = await tempPlantResponse.json();
-            const tempPlantId = tempPlantData.id;
-
-            // Upload the image to the temporary plant
+            // Upload the image to the AutoFillPlantInfo API endpoint
             const formData = new FormData();
             formData.append("file", selectedImage);
-            formData.append("title", "Plant analysis photo");
 
-            const photoResponse = await fetch(`${BASE_URL}/api/plant/${tempPlantId}/photo`, {
+            const response = await fetch(`${BASE_URL}/api/plant/autofill`, {
                 method: "POST",
                 body: formData,
             });
 
-            if (!photoResponse.ok) {
-                throw new Error("Failed to upload photo");
+            if (!response.ok) {
+                toaster.create({
+                    description: "AI analysis failed. Please try again.",
+                    type: "error",
+                });
+                return;
             }
 
-            // Analyze the plant health (this will return mock data for now)
-            const analysisResponse = await fetch(`${BASE_URL}/api/plant/${tempPlantId}/analyze`, {
-                method: "POST",
-            });
-
-            if (!analysisResponse.ok) {
-                throw new Error("Failed to analyze plant");
+            const autofillData = await response.json();
+            if (!autofillData.success || !autofillData.plant_info) {
+                toaster.create({
+                    description: "AI analysis failed. Please try again.",
+                    type: "error",
+                });
+                return;
             }
 
-            await analysisResponse.json();
+            const plantInfo = autofillData.plant_info;
 
-            // Mock AI analysis results based on the response
+            // Update form data with AI-generated plant information
             setFormData(prev => ({
                 ...prev,
-                name: "Beautiful Plant",
-                species: "succulent",
-                species_details: "Echeveria elegans",
-                description: "A healthy-looking succulent with thick, fleshy leaves arranged in a rosette pattern.",
-                light_requirements: "bright indirect",
-                humidity_preference: "low",
-                temperature_range: "65-75°F",
-                watering_frequency_days: "7"
+                name: plantInfo.name || prev.name,
+                species: plantInfo.species || prev.species,
+                species_details: plantInfo.species_details || prev.species_details,
+                description: plantInfo.description || prev.description,
+                location: plantInfo.location || prev.location,
+                light_requirements: plantInfo.light_requirements || prev.light_requirements,
+                humidity_preference: plantInfo.humidity_preference || prev.humidity_preference,
+                temperature_range: plantInfo.temperature_range || prev.temperature_range,
+                watering_frequency_days: plantInfo.watering_frequency_days ? plantInfo.watering_frequency_days.toString() : prev.watering_frequency_days
             }));
 
-            // Clean up temporary plant
-            // Note: We'll need to implement delete endpoint later
-            console.log("Analysis completed, temp plant ID:", tempPlantId);
+            toaster.create({
+                description: "AI plant info autofill completed",
+                type: "success",
+            });
             
         } catch (error) {
-            console.error("AI analysis failed:", error);
+            console.error("AI plant info autofill failed:", error);
             toaster.create({
-                description: "AI analysis failed. Please try again.",
+                description: "AI plant info autofill failed. Please try again.",
                 type: "error",
             });
         } finally {
@@ -201,7 +185,11 @@ export const AddPlantDialog = ({ isOpen, onClose, onPlantAdded }: AddPlantDialog
             });
 
             if (!plantResponse.ok) {
-                throw new Error("Failed to create plant");
+                toaster.create({
+                    description: "Failed to create plant. Please try again.",
+                    type: "error",
+                });
+                return;
             }
 
             const plantResult = await plantResponse.json();
@@ -210,8 +198,7 @@ export const AddPlantDialog = ({ isOpen, onClose, onPlantAdded }: AddPlantDialog
             if (selectedImage && plantResult.id) {
                 const formData = new FormData();
                 formData.append("file", selectedImage);
-                formData.append("title", "Initial plant photo");
-                formData.append("description", "First photo of the plant");
+                formData.append("title", `${plantResult.name} - ${new Date().toLocaleDateString()}`);
 
                 const photoResponse = await fetch(`${BASE_URL}/api/plant/${plantResult.id}/photo`, {
                     method: "POST",
@@ -219,7 +206,10 @@ export const AddPlantDialog = ({ isOpen, onClose, onPlantAdded }: AddPlantDialog
                 });
 
                 if (!photoResponse.ok) {
-                    console.warn("Plant created but photo upload failed");
+                    toaster.create({
+                        description: "Plant created but photo upload failed. Please try again.",
+                        type: "warning",
+                    });
                 }
             }
 
@@ -247,7 +237,7 @@ export const AddPlantDialog = ({ isOpen, onClose, onPlantAdded }: AddPlantDialog
     const handleReset = () => {
         setFormData({
             name: "",
-            species: "",
+            species: "other",
             species_details: "",
             description: "",
             location: "",
@@ -274,37 +264,38 @@ export const AddPlantDialog = ({ isOpen, onClose, onPlantAdded }: AddPlantDialog
             onOpenChange={(e) => {
                 if (!e.open) handleClose();
             }}
-            size="xl"
             placement="center"
         >
             <Portal>
                 <Dialog.Backdrop />
                 <Dialog.Positioner>
-                    <Dialog.Content maxW="2xl">
+                    <Dialog.Content maxW="1200px" w="90vw">
                         <Dialog.Header>
                             <Dialog.Title>Add New Plant</Dialog.Title>
                         </Dialog.Header>
 
                         <Dialog.Body>
-                            <VStack gap={4} align="stretch">
-                                {/* Image Upload Section */}
-                                <Box>
-                                    <Text fontSize="sm" fontWeight="medium" mb={2}>Plant Photo</Text>
-                                    <VStack gap={3}>
+                            <HStack gap={6} align="start" minH="500px">
+                                {/* Left Column - Image Section */}
+                                <Box flex={1} minW="400px">
+                                    <VStack gap={4} align="stretch" h="full">
                                         {imagePreview ? (
-                                            <Box position="relative">
+                                            <Box position="relative" flex={1}>
                                                 <Image
                                                     src={imagePreview}
                                                     alt="Plant preview"
-                                                    maxH="200px"
+                                                    w="100%"
+                                                    h="400px"
                                                     objectFit="cover"
-                                                    borderRadius="md"
+                                                    borderRadius="lg"
+                                                    border="1px solid"
+                                                    borderColor="gray.200"
                                                 />
                                                 <Button
                                                     size="sm"
                                                     position="absolute"
-                                                    top={2}
-                                                    right={2}
+                                                    top={3}
+                                                    right={3}
                                                     onClick={() => {
                                                         setSelectedImage(null);
                                                         setImagePreview(null);
@@ -320,18 +311,26 @@ export const AddPlantDialog = ({ isOpen, onClose, onPlantAdded }: AddPlantDialog
                                             <Box
                                                 border="2px dashed"
                                                 borderColor="gray.300"
-                                                borderRadius="md"
-                                                p={8}
+                                                borderRadius="lg"
+                                                p={12}
                                                 textAlign="center"
                                                 cursor="pointer"
                                                 onClick={() => fileInputRef.current?.click()}
                                                 _hover={{ borderColor: "green.400" }}
+                                                h="400px"
+                                                display="flex"
+                                                alignItems="center"
+                                                justifyContent="center"
+                                                flex={1}
                                             >
-                                                <VStack gap={2}>
-                                                    <FaUpload size={24} />
-                                                    <Text>Click to upload plant photo</Text>
-                                                    <Text fontSize="sm" color="gray.500">
+                                                <VStack gap={4}>
+                                                    <FaUpload size={48} />
+                                                    <Text fontSize="lg" fontWeight="medium">Click to upload plant photo</Text>
+                                                    <Text fontSize="md" color="gray.500">
                                                         JPG, PNG up to 10MB
+                                                    </Text>
+                                                    <Text fontSize="sm" color="gray.400">
+                                                        High quality photos help with AI analysis
                                                     </Text>
                                                 </VStack>
                                             </Box>
@@ -346,150 +345,127 @@ export const AddPlantDialog = ({ isOpen, onClose, onPlantAdded }: AddPlantDialog
                                         />
                                         
                                         {selectedImage && (
-                                                                                    <Button
-                                            colorScheme="purple"
-                                            onClick={handleAIAnalysis}
-                                            loading={isAnalyzing}
-                                        >
-                                            <FaMagic /> AI Auto-Fill from Photo
-                                        </Button>
+                                            <Button
+                                                colorScheme="purple"
+                                                onClick={handleAIAnalysis}
+                                                loading={isAnalyzing}
+                                                size="lg"
+                                                w="full"
+                                            >
+                                                <FaMagic /> AI Auto-Fill from Photo
+                                            </Button>
                                         )}
                                     </VStack>
                                 </Box>
 
-                                {/* Basic Information */}
-                                <HStack gap={4}>
-                                    <Box flex={1}>
-                                        <Text fontSize="sm" fontWeight="medium" mb={2}>Plant Name *</Text>
-                                        <Input
-                                            value={formData.name}
-                                            onChange={(e) => handleInputChange("name", e.target.value)}
-                                            placeholder="e.g., My Fiddle Leaf Fig"
+                                {/* Right Column - Form Inputs */}
+                                <Box flex={1} minW="400px">
+                                    <VStack gap={4} align="stretch">
+                                        {/* Basic Information */}
+                                        <HStack gap={4}>
+                                            {/* Plant Name */}
+                                            <FormField
+                                                label="Plant Name"
+                                                value={formData.name}
+                                                onChange={(value) => handleInputChange("name", value)}
+                                                placeholder="e.g., My Fiddle Leaf Fig"
+                                                isRequired={true}
+                                                flex={1}
+                                            />
+
+                                            {/* Species */}
+                                            <Dropdown
+                                                isRequired={true}
+                                                title="Species"
+                                                value={formData.species}
+                                                onValueChange={(value) => handleInputChange("species", value)}
+                                                options={PLANT_SPECIES}
+                                                placeholder="Select species"
+                                                flex={1}
+                                            />
+                                        </HStack>
+                                        
+                                        {/* Species Details */}
+                                        <FormField
+                                            label="Species Details"
+                                            value={formData.species_details}
+                                            onChange={(value) => handleInputChange("species_details", value)}
+                                            placeholder="e.g., Ficus lyrata, Monstera deliciosa"
                                         />
-                                    </Box>
-                                    <Box flex={1}>
-                                        <Text fontSize="sm" fontWeight="medium" mb={2}>Species *</Text>
-                                        <Select.Root
-                                            value={formData.species ? [formData.species] : []}
-                                            onValueChange={(e) => handleInputChange("species", e.value[0] || "")}
-                                            collection={createListCollection({
-                                                items: PLANT_SPECIES,
-                                            })}
-                                        >
-                                            <Select.Trigger>
-                                                <Select.ValueText placeholder="Select species" />
-                                            </Select.Trigger>
-                                            <Select.Content>
-                                                {PLANT_SPECIES.map((species) => (
-                                                    <Select.Item key={species.value} item={species.value}>
-                                                        {species.label}
-                                                    </Select.Item>
-                                                ))}
-                                            </Select.Content>
-                                        </Select.Root>
-                                    </Box>
-                                </HStack>
+                                        
+                                        {/* Description */}
+                                        <Box>
+                                            <Text fontSize="sm" fontWeight="medium" mb={2}>Description</Text>
+                                            <Textarea
+                                                value={formData.description}
+                                                onChange={(e) => handleInputChange("description", e.target.value)}
+                                                placeholder="Describe your plant..."
+                                                rows={3}
+                                            />
+                                        </Box>
 
-                                <Box>
-                                    <Text fontSize="sm" fontWeight="medium" mb={2}>Species Details</Text>
-                                    <Input
-                                        value={formData.species_details}
-                                        onChange={(e) => handleInputChange("species_details", e.target.value)}
-                                        placeholder="e.g., Ficus lyrata, Monstera deliciosa"
-                                    />
-                                </Box>
-
-                                <Box>
-                                    <Text fontSize="sm" fontWeight="medium" mb={2}>Description</Text>
-                                    <Textarea
-                                        value={formData.description}
-                                        onChange={(e) => handleInputChange("description", e.target.value)}
-                                        placeholder="Describe your plant..."
-                                        rows={3}
-                                    />
-                                </Box>
-
-                                <Box>
-                                    <Text fontSize="sm" fontWeight="medium" mb={2}>Location</Text>
-                                    <Input
-                                        value={formData.location}
-                                        onChange={(e) => handleInputChange("location", e.target.value)}
-                                        placeholder="e.g., Living room window, Bedroom, Balcony"
-                                    />
-                                </Box>
-
-                                {/* Care Information */}
-                                <HStack gap={4}>
-                                    <Box flex={1}>
-                                        <Text fontSize="sm" fontWeight="medium" mb={2}>Watering Frequency (days)</Text>
-                                        <Input
-                                            type="number"
-                                            value={formData.watering_frequency_days}
-                                            onChange={(e) => handleInputChange("watering_frequency_days", e.target.value)}
-                                            placeholder="7"
+                                        {/* Location */}
+                                        <FormField
+                                            label="Location"
+                                            value={formData.location}
+                                            onChange={(value) => handleInputChange("location", value)}
+                                            placeholder="e.g., Living room window, Bedroom, Balcony"
                                         />
-                                    </Box>
-                                    <Box flex={1}>
-                                        <Text fontSize="sm" fontWeight="medium" mb={2}>Light Requirements</Text>
-                                        <Select.Root
-                                            value={formData.light_requirements ? [formData.light_requirements] : []}
-                                            onValueChange={(e) => handleInputChange("light_requirements", e.value[0] || "")}
-                                            collection={createListCollection({
-                                                items: [
+                                        
+                                        <HStack gap={4}>
+                                            {/* Watering Frequency */}
+                                            <FormField
+                                                label="Watering Frequency (days)"
+                                                type="number"
+                                                value={formData.watering_frequency_days}
+                                                onChange={(value) => handleInputChange("watering_frequency_days", value)}
+                                                placeholder="7"
+                                                flex={1}
+                                            />
+
+                                            {/* Light Requirements */}
+                                            <Dropdown
+                                                title="Light Requirements"
+                                                value={formData.light_requirements}
+                                                onValueChange={(value) => handleInputChange("light_requirements", value)}
+                                                options={[
                                                     { value: "low", label: "Low Light" },
                                                     { value: "medium", label: "Medium Light" },
                                                     { value: "high", label: "High Light" },
                                                     { value: "bright indirect", label: "Bright Indirect" },
-                                                ],
-                                            })}
-                                        >
-                                            <Select.Trigger>
-                                                <Select.ValueText placeholder="Select light needs" />
-                                            </Select.Trigger>
-                                            <Select.Content>
-                                                <Select.Item item="low">Low Light</Select.Item>
-                                                <Select.Item item="medium">Medium Light</Select.Item>
-                                                <Select.Item item="high">High Light</Select.Item>
-                                                <Select.Item item="bright indirect">Bright Indirect</Select.Item>
-                                            </Select.Content>
-                                        </Select.Root>
-                                    </Box>
-                                </HStack>
-
-                                <HStack gap={4}>
-                                    <Box flex={1}>
-                                        <Text fontSize="sm" fontWeight="medium" mb={2}>Humidity Preference</Text>
-                                        <Select.Root
-                                            value={formData.humidity_preference ? [formData.humidity_preference] : []}
-                                            onValueChange={(e) => handleInputChange("humidity_preference", e.value[0] || "")}
-                                            collection={createListCollection({
-                                                items: [
+                                                ]}
+                                                placeholder="Select light needs"
+                                                flex={1}
+                                            />
+                                        </HStack>
+                                        
+                                        <HStack gap={4}>
+                                            {/* Humidity Preference */}
+                                            <Dropdown
+                                                title="Humidity Preference"
+                                                value={formData.humidity_preference}
+                                                onValueChange={(value) => handleInputChange("humidity_preference", value)}
+                                                options={[
                                                     { value: "low", label: "Low" },
                                                     { value: "medium", label: "Medium" },
                                                     { value: "high", label: "High" },
-                                                ],
-                                            })}
-                                        >
-                                            <Select.Trigger>
-                                                <Select.ValueText placeholder="Select humidity" />
-                                            </Select.Trigger>
-                                            <Select.Content>
-                                                <Select.Item item="low">Low</Select.Item>
-                                                <Select.Item item="medium">Medium</Select.Item>
-                                                <Select.Item item="high">High</Select.Item>
-                                            </Select.Content>
-                                        </Select.Root>
-                                    </Box>
-                                    <Box flex={1}>
-                                        <Text fontSize="sm" fontWeight="medium" mb={2}>Temperature Range</Text>
-                                        <Input
-                                            value={formData.temperature_range}
-                                            onChange={(e) => handleInputChange("temperature_range", e.target.value)}
-                                            placeholder="e.g., 65-75°F"
-                                        />
-                                    </Box>
-                                </HStack>
-                            </VStack>
+                                                ]}
+                                                placeholder="Select humidity"
+                                                flex={1}
+                                            />
+
+                                            {/* Temperature Range */}
+                                            <FormField
+                                                label="Temperature Range"
+                                                value={formData.temperature_range}
+                                                onChange={(value) => handleInputChange("temperature_range", value)}
+                                                placeholder="e.g., 65-75°F"
+                                                flex={1}
+                                            />
+                                        </HStack>
+                                    </VStack>
+                                </Box>
+                            </HStack>
                         </Dialog.Body>
 
                         <Dialog.Footer>

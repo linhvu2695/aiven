@@ -9,9 +9,8 @@ from app.classes.plant import (
     PlantListResponse,
     AddPlantPhotoRequest,
     PlantPhotoResponse,
-    PlantHealthAnalysisResponse,
+    AutofillPlantInfoResponse,
     PlantHealthStatus,
-    PlantPhotoInfo,
     PlantSpecies,
 )
 from app.classes.image import ImageType, ImageSourceType, CreateImageRequest
@@ -230,36 +229,41 @@ class PlantService:
                 success=False, photo_id="", message=f"Failed to add photo: {str(e)}"
             )
 
-    async def analyze_plant_health(
-        self, plant_id: str, photo_id: Optional[str] = None
-    ) -> PlantHealthAnalysisResponse:
+    async def autofill_plant_info(
+        self, image_bytes: bytes
+    ) -> AutofillPlantInfoResponse:
         """Analyze plant health using AI (placeholder for future implementation)"""
         try:
             # This is a placeholder for AI health analysis
             # In the future, this would integrate with an AI service to analyze plant photos
 
-            return PlantHealthAnalysisResponse(
+            return AutofillPlantInfoResponse(
                 success=True,
-                health_status=PlantHealthStatus.GOOD,
-                analysis={
-                    "overall_health": "The plant appears to be in good condition",
-                    "leaf_condition": "Leaves look healthy with good color",
-                    "growth_pattern": "Normal growth pattern observed",
-                },
-                recommendations=[
-                    "Continue current watering schedule",
-                    "Ensure adequate light exposure",
-                    "Monitor for any changes in leaf color",
-                ],
-                message="Health analysis completed",
+                plant_info=PlantInfo(
+                    name="Plant 1",
+                    species=PlantSpecies.OTHER,
+                    species_details="Bean sprouts",
+                    description="A bean sprout",
+                    location="My desk",
+                    acquisition_date=datetime.now(timezone.utc),
+                    created_at=datetime.now(timezone.utc),
+                    updated_at=datetime.now(timezone.utc),
+                    current_health_status=PlantHealthStatus.GOOD,
+                    watering_frequency_days=1,
+                    fertilizing_frequency_days=0,
+                    light_requirements="Low",
+                    humidity_preference="Low",
+                    temperature_range="15-25°C",
+                ),
+                message="Autofill plant info completed",
             )
 
         except Exception as e:
             logging.getLogger("uvicorn.error").error(
-                f"Error analyzing plant health: {e}"
+                f"Error autofill plant info: {e}"
             )
-            return PlantHealthAnalysisResponse(
+            return AutofillPlantInfoResponse(
                 success=False,
-                health_status=PlantHealthStatus.UNKNOWN,
-                message=f"Failed to analyze plant health: {str(e)}",
+                plant_info=None,
+                message=f"Failed to autofill plant info: {str(e)}",
             )

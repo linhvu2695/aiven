@@ -381,7 +381,6 @@ export const AgentCard = ({
                     )}
 
                     <ModelSelector
-                        inDialog={inDialog}
                         mode={isEditing ? "edit" : "view"}
                     />
 

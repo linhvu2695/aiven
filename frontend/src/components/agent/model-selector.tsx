@@ -4,11 +4,9 @@ import {
     RadioCard,
     Wrap,
     WrapItem,
-    Select,
-    Portal,
-    createListCollection,
     VStack,
 } from "@chakra-ui/react";
+import { Dropdown } from "@/components/ui";
 import { Claude, Gemini, Mistral, Nvidia, OpenAI, XAI } from "@lobehub/icons";
 import { useState, useEffect } from "react";
 
@@ -22,12 +20,10 @@ export const LLM_PROVIDERS = [
 ];
 
 export interface ModelSelectorProps {
-    inDialog?: boolean;
     mode?: "view" | "edit";
 }
 
 export const ModelSelector = ({
-    inDialog = false,
     mode = "edit",
 }: ModelSelectorProps) => {
     const { agentDraft, updateAgentDraft } = useAgent();
@@ -128,69 +124,23 @@ export const ModelSelector = ({
             </RadioCard.Root>
 
             {/* Chat Model selector */}
-            <Select.Root
-                collection={createListCollection({
-                    items: providerOptions[provider] || [],
-                })}
-                value={[agentDraft?.model ?? ""]}
+            <Dropdown
+                title={mode === "edit" ? "Select model" : undefined}
+                value={agentDraft?.model ?? ""}
                 onValueChange={
                     mode === "edit"
-                        ? (items: { value: string[] }) =>
-                              updateAgentDraft("model", items.value[0])
-                        : undefined
+                        ? (value: string) => updateAgentDraft("model", value)
+                        : () => {}
                 }
+                options={providerOptions[provider] || []}
+                placeholder={mode === "edit" ? "Select model" : ""}
                 disabled={
                     loading || !providerOptions[provider] || mode === "view"
                 }
-            >
-                <Select.HiddenSelect />
-                {mode === "edit" && <Select.Label>Select model</Select.Label>}
-                <Select.Control>
-                    <Select.Trigger>
-                        <Select.ValueText
-                            placeholder={mode === "edit" ? "Select model" : ""}
-                        />
-                    </Select.Trigger>
-                    <Select.IndicatorGroup>
-                        <Select.Indicator />
-                    </Select.IndicatorGroup>
-                </Select.Control>
-                {inDialog ? (
-                    <Select.Positioner>
-                        <Select.Content>
-                            {(providerOptions[provider] || []).map(
-                                (modelItem) => (
-                                    <Select.Item
-                                        item={modelItem}
-                                        key={modelItem.value}
-                                    >
-                                        {modelItem.label}
-                                        <Select.ItemIndicator />
-                                    </Select.Item>
-                                )
-                            )}
-                        </Select.Content>
-                    </Select.Positioner>
-                ) : (
-                    <Portal>
-                        <Select.Positioner>
-                            <Select.Content>
-                                {(providerOptions[provider] || []).map(
-                                    (modelItem) => (
-                                        <Select.Item
-                                            item={modelItem}
-                                            key={modelItem.value}
-                                        >
-                                            {modelItem.label}
-                                            <Select.ItemIndicator />
-                                        </Select.Item>
-                                    )
-                                )}
-                            </Select.Content>
-                        </Select.Positioner>
-                    </Portal>
-                )}
-            </Select.Root>
+                fontSize="sm"
+                fontWeight="medium"
+                mb={0}
+            />
         </VStack>
     );
 };
