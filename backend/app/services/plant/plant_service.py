@@ -2,6 +2,8 @@ import logging
 from datetime import datetime, timezone
 from typing import Optional, List
 from app.classes.plant import (
+    HumidityPreference,
+    LightRequirement,
     PlantInfo,
     CreateOrUpdatePlantRequest,
     CreateOrUpdatePlantResponse,
@@ -251,8 +253,8 @@ class PlantService:
                     current_health_status=PlantHealthStatus.GOOD,
                     watering_frequency_days=1,
                     fertilizing_frequency_days=0,
-                    light_requirements="Low",
-                    humidity_preference="Low",
+                    light_requirements=LightRequirement.LOW,
+                    humidity_preference=HumidityPreference.LOW,
                     temperature_range="15-25°C",
                 ),
                 message="Autofill plant info completed",

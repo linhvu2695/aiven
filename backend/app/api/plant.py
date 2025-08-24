@@ -1,5 +1,4 @@
-from fastapi import APIRouter, HTTPException, UploadFile, File, Form
-from typing import Optional
+from fastapi import APIRouter, HTTPException, UploadFile, File
 from app.classes.plant import (
     AutofillPlantInfoResponse,
     CreateOrUpdatePlantRequest,

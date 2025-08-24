@@ -38,6 +38,19 @@ class PlantHealthStatus(str, Enum):
     CRITICAL = "critical"
     UNKNOWN = "unknown"
 
+class LightRequirement(str, Enum):
+    """Light requirements for plants"""
+    LOW = "low"
+    MEDIUM = "medium"
+    HIGH = "high"
+    BRIGHT_INDIRECT = "bright_indirect"
+
+class HumidityPreference(str, Enum):
+    """Humidity preferences for plants"""
+    LOW = "low"
+    MEDIUM = "medium"
+    HIGH = "high"
+
 class PlantPhotoInfo(ImageInfo):
     """Specialized image model for plant photos"""
     plant_id: str
@@ -89,8 +102,8 @@ class PlantInfo(BaseModel):
     # Care preferences and AI insights
     watering_frequency_days: Optional[int] = None  # AI-suggested frequency
     fertilizing_frequency_days: Optional[int] = None
-    light_requirements: Optional[str] = None  # "low", "medium", "high", "bright indirect"
-    humidity_preference: Optional[str] = None  # "low", "medium", "high"
+    light_requirements: Optional[LightRequirement] = None
+    humidity_preference: Optional[HumidityPreference] = None
     temperature_range: Optional[str] = None  # in Celsius
     
     # Tracking data
@@ -119,8 +132,8 @@ class CreateOrUpdatePlantRequest(BaseModel):
     
     # Care preferences
     watering_frequency_days: Optional[int] = None
-    light_requirements: Optional[str] = None
-    humidity_preference: Optional[str] = None
+    light_requirements: Optional[LightRequirement] = None
+    humidity_preference: Optional[HumidityPreference] = None
     temperature_range: Optional[str] = None
     
     # Status updates (mainly for updates)
