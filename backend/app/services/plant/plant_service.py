@@ -1,9 +1,15 @@
+import base64
+import io
 import logging
 from datetime import datetime, timezone
-from typing import Optional, List
+from PIL import Image as PILImage
+from langgraph.prebuilt import create_react_agent
+from langchain_core.runnables import RunnableConfig
+from langchain_core.messages import HumanMessage
 from app.classes.plant import (
     HumidityPreference,
     LightRequirement,
+    PlantAutofillResponseFormat,
     PlantInfo,
     CreateOrUpdatePlantRequest,
     CreateOrUpdatePlantResponse,
@@ -26,6 +32,9 @@ from app.core.database import (
 from app.services.image.image_service import ImageService
 from app.utils.string.string_utils import is_empty_string
 from app.utils.request.request_utils import build_update_data
+from app.core.constants import LLMModel
+from app.services.chat.chat_service import ChatService
+from app.classes.chat import ChatFileContent
 
 PLANT_COLLECTION_NAME = "plants"
 
@@ -45,7 +54,7 @@ class PlantService:
         if not request.name or request.name.strip() == "":
             return False, "Plant name is required"
         return True, ""
-    
+
     def _validate_update_plant_request(
         self, request: CreateOrUpdatePlantRequest
     ) -> tuple[bool, str]:
@@ -84,7 +93,7 @@ class PlantService:
                     request=request,
                     fields=[
                         "name",
-                        "species", 
+                        "species",
                         "species_details",
                         "description",
                         "location",
@@ -93,8 +102,8 @@ class PlantService:
                         "humidity_preference",
                         "temperature_range",
                         "last_watered",
-                        "last_fertilized"
-                    ]
+                        "last_fertilized",
+                    ],
                 )
                 update_data["updated_at"] = now.isoformat()
                 await update_document(
@@ -231,39 +240,116 @@ class PlantService:
                 success=False, photo_id="", message=f"Failed to add photo: {str(e)}"
             )
 
+    def _detect_image_mime_type(self, image_bytes: bytes) -> str:
+        """Detect MIME type from image bytes using PIL"""
+        try:
+            with PILImage.open(io.BytesIO(image_bytes)) as img:
+                format_to_mime = {
+                    "JPEG": "image/jpeg",
+                    "PNG": "image/png",
+                    "GIF": "image/gif",
+                    "BMP": "image/bmp",
+                    "WEBP": "image/webp",
+                    "TIFF": "image/tiff",
+                }
+                return format_to_mime.get(img.format or "JPEG", "image/jpeg")
+        except Exception as e:
+            logging.getLogger("uvicorn.warning").warning(
+                f"Failed to detect image format: {e}, defaulting to image/jpeg"
+            )
+            return "image/jpeg"
+
     async def autofill_plant_info(
         self, image_bytes: bytes
     ) -> AutofillPlantInfoResponse:
         """Analyze plant health using AI (placeholder for future implementation)"""
+        model = LLMModel.GPT_4O
         try:
-            # This is a placeholder for AI health analysis
-            # In the future, this would integrate with an AI service to analyze plant photos
+            # Detect the actual MIME type of the image
+            detected_mime_type = self._detect_image_mime_type(image_bytes)
+
+            graph = create_react_agent(
+                model=ChatService().get_chat_model(model),
+                tools=[],
+                prompt="""
+                    You are a helpful assistant that receive a plant photo and autofill the plant info.
+                    Be concise and to the point.
+                """,
+                response_format=PlantAutofillResponseFormat,
+            )
+
+            config = RunnableConfig(
+                metadata={
+                    "model": model,
+                },
+                tags=[
+                    self.__class__.__name__,
+                ],
+                run_name=f"Autofill plant info",
+            )
+
+            multimodal_content = [
+                {
+                    "type": "text",
+                    "text": """
+                        Examine this plant photo and autofill the plant info. 
+                        If it's not a plant, return empty string for the fields.
+                     """,
+                },
+                ChatFileContent(
+                    type="image",
+                    source_type="base64",
+                    data=base64.b64encode(image_bytes).decode("utf-8"),
+                    mime_type=detected_mime_type,
+                ).model_dump(),
+            ]
+            current_message = HumanMessage(content=multimodal_content)
+            response = graph.invoke({"messages": [current_message]}, config)
+
+            logging.getLogger("uvicorn.info").info(
+                f"Autofill plant info response: {response}"
+            )
+
+            autofill_data = response.get(
+                "structured_response",
+                PlantAutofillResponseFormat(
+                    name="",
+                    species=PlantSpecies.OTHER,
+                    species_details="",
+                    description="",
+                    location="",
+                    current_health_status=PlantHealthStatus.UNKNOWN,
+                    watering_frequency_days=0,
+                    fertilizing_frequency_days=0,
+                    light_requirements=LightRequirement.LOW,
+                    humidity_preference=HumidityPreference.MEDIUM,
+                    temperature_range="",
+                ),
+            )
 
             return AutofillPlantInfoResponse(
                 success=True,
                 plant_info=PlantInfo(
-                    name="Plant 1",
-                    species=PlantSpecies.OTHER,
-                    species_details="Bean sprouts",
-                    description="A bean sprout",
-                    location="My desk",
+                    name=autofill_data.name,
+                    species=autofill_data.species,
+                    species_details=autofill_data.species_details,
+                    description=autofill_data.description,
+                    location=autofill_data.location,
                     acquisition_date=datetime.now(timezone.utc),
                     created_at=datetime.now(timezone.utc),
                     updated_at=datetime.now(timezone.utc),
-                    current_health_status=PlantHealthStatus.GOOD,
-                    watering_frequency_days=1,
-                    fertilizing_frequency_days=0,
-                    light_requirements=LightRequirement.LOW,
-                    humidity_preference=HumidityPreference.LOW,
-                    temperature_range="15-25°C",
+                    current_health_status=autofill_data.current_health_status,
+                    watering_frequency_days=autofill_data.watering_frequency_days,
+                    fertilizing_frequency_days=autofill_data.fertilizing_frequency_days,
+                    light_requirements=autofill_data.light_requirements,
+                    humidity_preference=autofill_data.humidity_preference,
+                    temperature_range=autofill_data.temperature_range,
                 ),
                 message="Autofill plant info completed",
             )
 
         except Exception as e:
-            logging.getLogger("uvicorn.error").error(
-                f"Error autofill plant info: {e}"
-            )
+            logging.getLogger("uvicorn.error").error(f"Error autofill plant info: {e}")
             return AutofillPlantInfoResponse(
                 success=False,
                 plant_info=None,

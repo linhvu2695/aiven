@@ -89,48 +89,6 @@ class ChatService:
             )
             return []
 
-    def _get_chat_model(self, model_name) -> BaseChatModel:
-        if model_name in OPENAI_MODELS:
-            return init_chat_model(
-                model=model_name,
-                model_provider="openai",
-                api_key=settings.openai_api_key,
-            )
-        if model_name in GEMINI_MODELS:
-            return init_chat_model(
-                model=model_name,
-                model_provider="google_genai",
-                api_key=settings.gemini_api_key,
-            )
-        if model_name in CLAUDE_MODELS:
-            return init_chat_model(
-                model=model_name,
-                model_provider="anthropic",
-                api_key=settings.anthropic_api_key,
-            )
-        if model_name in GROK_MODELS:
-            return init_chat_model(
-                model=model_name, model_provider="xai", api_key=settings.xai_api_key
-            )
-        if model_name in MISTRAL_MODELS:
-            return init_chat_model(
-                model=model_name,
-                model_provider="mistralai",
-                api_key=settings.mistral_api_key,
-            )
-        if model_name in NVIDIA_MODELS:
-            return init_chat_model(
-                model=model_name,
-                model_provider="nvidia",
-                api_key=settings.nvidia_api_key,
-            )
-
-        return init_chat_model(
-            model=GPT_DEFAULT_MODEL,
-            model_provider="openai",
-            api_key=settings.openai_api_key,
-        )
-
     def _parse_format_error(self, error_message: str) -> str:
         """Parse LLM provider error message to extract supported formats and return user-friendly message."""
         # Look for patterns like 'image/jpeg', 'image/png', etc. in the error message
@@ -187,7 +145,7 @@ class ChatService:
         try:
             # Get agent and model configuration
             agent = await AgentService().get_agent(agent_id)
-            naming_model = self._get_chat_model(agent.model)
+            naming_model = self.get_chat_model(agent.model)
             
             # Get the first few messages to generate a meaningful name
             messages_for_naming = conversation.messages[:3]  # Use first 3 messages
@@ -235,6 +193,48 @@ Name (2-5 words only):"""
         except Exception as e:
             logging.getLogger("uvicorn.error").error(f"Error generating conversation name: {e}")
 
+    def get_chat_model(self, model_name) -> BaseChatModel:
+        if model_name in OPENAI_MODELS:
+            return init_chat_model(
+                model=model_name,
+                model_provider="openai",
+                api_key=settings.openai_api_key,
+            )
+        if model_name in GEMINI_MODELS:
+            return init_chat_model(
+                model=model_name,
+                model_provider="google_genai",
+                api_key=settings.gemini_api_key,
+            )
+        if model_name in CLAUDE_MODELS:
+            return init_chat_model(
+                model=model_name,
+                model_provider="anthropic",
+                api_key=settings.anthropic_api_key,
+            )
+        if model_name in GROK_MODELS:
+            return init_chat_model(
+                model=model_name, model_provider="xai", api_key=settings.xai_api_key
+            )
+        if model_name in MISTRAL_MODELS:
+            return init_chat_model(
+                model=model_name,
+                model_provider="mistralai",
+                api_key=settings.mistral_api_key,
+            )
+        if model_name in NVIDIA_MODELS:
+            return init_chat_model(
+                model=model_name,
+                model_provider="nvidia",
+                api_key=settings.nvidia_api_key,
+            )
+
+        return init_chat_model(
+            model=GPT_DEFAULT_MODEL,
+            model_provider="openai",
+            api_key=settings.openai_api_key,
+        )
+
     async def generate_chat_response(self, request: ChatRequest) -> ChatResponse:
         """
         Generate a chat response using LangGraph's invoke capabilities.
@@ -246,7 +246,7 @@ Name (2-5 words only):"""
         try:
             logging.getLogger("uvicorn.info").info("Step 1: Starting chat response")
             agent = await AgentService().get_agent(request.agent)
-            model = self._get_chat_model(agent.model)
+            model = self.get_chat_model(agent.model)
 
             logging.getLogger("uvicorn.info").info("Step 2: Retrieve conversation history")
             history = MongoDBChatHistory(request.session_id)
@@ -355,7 +355,7 @@ Name (2-5 words only):"""
         try:
             logging.getLogger("uvicorn.info").info("Step 1: Starting getting LLM stream chat response")
             agent = await AgentService().get_agent(request.agent)
-            model = self._get_chat_model(agent.model)
+            model = self.get_chat_model(agent.model)
 
             logging.getLogger("uvicorn.info").info("Step 2: Retrieve conversation history")
             history = MongoDBChatHistory(request.session_id)

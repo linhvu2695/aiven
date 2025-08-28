@@ -187,3 +187,16 @@ class AutofillPlantInfoResponse(BaseModel):
     success: bool
     plant_info: Optional[PlantInfo] = None
     message: str
+
+class PlantAutofillResponseFormat(BaseModel):
+    name: str = Field(description="A cute name for the plant")
+    species: PlantSpecies = Field(description="The specie of the plant")
+    species_details: str = Field(description="The specie scientific name")
+    description: str = Field(description="The description of the plant")
+    location: str = Field(description="The location of the plant")
+    current_health_status: PlantHealthStatus = Field(description="The current health status of the plant")
+    watering_frequency_days: int = Field(description="The frequency of watering the plant")
+    fertilizing_frequency_days: int = Field(description="The frequency of fertilizing the plant")
+    light_requirements: LightRequirement = Field(description="The light requirements of the plant")
+    humidity_preference: HumidityPreference = Field(description="The humidity preference of the plant")
+    temperature_range: str = Field(description="The temperature range of the plant")
