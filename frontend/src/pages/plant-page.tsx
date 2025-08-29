@@ -4,6 +4,7 @@ import {
     VStack,
     useDisclosure
 } from "@chakra-ui/react";
+import { useState } from "react";
 import { 
     PlantHeader, 
     PlantCategories, 
@@ -15,9 +16,11 @@ import { toaster } from "@/components/ui/toaster";
 
 export const PlantPage = () => {
     const { open, onOpen, onClose } = useDisclosure();
+    const [refreshTrigger, setRefreshTrigger] = useState(0);
 
     const handlePlantAdded = () => {
-        // TODO: Refresh plant list when implemented
+        // Trigger refresh of plant list
+        setRefreshTrigger(prev => prev + 1);
         toaster.create({
             description: "Plant added successfully",
             type: "success",
@@ -43,6 +46,7 @@ export const PlantPage = () => {
                         {/* Plant Collection */}
                         <PlantCollection 
                             onAddPlant={onOpen}
+                            refreshTrigger={refreshTrigger}
                         />
                     </VStack>
                 </Box>
