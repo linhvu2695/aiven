@@ -41,7 +41,7 @@ class TestChatServiceSingleton:
 
 
 class TestGetChatModel:
-    """Test _get_chat_model method."""
+    """Test get_chat_model method."""
     
     @pytest.fixture
     def chat_service(self):
@@ -56,7 +56,7 @@ class TestGetChatModel:
         mock_model = MagicMock()
         mock_init_chat_model.return_value = mock_model
         
-        result = chat_service._get_chat_model(LLMModel.GPT_4O)
+        result = chat_service.get_chat_model(LLMModel.GPT_4O)
         
         mock_init_chat_model.assert_called_once_with(
             model=LLMModel.GPT_4O,
@@ -73,7 +73,7 @@ class TestGetChatModel:
         mock_model = MagicMock()
         mock_init_chat_model.return_value = mock_model
         
-        result = chat_service._get_chat_model(LLMModel.GEMINI_2_0_FLASH)
+        result = chat_service.get_chat_model(LLMModel.GEMINI_2_0_FLASH)
         
         mock_init_chat_model.assert_called_once_with(
             model=LLMModel.GEMINI_2_0_FLASH,
@@ -90,7 +90,7 @@ class TestGetChatModel:
         mock_model = MagicMock()
         mock_init_chat_model.return_value = mock_model
         
-        result = chat_service._get_chat_model(LLMModel.CLAUDE_SONNET_3_5)
+        result = chat_service.get_chat_model(LLMModel.CLAUDE_SONNET_3_5)
         
         mock_init_chat_model.assert_called_once_with(
             model=LLMModel.CLAUDE_SONNET_3_5,
@@ -107,7 +107,7 @@ class TestGetChatModel:
         mock_model = MagicMock()
         mock_init_chat_model.return_value = mock_model
         
-        result = chat_service._get_chat_model(LLMModel.GROK_3)
+        result = chat_service.get_chat_model(LLMModel.GROK_3)
         
         mock_init_chat_model.assert_called_once_with(
             model=LLMModel.GROK_3,
@@ -124,7 +124,7 @@ class TestGetChatModel:
         mock_model = MagicMock()
         mock_init_chat_model.return_value = mock_model
         
-        result = chat_service._get_chat_model(LLMModel.MISTRAL_LARGE_LATEST)
+        result = chat_service.get_chat_model(LLMModel.MISTRAL_LARGE_LATEST)
         
         mock_init_chat_model.assert_called_once_with(
             model=LLMModel.MISTRAL_LARGE_LATEST,
@@ -141,7 +141,7 @@ class TestGetChatModel:
         mock_model = MagicMock()
         mock_init_chat_model.return_value = mock_model
         
-        result = chat_service._get_chat_model(LLMModel.NVIDIA_NEVA_22B)
+        result = chat_service.get_chat_model(LLMModel.NVIDIA_NEVA_22B)
         
         mock_init_chat_model.assert_called_once_with(
             model=LLMModel.NVIDIA_NEVA_22B,
@@ -158,7 +158,7 @@ class TestGetChatModel:
         mock_model = MagicMock()
         mock_init_chat_model.return_value = mock_model
         
-        result = chat_service._get_chat_model("unknown_model")
+        result = chat_service.get_chat_model("unknown_model")
         
         mock_init_chat_model.assert_called_once_with(
             model=LLMModel.GPT_4O_MINI,
@@ -393,7 +393,7 @@ class TestGenerateChatResponse:
         mock_history = AsyncMock()
         mock_history.aget_messages.return_value = all_messages
         
-        with patch.object(chat_service, '_get_chat_model', return_value=mock_model), \
+        with patch.object(chat_service, 'get_chat_model', return_value=mock_model), \
              patch.object(AgentService, 'get_agent', new=AsyncMock(return_value=sample_agent)), \
              patch('app.services.chat.chat_service.create_react_agent') as mock_create_agent, \
              patch('app.services.chat.chat_service.MongoDBChatHistory', return_value=mock_history):
@@ -448,7 +448,7 @@ class TestGenerateChatResponse:
         mock_history = AsyncMock()
         mock_history.aget_messages.return_value = [user_message]
         
-        with patch.object(chat_service, '_get_chat_model', return_value=mock_model), \
+        with patch.object(chat_service, 'get_chat_model', return_value=mock_model), \
              patch.object(AgentService, 'get_agent', new=AsyncMock(return_value=sample_agent)), \
              patch('app.services.chat.chat_service.create_react_agent') as mock_create_agent, \
              patch('app.services.chat.chat_service.MongoDBChatHistory', return_value=mock_history):
@@ -491,7 +491,7 @@ class TestGenerateChatResponse:
         mock_history = AsyncMock()
         mock_history.aget_messages.return_value = [user_message]
         
-        with patch.object(chat_service, '_get_chat_model', return_value=mock_model), \
+        with patch.object(chat_service, 'get_chat_model', return_value=mock_model), \
              patch.object(AgentService, 'get_agent', new=AsyncMock(return_value=sample_agent)), \
              patch('app.services.chat.chat_service.create_react_agent') as mock_create_agent, \
              patch('app.services.chat.chat_service.MongoDBChatHistory', return_value=mock_history):
@@ -520,7 +520,7 @@ class TestGenerateChatResponse:
         mock_history = AsyncMock()
         mock_history.aget_messages.return_value = []
         
-        with patch.object(chat_service, '_get_chat_model', return_value=mock_model), \
+        with patch.object(chat_service, 'get_chat_model', return_value=mock_model), \
              patch.object(AgentService, 'get_agent', new=AsyncMock(return_value=sample_agent)), \
              patch('app.services.chat.chat_service.create_react_agent') as mock_create_agent, \
              patch('app.services.chat.chat_service.MongoDBChatHistory', return_value=mock_history), \
@@ -551,7 +551,7 @@ class TestGenerateChatResponse:
         mock_history = AsyncMock()
         mock_history.aget_messages.return_value = []
         
-        with patch.object(chat_service, '_get_chat_model', return_value=mock_model), \
+        with patch.object(chat_service, 'get_chat_model', return_value=mock_model), \
              patch.object(AgentService, 'get_agent', new=AsyncMock(return_value=sample_agent)), \
              patch('app.services.chat.chat_service.create_react_agent') as mock_create_agent, \
              patch('app.services.chat.chat_service.MongoDBChatHistory', return_value=mock_history):
@@ -575,7 +575,7 @@ class TestGenerateChatResponse:
         mock_history = AsyncMock()
         mock_history.aget_messages.return_value = []
         
-        with patch.object(chat_service, '_get_chat_model', return_value=mock_model), \
+        with patch.object(chat_service, 'get_chat_model', return_value=mock_model), \
              patch.object(AgentService, 'get_agent', new=AsyncMock(return_value=sample_agent)), \
              patch('app.services.chat.chat_service.create_react_agent') as mock_create_agent, \
              patch('app.services.chat.chat_service.MongoDBChatHistory', return_value=mock_history):
@@ -636,7 +636,7 @@ class TestGenerateStreamingChatResponse:
         
         return {
             'history_patch': patch('app.services.chat.chat_service.MongoDBChatHistory', return_value=mock_history),
-            'model_patch': patch.object(chat_service, '_get_chat_model', return_value=mock_model),
+            'model_patch': patch.object(chat_service, 'get_chat_model', return_value=mock_model),
             'agent_patch': patch.object(AgentService, 'get_agent', new=AsyncMock(return_value=sample_agent)),
             'mock_history': mock_history
         }
@@ -1068,7 +1068,7 @@ class TestGenerateStreamingChatResponse:
         mock_graph = AsyncMock()
         mock_graph.astream = mock_astream
         
-        with patch.object(chat_service, '_get_chat_model', return_value=mock_model), \
+        with patch.object(chat_service, 'get_chat_model', return_value=mock_model), \
              patch.object(AgentService, 'get_agent', new=AsyncMock(return_value=sample_agent)), \
              patch('app.services.chat.chat_service.create_react_agent') as mock_create_agent, \
              patch('app.services.chat.chat_service.MongoDBChatHistory', return_value=mock_history):
@@ -1226,11 +1226,11 @@ class TestConversationNaming:
         mock_ai_response = MagicMock()
         mock_ai_response.content = "Python Help Session"
         
-        with patch.object(chat_service, '_get_chat_model') as mock_get_chat_model:
+        with patch.object(chat_service, 'get_chat_model') as mockget_chat_model:
             # Create a mock for the model that supports ainvoke
             mock_model = AsyncMock()
             mock_model.ainvoke = AsyncMock(return_value=mock_ai_response)
-            mock_get_chat_model.return_value = mock_model
+            mockget_chat_model.return_value = mock_model
             
             # Create mock history and call the naming method
             mock_history = AsyncMock()
