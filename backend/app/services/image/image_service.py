@@ -6,6 +6,7 @@ from typing import Optional, Dict, Any
 from PIL import Image as PILImage
 from PIL.ExifTags import TAGS
 import requests
+import asyncio
 
 from app.classes.image import (
     ImageInfo,
@@ -21,6 +22,8 @@ from app.classes.image import (
     ImageProcessingStatus,
     ImageType,
     ImageSourceType,
+    ImageUrlInfo,
+    ImageUrlsResponse,
 )
 from app.core.database import (
     insert_document,
@@ -357,7 +360,7 @@ class ImageService:
             image_response = await self.get_image(image_id)
             if not image_response.success or not image_response.image:
                 return ImageUrlResponse(
-                    success=False, url="", message="Image not found"
+                    success=False, url="", message=f"Image not found. Error: {image_response.message}"
                 )
 
             presigned_url = await FirebaseStorageRepository().get_presigned_url(
@@ -428,5 +431,57 @@ class ImageService:
             logging.getLogger("uvicorn.error").error(error_msg)
             return DeleteImageResponse(
                 success=False, deleted_image_id=image_id, message=error_msg
+            )
+
+    async def get_images_presigned_urls(self, ids: list[str]) -> ImageUrlsResponse:
+        """Get presigned URLs for multiple images concurrently"""
+        try:
+            # Process all images concurrently
+            tasks = [self.get_image_presigned_url(image_id) for image_id in ids]
+            results = await asyncio.gather(*tasks, return_exceptions=True) # same order as requests
+            
+            # Handle any exceptions from gather
+            processed_results : list[ImageUrlInfo] = []
+            for i, result in enumerate(results):
+                if isinstance(result, ImageUrlResponse):
+                    processed_results.append(ImageUrlInfo(
+                        image_id=ids[i],
+                        url=result.url,
+                        expires_at=result.expires_at,
+                        success=result.success,
+                        message=result.message
+                    ))
+                else:
+                    processed_results.append(ImageUrlInfo(
+                        image_id=ids[i],
+                        url=None,
+                        expires_at=None,
+                        success=False,
+                        message=f"Failed to process: {str(result)}"
+                    ))
+            
+            overall_success = all(result.success for result in processed_results)
+            success_count = sum(1 for result in processed_results if result.success)
+            total_count = len(ids)
+            
+            message = f"Generated presigned URLs for {success_count}/{total_count} images"
+            if not overall_success:
+                message += " (some requests failed)"
+            logging.getLogger("uvicorn.info").info(message)
+            logging.getLogger("uvicorn.info").info(f"Processed results: {processed_results}")
+            
+            return ImageUrlsResponse(
+                success=overall_success,
+                results=processed_results,
+                message=message
+            )
+            
+        except Exception as e:
+            error_msg = f"Failed to get multiple image URLs: {str(e)}"
+            logging.getLogger("uvicorn.error").error(error_msg)
+            return ImageUrlsResponse(
+                success=False,
+                results=[],
+                message=error_msg
             )
 

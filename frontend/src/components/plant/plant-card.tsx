@@ -28,15 +28,15 @@ import {
     GiGrass,
     GiFlowers,
 } from "react-icons/gi";
-import type { PlantInfo } from "@/types/plant";
+import type { PlantInfoWithImage } from "@/types/plant";
 import { PlantHealthStatus, PlantSpecies, LightRequirement } from "@/types/plant";
 import { Tooltip } from "@/components/ui/tooltip";
 import { IoFlower } from "react-icons/io5";
 
 interface PlantCardProps {
-    plant: PlantInfo;
-    onEdit?: (plant: PlantInfo) => void;
-    onViewDetails?: (plant: PlantInfo) => void;
+    plant: PlantInfoWithImage;
+    onEdit?: (plant: PlantInfoWithImage) => void;
+    onViewDetails?: (plant: PlantInfoWithImage) => void;
 }
 
 const getHealthStatusColor = (status: PlantHealthStatus): string => {
@@ -93,7 +93,7 @@ export const PlantCard = ({ plant, onEdit, onViewDetails }: PlantCardProps) => {
     const speciesIcon = getSpeciesIcon(plant.species);
     
     // Get the first photo if available, otherwise use placeholder
-    const plantImage = plant.photos.length > 0 ? plant.photos[0] : "";
+    const plantImage = plant.rep_image_url || "";
 
     return (
         <Card.Root

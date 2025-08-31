@@ -43,7 +43,7 @@ class ImageMetadata(BaseModel):
     file_size: Optional[int] = None  # in bytes
     format: Optional[ImageFormat] = None
     color_mode: Optional[str] = None  # RGB, RGBA, etc.
-    dpi: Optional[tuple[int, int]] = None
+    dpi: Optional[tuple[float, float]] = None
     exif_data: Optional[Dict[str, Any]] = None
 
 class ImageInfo(BaseModel):
@@ -150,6 +150,20 @@ class DeleteImageResponse(BaseModel):
     """Response model for image deletion"""
     success: bool
     deleted_image_id: str
+    message: str
+
+class ImageUrlInfo(BaseModel):
+    """Information about a single image URL"""
+    image_id: str
+    url: Optional[str] = None
+    expires_at: Optional[datetime] = None
+    success: bool
+    message: str
+
+class ImageUrlsResponse(BaseModel):
+    """Response model for getting multiple image URLs"""
+    success: bool
+    results: list[ImageUrlInfo]
     message: str
 
 

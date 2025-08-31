@@ -94,3 +94,7 @@ export interface CreateOrUpdatePlantResponse {
     id: string;
     message: string;
 }
+
+export interface PlantInfoWithImage extends PlantInfo {
+    rep_image_url?: string;
+}

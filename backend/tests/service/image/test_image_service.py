@@ -1,6 +1,7 @@
 import pytest
 import io
 import base64
+import asyncio
 from datetime import datetime, timezone, timedelta
 from unittest.mock import patch, MagicMock, AsyncMock
 from PIL import Image as PILImage
@@ -14,6 +15,8 @@ from app.classes.image import (
     ImageResponse,
     ImageListResponse,
     ImageUrlResponse,
+    ImageUrlsResponse,
+    ImageUrlInfo,
     DeleteImageResponse,
     ImageMetadata,
     ImageFormat,
@@ -502,7 +505,7 @@ class TestImageServicePresignedUrl:
             assert isinstance(response, ImageUrlResponse)
             assert response.success is False
             assert response.url == ""
-            assert response.message == "Image not found"
+            assert "Image not found" in response.message
 
     @pytest.mark.asyncio
     async def test_get_image_presigned_url_exception(self, image_service, mock_image_document):
@@ -602,3 +605,228 @@ class TestImageServiceDeleteImage:
             assert response.success is False
             assert response.deleted_image_id == "image_123"
             assert "Failed to delete image: Delete error" in response.message
+
+class TestImageServiceBatchPresignedUrls:
+    
+    @pytest.mark.asyncio
+    async def test_get_images_presigned_urls_success(self, image_service, mock_image_document):
+        """Test successful batch presigned URL generation"""
+        mock_storage = MagicMock()
+        mock_storage.get_presigned_url = AsyncMock(return_value="https://presigned.url")
+        
+        image_ids = ["image_123", "image_456", "image_789"]
+        
+        with patch("app.services.image.image_service.get_document", return_value=mock_image_document), \
+             patch("app.services.image.image_service.FirebaseStorageRepository", return_value=mock_storage):
+            
+            response = await image_service.get_images_presigned_urls(image_ids)
+            
+            assert isinstance(response, ImageUrlsResponse)
+            assert response.success is True
+            assert len(response.results) == 3
+            
+            # Check each result
+            for i, result in enumerate(response.results):
+                assert isinstance(result, ImageUrlInfo)
+                assert result.image_id == image_ids[i]
+                assert result.url == "https://presigned.url"
+                assert result.success is True
+                assert result.expires_at is not None
+                assert result.message == "Presigned URL generated successfully"
+            
+            assert "Generated presigned URLs for 3/3 images" in response.message
+            assert "(some requests failed)" not in response.message
+
+    @pytest.mark.asyncio
+    async def test_get_images_presigned_urls_mixed_results(self, image_service, mock_image_document):
+        """Test batch presigned URL generation with mixed success/failure"""
+        mock_storage = MagicMock()
+        mock_storage.get_presigned_url = AsyncMock(return_value="https://presigned.url")
+        
+        image_ids = ["image_123", "nonexistent", "image_789"]
+        
+        def mock_get_document(collection, doc_id):
+            if doc_id == "nonexistent":
+                raise ValueError("Document not found")
+            return mock_image_document
+        
+        with patch("app.services.image.image_service.get_document", side_effect=mock_get_document), \
+             patch("app.services.image.image_service.FirebaseStorageRepository", return_value=mock_storage):
+            
+            response = await image_service.get_images_presigned_urls(image_ids)
+            
+            assert isinstance(response, ImageUrlsResponse)
+            assert response.success is False  # Overall success is False if any failed
+            assert len(response.results) == 3
+            
+            # Check successful results
+            assert response.results[0].success is True
+            assert response.results[0].image_id == "image_123"
+            assert response.results[0].url == "https://presigned.url"
+            
+            # Check failed result
+            assert response.results[1].success is False
+            assert response.results[1].image_id == "nonexistent"
+            assert response.results[1].url == ""
+            assert "Document not found" in response.results[1].message
+            
+            # Check successful result
+            assert response.results[2].success is True
+            assert response.results[2].image_id == "image_789"
+            assert response.results[2].url == "https://presigned.url"
+            
+            assert "Generated presigned URLs for 2/3 images" in response.message
+            assert "(some requests failed)" in response.message
+
+    @pytest.mark.asyncio
+    async def test_get_images_presigned_urls_all_failures(self, image_service):
+        """Test batch presigned URL generation when all requests fail"""
+        image_ids = ["nonexistent1", "nonexistent2"]
+        
+        with patch("app.services.image.image_service.get_document", side_effect=ValueError("Not found")):
+            response = await image_service.get_images_presigned_urls(image_ids)
+            
+            assert isinstance(response, ImageUrlsResponse)
+            assert response.success is False
+            assert len(response.results) == 2
+            
+            # Check that all results failed
+            for i, result in enumerate(response.results):
+                assert result.success is False
+                assert result.image_id == image_ids[i]
+                assert result.url == ""
+                assert "Not found" in result.message
+            
+            assert "Generated presigned URLs for 0/2 images" in response.message
+            assert "(some requests failed)" in response.message
+
+    @pytest.mark.asyncio
+    async def test_get_images_presigned_urls_empty_list(self, image_service):
+        """Test batch presigned URL generation with empty image ID list"""
+        response = await image_service.get_images_presigned_urls([])
+        
+        assert isinstance(response, ImageUrlsResponse)
+        assert response.success is True
+        assert len(response.results) == 0
+        assert "Generated presigned URLs for 0/0 images" in response.message
+        assert "(some requests failed)" not in response.message
+
+    @pytest.mark.asyncio
+    async def test_get_images_presigned_urls_with_exceptions(self, image_service, mock_image_document):
+        """Test batch presigned URL generation with exceptions from gather"""
+        mock_storage = MagicMock()
+        mock_storage.get_presigned_url = AsyncMock(side_effect=Exception("Storage error"))
+        
+        image_ids = ["image_123", "image_456"]
+        
+        with patch("app.services.image.image_service.get_document", return_value=mock_image_document), \
+             patch("app.services.image.image_service.FirebaseStorageRepository", return_value=mock_storage):
+            
+            response = await image_service.get_images_presigned_urls(image_ids)
+            
+            assert isinstance(response, ImageUrlsResponse)
+            assert response.success is False
+            assert len(response.results) == 2
+            
+            # Check that all results failed due to storage errors
+            for i, result in enumerate(response.results):
+                assert result.success is False
+                assert result.image_id == image_ids[i]
+                assert result.url == ""
+                assert "Failed to get image URL: Storage error" in result.message
+            
+            assert "Generated presigned URLs for 0/2 images" in response.message
+            assert "(some requests failed)" in response.message
+
+    @pytest.mark.asyncio
+    async def test_get_images_presigned_urls_general_exception(self, image_service):
+        """Test batch presigned URL generation with general exception"""
+        image_ids = ["image_123"]
+        
+        # Mock asyncio.gather to raise an exception
+        with patch("app.services.image.image_service.asyncio.gather", side_effect=Exception("General error")):
+            response = await image_service.get_images_presigned_urls(image_ids)
+            
+            assert isinstance(response, ImageUrlsResponse)
+            assert response.success is False
+            assert response.results == []
+            assert "Failed to get multiple image URLs: General error" in response.message
+
+    @pytest.mark.asyncio
+    async def test_get_images_presigned_urls_order_preservation(self, image_service, mock_image_document):
+        """Test that batch presigned URL generation preserves order"""
+        mock_storage = MagicMock()
+        
+        # Create different URLs for different storage paths to verify order
+        def mock_get_presigned_url(path, expiration):
+            if "image_123" in path:
+                return "https://url1.com"
+            elif "image_456" in path:
+                return "https://url2.com"
+            else:
+                return "https://url3.com"
+        
+        mock_storage.get_presigned_url = AsyncMock(side_effect=mock_get_presigned_url)
+        
+        # Create different mock documents with different storage paths
+        def mock_get_document(collection, doc_id):
+            doc = mock_image_document.copy()
+            doc["storage_path"] = f"path/{doc_id}"
+            return doc
+        
+        image_ids = ["image_123", "image_456", "image_789"]
+        
+        with patch("app.services.image.image_service.get_document", side_effect=mock_get_document), \
+             patch("app.services.image.image_service.FirebaseStorageRepository", return_value=mock_storage):
+            
+            response = await image_service.get_images_presigned_urls(image_ids)
+            
+            assert isinstance(response, ImageUrlsResponse)
+            assert response.success is True
+            assert len(response.results) == 3
+            
+            # Verify order is preserved
+            assert response.results[0].image_id == "image_123"
+            assert response.results[0].url == "https://url1.com"
+            
+            assert response.results[1].image_id == "image_456"
+            assert response.results[1].url == "https://url2.com"
+            
+            assert response.results[2].image_id == "image_789"
+            assert response.results[2].url == "https://url3.com"
+
+    @pytest.mark.asyncio
+    async def test_get_images_presigned_urls_concurrent_execution(self, image_service, mock_image_document):
+        """Test that batch presigned URL generation runs concurrently"""
+        mock_storage = MagicMock()
+        
+        # Track call order to verify concurrent execution
+        call_order = []
+        
+        async def mock_get_presigned_url(path, expiration):
+            call_order.append(f"storage_call_{path}")
+            # Simulate some processing time
+            await asyncio.sleep(0.01)
+            return f"https://presigned.url/{path}"
+        
+        mock_storage.get_presigned_url = mock_get_presigned_url
+        
+        image_ids = ["image_123", "image_456"]
+        
+        with patch("app.services.image.image_service.get_document", return_value=mock_image_document), \
+             patch("app.services.image.image_service.FirebaseStorageRepository", return_value=mock_storage):
+            
+            start_time = datetime.now()
+            response = await image_service.get_images_presigned_urls(image_ids)
+            end_time = datetime.now()
+            
+            # Verify the response is correct
+            assert isinstance(response, ImageUrlsResponse)
+            assert response.success is True
+            assert len(response.results) == 2
+            
+            # Verify execution time is reasonable for concurrent execution
+            # If it were sequential, it would take at least 0.02 seconds
+            # Concurrent should be closer to 0.01 seconds
+            execution_time = (end_time - start_time).total_seconds()
+            assert execution_time < 0.02, f"Execution took {execution_time} seconds, expected concurrent execution"
