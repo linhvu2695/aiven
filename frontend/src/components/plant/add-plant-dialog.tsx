@@ -414,7 +414,8 @@ export const AddPlantDialog = ({ isOpen, onClose, onPlantAdded }: AddPlantDialog
                                         <HStack gap={4}>
                                             {/* Watering Frequency */}
                                             <FormField
-                                                label="Watering Frequency (days)"
+                                                label="💧 Watering Frequency (days)"
+                                                labelColor="blue.400"
                                                 type="number"
                                                 value={formData.watering_frequency_days}
                                                 onChange={(value) => handleInputChange("watering_frequency_days", value)}
@@ -424,7 +425,8 @@ export const AddPlantDialog = ({ isOpen, onClose, onPlantAdded }: AddPlantDialog
 
                                             {/* Light Requirements */}
                                             <Dropdown
-                                                title="Light Requirements"
+                                                title="💡 Light Requirements"
+                                                titleColor="yellow.400"
                                                 value={formData.light_requirements}
                                                 onValueChange={(value) => handleInputChange("light_requirements", value)}
                                                 options={[
@@ -441,7 +443,8 @@ export const AddPlantDialog = ({ isOpen, onClose, onPlantAdded }: AddPlantDialog
                                         <HStack gap={4}>
                                             {/* Humidity Preference */}
                                             <Dropdown
-                                                title="Humidity Preference"
+                                                title="🌿 Humidity Preference"
+                                                titleColor="green.400"
                                                 value={formData.humidity_preference}
                                                 onValueChange={(value) => handleInputChange("humidity_preference", value)}
                                                 options={[
@@ -455,7 +458,8 @@ export const AddPlantDialog = ({ isOpen, onClose, onPlantAdded }: AddPlantDialog
 
                                             {/* Temperature Range */}
                                             <FormField
-                                                label="Temperature Range"
+                                                label="🌡️ Temperature Range"
+                                                labelColor="red.400"
                                                 value={formData.temperature_range}
                                                 onChange={(value) => handleInputChange("temperature_range", value)}
                                                 placeholder="e.g., 65-75°F"
@@ -475,6 +479,16 @@ export const AddPlantDialog = ({ isOpen, onClose, onPlantAdded }: AddPlantDialog
                                 colorScheme="green"
                                 onClick={handleSubmit}
                                 loading={isSubmitting}
+                                disabled={isSubmitting 
+                                    || isAnalyzing 
+                                    || !selectedImage 
+                                    || !formData.name 
+                                    || !formData.species
+                                }
+                                _hover={{
+                                    transform: "scale(1.1)",
+                                    bgColor: "teal.500",
+                                }}
                             >
                                 <FaPlus /> Add Plant
                             </Button>

@@ -4,6 +4,7 @@ import { forwardRef } from "react";
 
 export interface FormFieldProps extends Omit<InputProps, 'value' | 'onChange'> {
     label: string;
+    labelColor?: string;
     value: string;
     onChange: (value: string) => void;
     isRequired?: boolean;
@@ -12,10 +13,10 @@ export interface FormFieldProps extends Omit<InputProps, 'value' | 'onChange'> {
 }
 
 export const FormField = forwardRef<HTMLInputElement, FormFieldProps>(
-    ({ label, value, onChange, isRequired, error, helperText, ...inputProps }, ref) => {
+    ({ label, labelColor, value, onChange, isRequired, error, helperText, ...inputProps }, ref) => {
         return (
             <Box flex={inputProps.flex || 1}>
-                <Text fontSize="sm" fontWeight="medium" mb={2}>
+                <Text fontSize="sm" fontWeight="medium" mb={2} color={labelColor || "white"}>
                     {label}
                     {isRequired && (
                         <Text as="span" color="red.500" ml={1}>

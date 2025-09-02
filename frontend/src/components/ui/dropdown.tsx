@@ -12,6 +12,7 @@ export interface DropdownOption {
 
 export interface DropdownProps {
     title?: string;
+    titleColor?: string;
     value: string;
     onValueChange: (value: string) => void;
     options: DropdownOption[];
@@ -26,6 +27,7 @@ export interface DropdownProps {
 
 export const Dropdown = ({
     title,
+    titleColor,
     value,
     onValueChange,
     options,
@@ -44,7 +46,7 @@ export const Dropdown = ({
     return (
         <Box flex={flex} width="100%">
             {title && (
-                <Text fontSize={fontSize} fontWeight={fontWeight} mb={mb}>
+                <Text fontSize={fontSize} fontWeight={fontWeight} mb={mb} color={titleColor || "white"}>
                     {title}
                     {isRequired && (
                         <Text as="span" color="red.500" ml={1}>

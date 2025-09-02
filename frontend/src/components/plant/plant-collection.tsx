@@ -222,7 +222,7 @@ export const PlantCollection = ({ onAddPlant, refreshTrigger }: PlantCollectionP
             </Heading>
             
             {/* Plant Grid */}
-            <SimpleGrid columns={{ base: 1, md: 2, lg: 3 }} gap={6}>
+            <SimpleGrid columns={{ base: 1, md: 2, lg: 4 }} gap={6}>
                 {plants.map((plant) => (
                     <PlantCard 
                         key={plant.id}

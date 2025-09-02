@@ -207,7 +207,7 @@ export const PlantCard = ({ plant, onEdit, onViewDetails }: PlantCardProps) => {
                             <HStack>
                                 <HStack gap={2}>
                                     <FaSun size={12} color="yellow.500" />
-                                    <Text fontSize="sm" color="fg.muted">
+                                    <Text fontSize="sm" color="yellow.400">
                                         Light:
                                     </Text>
                                 </HStack>
@@ -219,10 +219,10 @@ export const PlantCard = ({ plant, onEdit, onViewDetails }: PlantCardProps) => {
 
                         {/* Watering Frequency */}
                         {plant.watering_frequency_days && (
-                            <HStack justify="space-between">
+                            <HStack>
                                 <HStack gap={2}>
-                                    <FaCalendarAlt size={12} color="teal.500" />
-                                    <Text fontSize="sm" color="fg.muted">
+                                    <FaCalendarAlt size={12} color="blue.400" />
+                                    <Text fontSize="sm" color="blue.400">
                                         Water every:
                                     </Text>
                                 </HStack>
