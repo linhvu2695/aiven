@@ -14,18 +14,22 @@ import { useState, useEffect } from "react";
 import type { PlantInfo, PlantInfoWithImage } from "@/types/plant";
 import type { ImageUrlsResponse } from "@/types/image";
 import { PlantCard } from "./plant-card";
+import { PlantDetailDialog } from "./plant-detail-dialog";
 import { toaster } from "@/components/ui/toaster";
 import { BASE_URL } from "@/App";
 
 interface PlantCollectionProps {
     onAddPlant?: () => void;
     refreshTrigger?: number; // Prop to trigger refresh when plants are added
+    onPlantsLoaded?: (plants: PlantInfoWithImage[]) => void; // Callback to share plant data
 }
 
-export const PlantCollection = ({ onAddPlant, refreshTrigger }: PlantCollectionProps) => {
+export const PlantCollection = ({ onAddPlant, refreshTrigger, onPlantsLoaded }: PlantCollectionProps) => {
     const [plants, setPlants] = useState<PlantInfoWithImage[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
+    const [selectedPlant, setSelectedPlant] = useState<PlantInfoWithImage | null>(null);
+    const [isDetailDialogOpen, setIsDetailDialogOpen] = useState(false);
 
     const populatePlantImages = async (plantsData: PlantInfo[]): Promise<PlantInfoWithImage[]> => {
         try {
@@ -101,6 +105,7 @@ export const PlantCollection = ({ onAddPlant, refreshTrigger }: PlantCollectionP
             const plantData = await response.json();
             const plantsWithImages = await populatePlantImages(plantData.plants);
             setPlants(plantsWithImages);
+            onPlantsLoaded?.(plantsWithImages);
         } catch (err) {
             const errorMessage = err instanceof Error ? err.message : "Failed to fetch plants";
             setError(errorMessage);
@@ -117,22 +122,29 @@ export const PlantCollection = ({ onAddPlant, refreshTrigger }: PlantCollectionP
         fetchPlants();
     }, [refreshTrigger]); // Re-fetch when refreshTrigger changes
 
-    const handleEditPlant = (plant: PlantInfo) => {
-        // TODO: Implement edit functionality
-        console.log("Edit plant:", plant);
-        toaster.create({
-            description: "Plant editing coming soon!",
-            type: "info",
-        });
+    const handleViewDetails = (plant: PlantInfoWithImage) => {
+        setSelectedPlant(plant);
+        setIsDetailDialogOpen(true);
     };
 
-    const handleViewDetails = (plant: PlantInfo) => {
-        // TODO: Implement plant details view
-        console.log("View plant details:", plant);
-        toaster.create({
-            description: "Plant details view coming soon!",
-            type: "info",
-        });
+    const handleCloseDetailDialog = () => {
+        setIsDetailDialogOpen(false);
+        setSelectedPlant(null);
+    };
+
+    const handlePlantUpdate = (updatedPlant: PlantInfo) => {
+        // Update the plant in the local state
+        setPlants(prevPlants => 
+            prevPlants.map(plant => 
+                plant.id === updatedPlant.id 
+                    ? { ...plant, ...updatedPlant }
+                    : plant
+            )
+        );
+        // Update the selected plant if it's the one being viewed
+        if (selectedPlant?.id === updatedPlant.id) {
+            setSelectedPlant(updatedPlant);
+        }
     };
 
     if (isLoading) {
@@ -227,11 +239,18 @@ export const PlantCollection = ({ onAddPlant, refreshTrigger }: PlantCollectionP
                     <PlantCard 
                         key={plant.id}
                         plant={plant}
-                        onEdit={handleEditPlant}
                         onViewDetails={handleViewDetails}
                     />
                 ))}
             </SimpleGrid>
+
+            {/* Plant Detail Dialog */}
+            <PlantDetailDialog
+                plant={selectedPlant}
+                isOpen={isDetailDialogOpen}
+                onClose={handleCloseDetailDialog}
+                onPlantUpdate={handlePlantUpdate}
+            />
         </Box>
     );
 };

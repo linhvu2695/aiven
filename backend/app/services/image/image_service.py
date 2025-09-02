@@ -468,7 +468,6 @@ class ImageService:
             if not overall_success:
                 message += " (some requests failed)"
             logging.getLogger("uvicorn.info").info(message)
-            logging.getLogger("uvicorn.info").info(f"Processed results: {processed_results}")
             
             return ImageUrlsResponse(
                 success=overall_success,

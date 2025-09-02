@@ -1,3 +1,4 @@
+import logging
 from fastapi import APIRouter, HTTPException, UploadFile, File
 from app.classes.plant import (
     AutofillPlantInfoResponse,
@@ -18,6 +19,7 @@ router = APIRouter()
 async def create_or_update_plant(request: CreateOrUpdatePlantRequest):
     """Create a new plant or update an existing one"""
     try:
+        logging.getLogger("uvicorn.error").info(f"Creating or updating plant: {request}")
         response = await PlantService().create_or_update_plant(request)
         if not response.success:
             raise HTTPException(status_code=400, detail=response.message)

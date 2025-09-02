@@ -63,6 +63,25 @@ class PlantService:
             return False, "Plant ID is required"
         return True, ""
 
+    def _detect_image_mime_type(self, image_bytes: bytes) -> str:
+        """Detect MIME type from image bytes using PIL"""
+        try:
+            with PILImage.open(io.BytesIO(image_bytes)) as img:
+                format_to_mime = {
+                    "JPEG": "image/jpeg",
+                    "PNG": "image/png",
+                    "GIF": "image/gif",
+                    "BMP": "image/bmp",
+                    "WEBP": "image/webp",
+                    "TIFF": "image/tiff",
+                }
+                return format_to_mime.get(img.format or "JPEG", "image/jpeg")
+        except Exception as e:
+            logging.getLogger("uvicorn.warning").warning(
+                f"Failed to detect image format: {e}, defaulting to image/jpeg"
+            )
+            return "image/jpeg"
+        
     async def create_or_update_plant(
         self, request: CreateOrUpdatePlantRequest
     ) -> CreateOrUpdatePlantResponse:
@@ -159,7 +178,7 @@ class PlantService:
     async def get_plant(self, plant_id: str) -> PlantResponse:
         """Get a plant by ID"""
         try:
-            plant_data = await get_document(PLANT_COLLECTION_NAME, str(plant_id))
+            plant_data = await get_document(PLANT_COLLECTION_NAME, str(plant_id), True)
             if not plant_data:
                 return PlantResponse(
                     success=False, plant=None, message="Plant not found"
@@ -181,7 +200,7 @@ class PlantService:
     async def list_plants(self) -> PlantListResponse:
         """List all plants"""
         try:
-            plants_data = await list_documents(PLANT_COLLECTION_NAME)
+            plants_data = await list_documents(PLANT_COLLECTION_NAME, True)
             plants = [PlantInfo(**plant_data) for plant_data in plants_data]
 
             return PlantListResponse(plants=plants)
@@ -239,25 +258,6 @@ class PlantService:
             return PlantPhotoResponse(
                 success=False, photo_id="", message=f"Failed to add photo: {str(e)}"
             )
-
-    def _detect_image_mime_type(self, image_bytes: bytes) -> str:
-        """Detect MIME type from image bytes using PIL"""
-        try:
-            with PILImage.open(io.BytesIO(image_bytes)) as img:
-                format_to_mime = {
-                    "JPEG": "image/jpeg",
-                    "PNG": "image/png",
-                    "GIF": "image/gif",
-                    "BMP": "image/bmp",
-                    "WEBP": "image/webp",
-                    "TIFF": "image/tiff",
-                }
-                return format_to_mime.get(img.format or "JPEG", "image/jpeg")
-        except Exception as e:
-            logging.getLogger("uvicorn.warning").warning(
-                f"Failed to detect image format: {e}, defaulting to image/jpeg"
-            )
-            return "image/jpeg"
 
     async def autofill_plant_info(
         self, image_bytes: bytes

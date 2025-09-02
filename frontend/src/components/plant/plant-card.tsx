@@ -6,89 +6,23 @@ import {
     VStack, 
     HStack, 
     Badge, 
-    IconButton,
     Heading
 } from "@chakra-ui/react";
 import { 
     FaWater, 
-    FaLeaf, 
     FaSun, 
     FaMapMarkerAlt, 
     FaCalendarAlt, 
-    FaEdit,
-    FaSeedling,
-    FaTree,
-    FaCarrot,
-    FaAppleAlt
 } from "react-icons/fa";
-import { 
-    GiCactus,
-    GiFlowerPot,
-    GiFern,
-    GiGrass,
-    GiFlowers,
-} from "react-icons/gi";
 import type { PlantInfoWithImage } from "@/types/plant";
-import { PlantHealthStatus, PlantSpecies, LightRequirement } from "@/types/plant";
-import { Tooltip } from "@/components/ui/tooltip";
-import { IoFlower } from "react-icons/io5";
+import { getHealthStatusColor, formatSpeciesLabel, getSpeciesIcon } from "@/utils/plant-utils.tsx";
 
 interface PlantCardProps {
     plant: PlantInfoWithImage;
-    onEdit?: (plant: PlantInfoWithImage) => void;
     onViewDetails?: (plant: PlantInfoWithImage) => void;
 }
 
-const getHealthStatusColor = (status: PlantHealthStatus): string => {
-    switch (status) {
-        case PlantHealthStatus.EXCELLENT:
-            return "green";
-        case PlantHealthStatus.GOOD:
-            return "teal";
-        case PlantHealthStatus.FAIR:
-            return "yellow";
-        case PlantHealthStatus.POOR:
-            return "orange";
-        case PlantHealthStatus.CRITICAL:
-            return "red";
-        default:
-            return "gray";
-    }
-};
-
-const getSpeciesIcon = (species: PlantSpecies) => {
-    switch (species) {
-        case PlantSpecies.CACTUS:
-            return <GiCactus color="green.600" size={16} />;
-        case PlantSpecies.SUCCULENT:
-            return <GiFlowerPot color="teal.500" size={16} />;
-        case PlantSpecies.FLOWERING:
-            return <IoFlower color="pink.500" size={16} />;
-        case PlantSpecies.TROPICAL:
-            return <FaLeaf color="emerald.500" size={16} />;
-        case PlantSpecies.HERB:
-            return <GiGrass color="green.500" size={16} />;
-        case PlantSpecies.FERN:
-            return <GiFern color="green.400" size={16} />;
-        case PlantSpecies.TREE:
-            return <FaTree color="brown.500" size={16} />;
-        case PlantSpecies.VEGETABLE:
-            return <FaCarrot color="orange.500" size={16} />;
-        case PlantSpecies.FRUIT:
-            return <FaAppleAlt color="red.500" size={16} />;
-        case PlantSpecies.ORCHID:
-            return <GiFlowers color="purple.500" size={16} />;
-        case PlantSpecies.OTHER:
-        default:
-            return <FaSeedling color="green.500" size={16} />;
-    }
-};
-
-const formatSpeciesLabel = (species: PlantSpecies | PlantHealthStatus | LightRequirement): string => {
-    return species.charAt(0).toUpperCase() + species.slice(1).replace('_', ' ');
-};
-
-export const PlantCard = ({ plant, onEdit, onViewDetails }: PlantCardProps) => {
+export const PlantCard = ({ plant, onViewDetails }: PlantCardProps) => {
     const healthColor = getHealthStatusColor(plant.current_health_status);
     const speciesIcon = getSpeciesIcon(plant.species);
     
@@ -132,31 +66,6 @@ export const PlantCard = ({ plant, onEdit, onViewDetails }: PlantCardProps) => {
                     >
                         {formatSpeciesLabel(plant.current_health_status)}
                     </Badge>
-
-                    {/* Edit Button */}
-                    {onEdit && (
-                        <Tooltip content="Edit plant">
-                            <IconButton
-                                position="absolute"
-                                top={3}
-                                left={3}
-                                size="sm"
-                                variant="solid"
-                                colorScheme="teal"
-                                aria-label="Edit plant"
-                                onClick={(e) => {
-                                    e.stopPropagation();
-                                    onEdit(plant);
-                                }}
-                                _hover={{
-                                    transform: "scale(1.1)",
-                                    bg: "teal.500"
-                                }}
-                            >
-                                <FaEdit />
-                            </IconButton>
-                        </Tooltip>
-                    )}
                 </Box>
 
                 {/* Plant Info */}

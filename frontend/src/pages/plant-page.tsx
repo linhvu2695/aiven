@@ -12,11 +12,13 @@ import {
     PlantCollection,
     AddPlantDialog
 } from "@/components/plant";
+import type { PlantInfoWithImage } from "@/types/plant";
 import { toaster } from "@/components/ui/toaster";
 
 export const PlantPage = () => {
     const { open, onOpen, onClose } = useDisclosure();
     const [refreshTrigger, setRefreshTrigger] = useState(0);
+    const [plants, setPlants] = useState<PlantInfoWithImage[]>([]);
 
     const handlePlantAdded = () => {
         // Trigger refresh of plant list
@@ -25,6 +27,10 @@ export const PlantPage = () => {
             description: "Plant added successfully",
             type: "success",
         });
+    };
+
+    const handlePlantsLoaded = (loadedPlants: PlantInfoWithImage[]) => {
+        setPlants(loadedPlants);
     };
 
     return (
@@ -41,12 +47,13 @@ export const PlantPage = () => {
                 <Box flex={1} h="100%" overflow="auto">
                     <VStack align="stretch" gap={4} h="100%">
                         {/* Stats Overview */}
-                        <PlantStats />
+                        <PlantStats plants={plants} />
 
                         {/* Plant Collection */}
                         <PlantCollection 
                             onAddPlant={onOpen}
                             refreshTrigger={refreshTrigger}
+                            onPlantsLoaded={handlePlantsLoaded}
                         />
                     </VStack>
                 </Box>

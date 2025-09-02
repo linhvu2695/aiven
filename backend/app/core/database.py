@@ -27,7 +27,7 @@ async def check_mongodb_health():
         logging.getLogger("uvicorn.error").error(f"Fail to connect to MongoDB: {ex}")
         return False
 
-async def get_document(collection_name: str, id: str) -> dict:
+async def get_document(collection_name: str, id: str, convert_object_id: bool = False) -> dict:
     try:
         obj_id = ObjectId(id)
     except Exception:
@@ -38,6 +38,12 @@ async def get_document(collection_name: str, id: str) -> dict:
 
     if not document:
         raise ValueError("Document not found")
+    
+    # Convert MongoDB _id to id if needed
+    if convert_object_id and "_id" in document:
+        document["id"] = str(document["_id"])
+        del document["_id"]
+
     return document
 
 async def insert_document(collection_name: str, document: dict) -> str:
@@ -54,12 +60,17 @@ async def update_document(collection_name: str, id: str, document: dict) -> str 
     )
     return result.upserted_id
 
-async def list_documents(collection_name: str) -> list[dict]:
+async def list_documents(collection_name: str, convert_object_id: bool = False) -> list[dict]:
     db = get_mongodb_conn()
     cursor = db[collection_name].find()
     documents = []
     async for document in cursor:
         documents.append(document)
+
+        # Convert MongoDB _id to id if needed
+        if convert_object_id and "_id" in document:
+            document["id"] = str(document["_id"])
+            del document["_id"]
     return documents
 
 async def find_documents_by_field(collection_name: str, field_name: str, field_value: str) -> list[dict]:
