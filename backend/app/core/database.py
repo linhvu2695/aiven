@@ -37,7 +37,7 @@ async def get_document(collection_name: str, id: str, convert_object_id: bool = 
     document = await db[collection_name].find_one({"_id": obj_id})
 
     if not document:
-        raise ValueError("Document not found")
+        raise ValueError(f"Document {id} not found in collection {collection_name}")
     
     # Convert MongoDB _id to id if needed
     if convert_object_id and "_id" in document:

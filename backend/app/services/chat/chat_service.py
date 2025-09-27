@@ -158,12 +158,7 @@ class ChatService:
                 conversation_context += f"{role}: {content}\n"
             
             # Create a prompt for generating conversation names
-            naming_prompt = f"""Based on the following conversation, generate a short, descriptive name (2-5 words) that captures the main topic or purpose. Be concise and specific.
-
-Conversation:
-{conversation_context}
-
-Name (2-5 words only):"""
+            naming_prompt = f"""Based on the following conversation, generate a short, descriptive name (2-5 words) that captures the main topic or purpose. Be concise and specific.\nConversation: {conversation_context}.\nName (2-5 words only):"""
             
             # Generate the name
             response = await naming_model.ainvoke([HumanMessage(content=naming_prompt)])

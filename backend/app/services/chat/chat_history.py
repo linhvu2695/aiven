@@ -1,6 +1,7 @@
 from collections.abc import Sequence
 import asyncio, logging
 from datetime import datetime, timezone
+from langchain_core.messages import HumanMessage, AIMessage, SystemMessage
 from langchain_core.chat_history import BaseChatMessageHistory
 from langchain_core.messages.base import BaseMessage
 from app.core.database import delete_document, get_document, update_document, insert_document, get_mongodb_conn
@@ -20,10 +21,32 @@ class MongoDBChatHistory(BaseChatMessageHistory):
         if not data:
             return None
         
+        # Deserialize message dictionaries back to proper BaseMessage subclasses
+        raw_messages = data.get("messages", [])
+        messages = []
+        
+        for msg_data in raw_messages:
+            if isinstance(msg_data, dict):
+                msg_type = msg_data.get('type', 'human')  # Default to human if type not specified
+                content = msg_data.get('content', '')
+                
+                if msg_type == 'human':
+                    messages.append(HumanMessage(content=content))
+                elif msg_type == 'ai':
+                    messages.append(AIMessage(content=content))
+                elif msg_type == 'system':
+                    messages.append(SystemMessage(content=content))
+                else:
+                    # Fallback to HumanMessage for unknown types
+                    messages.append(HumanMessage(content=content))
+            else:
+                # Fallback: treat as string content for HumanMessage
+                messages.append(HumanMessage(content=str(msg_data)))
+        
         return Conversation(
             id=str(data.get("_id", "")),
             name=data.get("name", ""),
-            messages=data.get("messages", []),
+            messages=messages,
             created_at=data.get("created_at", datetime.now(timezone.utc)),
             updated_at=data.get("updated_at", datetime.now(timezone.utc))
         )
@@ -45,7 +68,8 @@ class MongoDBChatHistory(BaseChatMessageHistory):
         conversation = await self._aget_conversation()
         if not conversation:
             return []
-        return conversation.messages
+        # Type cast to satisfy type checker - messages are already BaseMessage subclasses
+        return list(conversation.messages)
     
     def add_messages(self, messages: Sequence[BaseMessage]) -> None:
         asyncio.run(self.aadd_messages(messages))
@@ -133,10 +157,36 @@ class ConversationRepository:
             if not data:
                 return None
             
+            # Deserialize message dictionaries back to proper BaseMessage subclasses
+            raw_messages = data.get("messages", [])
+            deserialized_messages = []
+            
+            for msg_data in raw_messages:
+                if isinstance(msg_data, dict):
+                    # Determine message type and create appropriate instance
+                    msg_type = msg_data.get('type', 'human')  # Default to human if type not specified
+                    content = msg_data.get('content', '')
+                    
+                    if msg_type == 'human':
+                        deserialized_messages.append(HumanMessage(content=content))
+                    elif msg_type == 'ai':
+                        deserialized_messages.append(AIMessage(content=content))
+                    elif msg_type == 'system':
+                        deserialized_messages.append(SystemMessage(content=content))
+                    else:
+                        # Fallback to HumanMessage for unknown types
+                        deserialized_messages.append(HumanMessage(content=content))
+                elif isinstance(msg_data, BaseMessage):
+                    # Already a proper BaseMessage instance
+                    deserialized_messages.append(msg_data)
+                else:
+                    # Fallback: treat as string content for HumanMessage
+                    deserialized_messages.append(HumanMessage(content=str(msg_data)))
+            
             return Conversation(
                 id=str(data.get("_id", "")),
                 name=data.get("name", ""),
-                messages=data.get("messages", []),
+                messages=deserialized_messages,
                 created_at=data.get("created_at", datetime.now(timezone.utc)),
                 updated_at=data.get("updated_at", datetime.now(timezone.utc))
             )

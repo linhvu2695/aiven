@@ -115,7 +115,7 @@ class TestGetDocument:
         mock_motor_client["collection"].find_one.return_value = None
         
         # Act & Assert
-        with pytest.raises(ValueError, match="Document not found"):
+        with pytest.raises(ValueError, match=f"Document {doc_id} not found in collection test_collection"):
             await get_document("test_collection", doc_id)
 
     @pytest.mark.asyncio
@@ -770,5 +770,5 @@ class TestIntegrationScenarios:
         doc_id = str(ObjectId())
         mock_motor_client["collection"].find_one.return_value = None
         
-        with pytest.raises(ValueError, match="Document not found"):
+        with pytest.raises(ValueError, match=f"Document {doc_id} not found in collection {collection_name}"):
             await get_document(collection_name, doc_id) 

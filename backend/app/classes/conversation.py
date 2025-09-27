@@ -1,11 +1,11 @@
 from datetime import datetime, timezone
-from langchain_core.messages.base import BaseMessage
+from langchain_core.messages import HumanMessage, AIMessage
 from pydantic import BaseModel, Field
 
 class Conversation(BaseModel):
     id: str
     name: str
-    messages: list[BaseMessage]
+    messages: list[HumanMessage|AIMessage]
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
