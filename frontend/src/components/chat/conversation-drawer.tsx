@@ -27,13 +27,15 @@ interface ConversationDrawerProps {
     onClose: () => void;
     conversations: ConversationInfo[];
     onConversationDeleted?: (sessionId: string) => void;
+    agentName?: string;
 }
 
 export const ConversationDrawer = ({ 
     isOpen, 
     onClose, 
     conversations,
-    onConversationDeleted 
+    onConversationDeleted,
+    agentName 
 }: ConversationDrawerProps) => {
     const { setSessionId, setMessages } = useChat();
     const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
@@ -156,7 +158,9 @@ export const ConversationDrawer = ({
                 <Drawer.Content>
                     <Drawer.Header>
                         <Drawer.Title>
-                            <Text fontSize="lg" fontWeight="bold">Recent Conversations</Text>
+                            <Text fontSize="lg" fontWeight="bold">
+                                {agentName ? `${agentName} Conversations` : "Recent Conversations"}
+                            </Text>
                         </Drawer.Title>
                         <Text fontSize="sm" color="gray.500">Latest 100</Text>
                         <Drawer.CloseTrigger />

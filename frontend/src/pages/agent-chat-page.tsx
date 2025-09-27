@@ -17,8 +17,10 @@ export const AgentChatPage = () => {
 
     const fetchConversations = async () => {
         try {
+            // Include agent_id in the API call to filter conversations by current agent
+            const agentId = agent?.id || "";
             const response = await fetch(
-                BASE_URL + "/api/chat/conversations?limit=100",
+                BASE_URL + `/api/chat/conversations?limit=100&agent_id=${encodeURIComponent(agentId)}`,
                 {
                     method: "GET",
                     headers: {
@@ -66,6 +68,13 @@ export const AgentChatPage = () => {
         fetchAgent();
     }, [agent?.id]);
 
+    // Refresh conversations when agent changes
+    useEffect(() => {
+        if (agent?.id && isDrawerOpen) {
+            fetchConversations();
+        }
+    }, [agent?.id]);
+
 
     return (
         <>
@@ -103,6 +112,7 @@ export const AgentChatPage = () => {
                 onClose={() => setIsDrawerOpen(false)}
                 conversations={conversations}
                 onConversationDeleted={handleConversationDeleted}
+                agentName={agent?.name}
             />
         </>
     );

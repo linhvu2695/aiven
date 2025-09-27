@@ -1238,6 +1238,7 @@ class TestConversationNaming:
             mock_history._aget_conversation.return_value = Conversation(
                 id=TEST_SESSION_ID,
                 name="",
+                agent_id=TEST_AGENT_ID,
                 messages=mock_conversation_data["messages"],
                 created_at=mock_conversation_data["created_at"],
                 updated_at=mock_conversation_data["updated_at"]
@@ -1284,6 +1285,7 @@ class TestConversationNaming:
         mock_history._aget_conversation.return_value = Conversation(
             id=TEST_SESSION_ID,
             name="Existing Name",
+            agent_id=TEST_AGENT_ID,
             messages=mock_conversation_data["messages"],
             created_at=mock_conversation_data["created_at"],
             updated_at=mock_conversation_data["updated_at"]
@@ -1324,6 +1326,7 @@ class TestConversationNaming:
         mock_history._aget_conversation.return_value = Conversation(
             id=TEST_SESSION_ID,
             name="",
+            agent_id=TEST_AGENT_ID,
             messages=mock_conversation_data["messages"],
             created_at=mock_conversation_data["created_at"],
             updated_at=mock_conversation_data["updated_at"]

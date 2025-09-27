@@ -11,6 +11,7 @@ from app.classes.conversation import Conversation
 TEST_SESSION_ID = "test-session-id"
 TEST_NEW_SESSION_ID = "test-new-session-id"
 TEST_PERSISTENT_SESSION_ID = "test-persistent-session-id"
+TEST_AGENT_ID = "test-agent-id"
 TEST_OBJECT_ID = ObjectId("507f1f77bcf86cd799439011")  # Valid ObjectId for testing
 
 
@@ -43,6 +44,7 @@ def sample_conversation_data():
             {"content": "Hello, how are you?", "type": "human"},
             {"content": "I'm doing well, thank you for asking!", "type": "ai"}
         ],
+        "agent_id": TEST_AGENT_ID,
         "created_at": datetime(2023, 1, 1, 12, 0, 0, tzinfo=timezone.utc),
         "updated_at": datetime(2023, 1, 1, 12, 5, 0, tzinfo=timezone.utc)
     }
@@ -62,6 +64,20 @@ class TestMongoDBChatHistoryInitialization:
         chat_history = MongoDBChatHistory("")
         
         assert chat_history._session_id == ""
+    
+    def test_init_with_agent_id(self):
+        """Test initialization with agent ID."""
+        chat_history = MongoDBChatHistory(TEST_SESSION_ID, TEST_AGENT_ID)
+        
+        assert chat_history._session_id == TEST_SESSION_ID
+        assert chat_history._agent_id == TEST_AGENT_ID
+    
+    def test_init_with_default_agent_id(self):
+        """Test initialization with default empty agent ID."""
+        chat_history = MongoDBChatHistory(TEST_SESSION_ID)
+        
+        assert chat_history._session_id == TEST_SESSION_ID
+        assert chat_history._agent_id == ""
 
 
 class TestGetConversation:
@@ -186,7 +202,7 @@ class TestAddMessages:
         mock_get_document.return_value = None
         mock_insert_document.return_value = TEST_NEW_SESSION_ID
         
-        chat_history = MongoDBChatHistory("")  # Empty session ID
+        chat_history = MongoDBChatHistory("", TEST_AGENT_ID)  # Empty session ID with agent ID
         await chat_history.aadd_messages([sample_messages[0]])
         
         # Verify new conversation was created
@@ -194,6 +210,7 @@ class TestAddMessages:
         insert_args = mock_insert_document.call_args[0]
         assert insert_args[0] == CONVERSATION_COLLECTION
         assert insert_args[1]["messages"] == []
+        assert insert_args[1]["agent_id"] == TEST_AGENT_ID
         assert "created_at" in insert_args[1]
         assert "updated_at" in insert_args[1]
         

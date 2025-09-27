@@ -249,8 +249,8 @@ async def get_models():
 
 
 @router.get("/conversations")
-async def get_conversations(limit: int = 10):
-    return await ConversationRepository().get_conversations(limit)
+async def get_conversations(limit: int = 10, agent_id: str = ""):
+    return await ConversationRepository().get_conversations(limit, agent_id)
 
 
 @router.get("/conversations/{id}")

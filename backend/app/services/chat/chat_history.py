@@ -10,8 +10,9 @@ from app.classes.conversation import Conversation, ConversationInfo
 CONVERSATION_COLLECTION = "conversation"
 
 class MongoDBChatHistory(BaseChatMessageHistory):
-    def __init__(self, session_id: str):
+    def __init__(self, session_id: str, agent_id: str = ""):
         self._session_id = session_id
+        self._agent_id = agent_id
 
     async def _aget_conversation(self) -> Conversation | None:
         if self._session_id == "":
@@ -46,6 +47,7 @@ class MongoDBChatHistory(BaseChatMessageHistory):
         return Conversation(
             id=str(data.get("_id", "")),
             name=data.get("name", ""),
+            agent_id=data.get("agent_id", ""),
             messages=messages,
             created_at=data.get("created_at", datetime.now(timezone.utc)),
             updated_at=data.get("updated_at", datetime.now(timezone.utc))
@@ -59,6 +61,7 @@ class MongoDBChatHistory(BaseChatMessageHistory):
         session_id = await insert_document(CONVERSATION_COLLECTION, {
                 "name": "",
                 "messages": [],
+                "agent_id": self._agent_id,
                 "created_at": datetime.now(timezone.utc),
                 "updated_at": datetime.now(timezone.utc)
             })
@@ -108,12 +111,13 @@ class ConversationRepository:
             cls._instance = super(ConversationRepository, cls).__new__(cls)
         return cls._instance
 
-    async def get_conversations(self, limit: int) -> list[ConversationInfo]:
+    async def get_conversations(self, limit: int, agent_id: str = "") -> list[ConversationInfo]:
         """
         Retrieve the latest n conversations from MongoDB, sorted by updated_at in descending order.
         
         Args:
             limit: Maximum number of conversations to retrieve
+            agent_id: Optional agent ID to filter conversations. If empty, retrieves all conversations.
             
         Returns:
             List of ConversationInfo objects
@@ -121,9 +125,14 @@ class ConversationRepository:
         try:
             db = get_mongodb_conn()
             
+            # Build filter based on agent_id parameter
+            filter_query = {}
+            if agent_id and agent_id.strip():
+                filter_query["agent_id"] = agent_id
+            
             # Query conversations, sort by updated_at desc, limit results
             cursor = db[CONVERSATION_COLLECTION].find(
-                {},  # No filter - get all conversations
+                filter_query,
                 {"_id": 1, "name": 1, "updated_at": 1}
             ).sort("updated_at", -1).limit(limit)
             
@@ -186,6 +195,7 @@ class ConversationRepository:
             return Conversation(
                 id=str(data.get("_id", "")),
                 name=data.get("name", ""),
+                agent_id=data.get("agent_id", ""),
                 messages=deserialized_messages,
                 created_at=data.get("created_at", datetime.now(timezone.utc)),
                 updated_at=data.get("updated_at", datetime.now(timezone.utc))

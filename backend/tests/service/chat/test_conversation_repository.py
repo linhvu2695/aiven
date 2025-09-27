@@ -215,6 +215,104 @@ class TestGetConversations:
         assert len(conversations) == 1
         assert conversations[0].name == ""  # Should default to empty string
 
+    @pytest.mark.asyncio
+    @patch('app.services.chat.chat_history.get_mongodb_conn')
+    async def test_get_conversations_with_agent_id_filter(self, mock_get_conn, sample_conversation_info_data):
+        """Test retrieval of conversations filtered by agent_id."""
+        mock_db = MagicMock()
+        mock_collection = MagicMock()
+        mock_cursor = MagicMock()
+        
+        mock_get_conn.return_value = mock_db
+        mock_db.__getitem__.return_value = mock_collection
+        mock_collection.find.return_value = mock_cursor
+        mock_cursor.sort.return_value = mock_cursor
+        mock_cursor.limit.return_value = mock_cursor
+        
+        # Mock async iteration
+        async def mock_async_iter(self):
+            for doc in sample_conversation_info_data:
+                yield doc
+        
+        mock_cursor.__aiter__ = mock_async_iter
+        
+        repo = ConversationRepository()
+        conversations = await repo.get_conversations(limit=10, agent_id="test-agent-123")
+        
+        # Verify the correct database query was made with agent_id filter
+        mock_collection.find.assert_called_once_with(
+            {"agent_id": "test-agent-123"},  # Filter by agent_id
+            {"_id": 1, "name": 1, "updated_at": 1}
+        )
+        mock_cursor.sort.assert_called_once_with("updated_at", -1)
+        mock_cursor.limit.assert_called_once_with(10)
+        
+        # Verify results
+        assert len(conversations) == 2
+        assert all(isinstance(conv, ConversationInfo) for conv in conversations)
+
+    @pytest.mark.asyncio
+    @patch('app.services.chat.chat_history.get_mongodb_conn')
+    async def test_get_conversations_with_empty_agent_id(self, mock_get_conn, sample_conversation_info_data):
+        """Test retrieval of conversations with empty agent_id (should get all conversations)."""
+        mock_db = MagicMock()
+        mock_collection = MagicMock()
+        mock_cursor = MagicMock()
+        
+        mock_get_conn.return_value = mock_db
+        mock_db.__getitem__.return_value = mock_collection
+        mock_collection.find.return_value = mock_cursor
+        mock_cursor.sort.return_value = mock_cursor
+        mock_cursor.limit.return_value = mock_cursor
+        
+        # Mock async iteration
+        async def mock_async_iter(self):
+            for doc in sample_conversation_info_data:
+                yield doc
+        
+        mock_cursor.__aiter__ = mock_async_iter
+        
+        repo = ConversationRepository()
+        conversations = await repo.get_conversations(limit=10, agent_id="")
+        
+        # Verify the correct database query was made without agent_id filter
+        mock_collection.find.assert_called_once_with(
+            {},  # No filter when agent_id is empty
+            {"_id": 1, "name": 1, "updated_at": 1}
+        )
+        mock_cursor.sort.assert_called_once_with("updated_at", -1)
+        mock_cursor.limit.assert_called_once_with(10)
+
+    @pytest.mark.asyncio
+    @patch('app.services.chat.chat_history.get_mongodb_conn')
+    async def test_get_conversations_with_whitespace_agent_id(self, mock_get_conn, sample_conversation_info_data):
+        """Test retrieval of conversations with whitespace-only agent_id (should get all conversations)."""
+        mock_db = MagicMock()
+        mock_collection = MagicMock()
+        mock_cursor = MagicMock()
+        
+        mock_get_conn.return_value = mock_db
+        mock_db.__getitem__.return_value = mock_collection
+        mock_collection.find.return_value = mock_cursor
+        mock_cursor.sort.return_value = mock_cursor
+        mock_cursor.limit.return_value = mock_cursor
+        
+        # Mock async iteration
+        async def mock_async_iter(self):
+            for doc in sample_conversation_info_data:
+                yield doc
+        
+        mock_cursor.__aiter__ = mock_async_iter
+        
+        repo = ConversationRepository()
+        conversations = await repo.get_conversations(limit=10, agent_id="   ")
+        
+        # Verify the correct database query was made without agent_id filter
+        mock_collection.find.assert_called_once_with(
+            {},  # No filter when agent_id is whitespace only
+            {"_id": 1, "name": 1, "updated_at": 1}
+        )
+
 
 class TestGetConversation:
     """Test get_conversation method."""
