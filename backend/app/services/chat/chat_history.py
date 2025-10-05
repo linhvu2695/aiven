@@ -58,13 +58,13 @@ class MongoDBChatHistory(BaseChatMessageHistory):
         return asyncio.run(self.aget_messages())
     
     async def _acreate_new_conversation(self) -> None:
-        session_id = await insert_document(CONVERSATION_COLLECTION, {
-                "name": "",
-                "messages": [],
-                "agent_id": self._agent_id,
-                "created_at": datetime.now(timezone.utc),
-                "updated_at": datetime.now(timezone.utc)
-            })
+        if self._agent_id == "":
+            raise ValueError("Agent ID is required to create a new conversation")
+        
+        session_id = await ConversationRepository().create_new_conversation(self._agent_id)
+        if not session_id or session_id == "":
+            raise ValueError("Failed to create new conversation")
+            
         self._session_id = session_id
         
     async def aget_messages(self) -> list[BaseMessage]:
@@ -110,6 +110,16 @@ class ConversationRepository:
         if not hasattr(cls, "_instance") or cls._instance is None:
             cls._instance = super(ConversationRepository, cls).__new__(cls)
         return cls._instance
+
+    async def create_new_conversation(self, agent_id: str) -> str:
+        session_id = await insert_document(CONVERSATION_COLLECTION, {
+                "name": "",
+                "messages": [],
+                "agent_id": agent_id,
+                "created_at": datetime.now(timezone.utc),
+                "updated_at": datetime.now(timezone.utc)
+            })
+        return session_id
 
     async def get_conversations(self, limit: int, agent_id: str = "") -> list[ConversationInfo]:
         """
