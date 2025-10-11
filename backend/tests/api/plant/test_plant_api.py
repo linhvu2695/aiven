@@ -4,7 +4,7 @@ from datetime import datetime, timezone
 from httpx import AsyncClient, ASGITransport
 from fastapi import FastAPI
 from unittest.mock import patch, AsyncMock
-from app.api.plant import router
+from app.api.plant_api import router
 from app.classes.plant import (
     CreateOrUpdatePlantResponse,
     PlantResponse,

@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from app.api import chat, agent, storage, article, health, tool, plant, image
+from app.api import chat_api, agent_api, storage_api, article_api, health_api, tool_api, plant_api, image_api
 from app.core.database import check_mongodb_health
 from contextlib import asynccontextmanager
 from app.core.config import settings
@@ -26,14 +26,14 @@ app.add_middleware(
 )
 
 # Controllers
-app.include_router(health.router, prefix="/api", tags=["Health"])
-app.include_router(chat.router, prefix="/api/chat", tags=["Chat"])
-app.include_router(agent.router, prefix="/api/agent", tags=["Agent"])
-app.include_router(article.router, prefix="/api/article", tags=["Article"])
-app.include_router(storage.router, prefix="/api/storage", tags=["Storage"])
-app.include_router(tool.router, prefix="/api/tool", tags=["Tool"])
-app.include_router(plant.router, prefix="/api/plant", tags=["Plant"])
-app.include_router(image.router, prefix="/api/image", tags=["Image"])
+app.include_router(health_api.router, prefix="/api", tags=["Health"])
+app.include_router(chat_api.router, prefix="/api/chat", tags=["Chat"])
+app.include_router(agent_api.router, prefix="/api/agent", tags=["Agent"])
+app.include_router(article_api.router, prefix="/api/article", tags=["Article"])
+app.include_router(storage_api.router, prefix="/api/storage", tags=["Storage"])
+app.include_router(tool_api.router, prefix="/api/tool", tags=["Tool"])
+app.include_router(plant_api.router, prefix="/api/plant", tags=["Plant"])
+app.include_router(image_api.router, prefix="/api/image", tags=["Image"])
 
 # Configure LangSmith tracing
 if settings.langsmith_tracing == "true":

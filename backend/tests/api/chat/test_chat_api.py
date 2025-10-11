@@ -4,7 +4,7 @@ import io
 from httpx import AsyncClient, ASGITransport
 from fastapi import FastAPI
 from unittest.mock import patch, AsyncMock
-from app.api.chat import router
+from app.api.chat_api import router
 from app.classes.chat import ChatRequest, ChatResponse
 
 app = FastAPI()

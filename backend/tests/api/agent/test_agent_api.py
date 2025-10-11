@@ -2,7 +2,7 @@ import pytest
 from httpx import AsyncClient, ASGITransport
 from fastapi import FastAPI
 from unittest.mock import patch, AsyncMock, MagicMock
-from app.api.agent import router
+from app.api.agent_api import router
 from app.classes.agent import SearchAgentsResponse, AgentInfo, CreateOrUpdateAgentRequest, CreateOrUpdateAgentResponse, DeleteAgentResponse, UpdateAgentAvatarResponse
 from app.core.constants import LLMModel
 import io

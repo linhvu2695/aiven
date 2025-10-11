@@ -3,7 +3,7 @@ from httpx import AsyncClient, ASGITransport
 from fastapi import FastAPI
 from unittest.mock import patch, AsyncMock
 from datetime import datetime, timezone
-from app.api.article import router
+from app.api.article_api import router
 from app.classes.article import (
     SearchArticlesResponse,
     ArticleInfo,
@@ -213,7 +213,7 @@ async def test_create_article_api_with_minimal_data():
         id="minimal_article_id",
         message="Article created successfully."
     )
-    
+
     with patch("app.services.article.article_service.ArticleService.create_or_update_article", new=AsyncMock(return_value=mock_response)):
         transport = ASGITransport(app=app)
         async with AsyncClient(transport=transport, base_url="http://test") as ac:
