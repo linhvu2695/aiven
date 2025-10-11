@@ -13,6 +13,7 @@ from app.classes.image import (
     ImageGenerateResponse,
     ImageInfo,
     CreateImageRequest,
+    ImageListRequest,
     UpdateImageRequest,
     ImageCreateResponse,
     ImageResponse,
@@ -273,28 +274,20 @@ class ImageService:
             logging.getLogger("uvicorn.error").error(error_msg)
             return ImageResponse(success=False, image=None, message=error_msg)
 
-    async def list_images(
-        self,
-        page: int = 1,
-        page_size: int = 50,
-        image_type: Optional[ImageType] = None,
-        entity_id: Optional[str] = None,
-        entity_type: Optional[str] = None,
-        include_deleted: bool = False,
-    ) -> ImageListResponse:
+    async def list_images(self, request: ImageListRequest) -> ImageListResponse:
         """List images with optional filtering"""
         try:
             # Build filters dictionary for multi-field filtering
             filters: Dict[str, Any] = {}
-            if not include_deleted:
+            if not request.include_deleted:
                 filters["is_deleted"] = False
 
-            if image_type:
-                filters["image_type"] = image_type.value
-            if entity_id:
-                filters["entity_id"] = entity_id
-            if entity_type:
-                filters["entity_type"] = entity_type
+            if request.image_type:
+                filters["image_type"] = request.image_type.value
+            if request.entity_id:
+                filters["entity_id"] = request.entity_id
+            if request.entity_type:
+                filters["entity_type"] = request.entity_type
 
             # Get total count for pagination
             total_count = await count_documents_with_filters(
@@ -302,14 +295,14 @@ class ImageService:
             )
 
             # Calculate pagination
-            skip = (page - 1) * page_size
+            skip = (request.page - 1) * request.page_size
 
             # Get paginated documents
             documents = await find_documents_with_filters(
                 IMAGE_COLLECTION_NAME,
                 filters,
                 skip=skip,
-                limit=page_size,
+                limit=request.page_size,
                 sort_by="updated_at",
                 asc=False,  # Most recent first
             )
@@ -350,13 +343,13 @@ class ImageService:
                 images.append(image_info)
 
             return ImageListResponse(
-                images=images, total=total_count, page=page, page_size=page_size
+                images=images, total=total_count, page=request.page, page_size=request.page_size
             )
 
         except Exception as e:
             error_msg = f"Failed to list images: {str(e)}"
             logging.getLogger("uvicorn.error").error(error_msg)
-            return ImageListResponse(images=[], total=0, page=page, page_size=page_size)
+            return ImageListResponse(images=[], total=0, page=request.page, page_size=request.page_size)
 
     async def get_image_presigned_url(self, image_id: str) -> ImageUrlResponse:
         """Get presigned URL for image access"""
@@ -386,9 +379,7 @@ class ImageService:
             logging.getLogger("uvicorn.error").error(error_msg)
             return ImageUrlResponse(success=False, url="", message=error_msg)
 
-    async def delete_image(
-        self, image_id: str, soft_delete: bool = True
-    ) -> DeleteImageResponse:
+    async def delete_image(self, image_id: str, soft_delete: bool = True) -> DeleteImageResponse:
         """Delete image (soft delete by default)"""
         try:
             if soft_delete:

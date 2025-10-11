@@ -10,6 +10,7 @@ from app.services.image.image_service import ImageService
 from app.classes.image import (
     ImageInfo,
     CreateImageRequest,
+    ImageListRequest,
     UpdateImageRequest,
     ImageCreateResponse,
     ImageResponse,
@@ -423,14 +424,14 @@ class TestImageServiceUpdateImage:
 class TestImageServiceListImages:
     
     @pytest.mark.asyncio
-    async def test_list_images_success(self, image_service, mock_image_document):
+    async def test_list_images_success(self, image_service: ImageService, mock_image_document):
         """Test successful image listing"""
         mock_documents = [mock_image_document, mock_image_document.copy()]
         
         with patch("app.services.image.image_service.count_documents_with_filters", return_value=2), \
              patch("app.services.image.image_service.find_documents_with_filters", return_value=mock_documents):
             
-            response = await image_service.list_images(page=1, page_size=10)
+            response = await image_service.list_images(ImageListRequest(page=1, page_size=10))
             
             assert isinstance(response, ImageListResponse)
             assert len(response.images) == 2
@@ -439,17 +440,18 @@ class TestImageServiceListImages:
             assert response.page_size == 10
 
     @pytest.mark.asyncio
-    async def test_list_images_with_filters(self, image_service, mock_image_document):
+    async def test_list_images_with_filters(self, image_service: ImageService, mock_image_document):
         """Test image listing with filters"""
         with patch("app.services.image.image_service.count_documents_with_filters", return_value=1) as mock_count, \
              patch("app.services.image.image_service.find_documents_with_filters", return_value=[mock_image_document]) as mock_find:
             
             await image_service.list_images(
-                image_type=ImageType.PLANT_PHOTO,
-                entity_id="plant_123",
-                entity_type="plant",
-                include_deleted=True
-            )
+                ImageListRequest(
+                    image_type=ImageType.PLANT_PHOTO,
+                    entity_id="plant_123",
+                    entity_type="plant",
+                    include_deleted=True
+                ))
             
             # Verify filters were applied
             filters = mock_count.call_args[0][1]
@@ -459,22 +461,35 @@ class TestImageServiceListImages:
             assert "is_deleted" not in filters  # Should not be present when include_deleted=True
 
     @pytest.mark.asyncio
-    async def test_list_images_exclude_deleted(self, image_service):
-        """Test image listing excludes deleted by default"""
+    async def test_list_images_include_deleted(self, image_service: ImageService):
+        """Test image listing includes deleted when requested"""
         with patch("app.services.image.image_service.count_documents_with_filters") as mock_count, \
              patch("app.services.image.image_service.find_documents_with_filters", return_value=[]):
+
+            await image_service.list_images(ImageListRequest(include_deleted=True))
             
-            await image_service.list_images()
-            
-            # Verify is_deleted filter is applied
+            # Verify is_deleted filter is not present (returns all images)
             filters = mock_count.call_args[0][1]
+            assert "is_deleted" not in filters
+
+    @pytest.mark.asyncio
+    async def test_list_images_exclude_deleted(self, image_service: ImageService):
+        """Test image listing includes deleted when requested"""
+        with patch("app.services.image.image_service.count_documents_with_filters") as mock_count, \
+             patch("app.services.image.image_service.find_documents_with_filters", return_value=[]):
+
+            await image_service.list_images(ImageListRequest())
+            
+            # Verify is_deleted filter is not present (returns all images)
+            filters = mock_count.call_args[0][1]
+            assert "is_deleted" in filters
             assert filters["is_deleted"] is False
 
     @pytest.mark.asyncio
-    async def test_list_images_exception(self, image_service):
+    async def test_list_images_exception(self, image_service: ImageService):
         """Test image listing with exception"""
         with patch("app.services.image.image_service.count_documents_with_filters", side_effect=Exception("Database error")):
-            response = await image_service.list_images()
+            response = await image_service.list_images(ImageListRequest(page=1, page_size=10))
             
             assert isinstance(response, ImageListResponse)
             assert response.images == []

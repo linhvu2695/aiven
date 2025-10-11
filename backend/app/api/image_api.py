@@ -1,7 +1,7 @@
 import logging
 from fastapi import APIRouter, HTTPException
 from app.services.image.image_service import ImageService
-from app.classes.image import DeleteImageResponse, ImageGenerateRequest, ImageGenerateResponse
+from app.classes.image import DeleteImageResponse, ImageGenerateRequest, ImageGenerateResponse, ImageListRequest, ImageListResponse
 from app.services.image.image_gen.image_gen_providers import ImageGenProvider
 
 MAX_IMAGES_LIMIT = 50
@@ -33,6 +33,16 @@ async def bin_image(image_id: str):
         return response
     else:
         raise HTTPException(status_code=400, detail=response.message)
+
+@router.post("/list", response_model=ImageListResponse)
+async def list_images(request: ImageListRequest):
+    """List all images"""
+    try:
+        return await ImageService().list_images(request)
+    except Exception as e:
+        message = f"Error listing images: {str(e)}"
+        logging.getLogger("uvicorn.error").error(message)
+        raise HTTPException(status_code=400, detail=message)
 
 @router.get("/serve/{image_id}")
 async def serve_image(image_id: str):
