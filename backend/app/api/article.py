@@ -1,5 +1,5 @@
 from fastapi import APIRouter, HTTPException
-from app.classes.article import CreateOrUpdateArticleRequest, CreateOrUpdateArticleResponse, SearchArticlesResponse
+from app.classes.article import CreateOrUpdateArticleRequest, CreateOrUpdateArticleResponse, DeleteArticleResponse, SearchArticlesResponse
 from app.services.article.article_service import ArticleService
 
 router = APIRouter()
@@ -16,10 +16,11 @@ async def create_or_update_article(request: CreateOrUpdateArticleRequest):
 async def search_articles():
     return await ArticleService().search_articles()
 
-@router.post("/delete")
+@router.delete("/{id}", response_model=DeleteArticleResponse)
 async def delete_article(id: str):
-    success = await ArticleService().delete_article(id)
-    if success:
-        return {"success": True, "message": "Article deleted successfully"}
+    response = await ArticleService().delete_article(id)
+
+    if response.success:
+        return response
     else:
-        raise HTTPException(status_code=500, detail="Failed to delete article") 
+        raise HTTPException(status_code=400, detail=response.message) 

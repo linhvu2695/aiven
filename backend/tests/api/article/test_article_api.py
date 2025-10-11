@@ -9,7 +9,11 @@ from app.classes.article import (
     ArticleInfo,
     CreateOrUpdateArticleRequest,
     CreateOrUpdateArticleResponse,
+    DeleteArticleResponse,
 )
+
+# Test constants for MongoDB ObjectIds
+TEST_ARTICLE_ID = "000000000000000000000001"
 
 app = FastAPI()
 app.include_router(router, prefix="/articles")
@@ -223,40 +227,45 @@ async def test_create_article_api_with_minimal_data():
 
 @pytest.mark.asyncio
 async def test_delete_article_api_success():
-    """Test POST /articles/delete endpoint with successful deletion"""
-    with patch("app.services.article.article_service.ArticleService.delete_article", new=AsyncMock(return_value=True)):
+    """Test DELETE /articles/{id} endpoint with successful deletion"""
+    mock_response = DeleteArticleResponse(success=True, message="")
+    
+    with patch("app.services.article.article_service.ArticleService.delete_article", new=AsyncMock(return_value=mock_response)):
         transport = ASGITransport(app=app)
         async with AsyncClient(transport=transport, base_url="http://test") as ac:
-            response = await ac.post("/articles/delete", params={"id": "test_id"})
+            response = await ac.delete(f"/articles/{TEST_ARTICLE_ID}")
             assert response.status_code == 200
             data = response.json()
             assert data["success"] is True
-            assert data["message"] == "Article deleted successfully"
+            assert data["message"] == ""
 
 
 @pytest.mark.asyncio
 async def test_delete_article_api_failure():
-    """Test POST /articles/delete endpoint with deletion failure"""
-    with patch("app.services.article.article_service.ArticleService.delete_article", new=AsyncMock(return_value=False)):
+    """Test DELETE /articles/{id} endpoint with deletion failure"""
+    mock_response = DeleteArticleResponse(success=False, message="Failed to delete article 000000000000000000000001")
+    
+    with patch("app.services.article.article_service.ArticleService.delete_article", new=AsyncMock(return_value=mock_response)):
         transport = ASGITransport(app=app)
         async with AsyncClient(transport=transport, base_url="http://test") as ac:
-            response = await ac.post("/articles/delete", params={"id": "nonexistent_id"})
-            assert response.status_code == 500
+            response = await ac.delete(f"/articles/{TEST_ARTICLE_ID}")
+            assert response.status_code == 400
             data = response.json()
-            assert data["detail"] == "Failed to delete article"
+            assert data["detail"] == "Failed to delete article 000000000000000000000001"
 
 
 @pytest.mark.asyncio
-async def test_delete_article_api_validation_error():
-    """Test POST /articles/delete endpoint with missing id parameter"""
-    with patch("app.services.article.article_service.ArticleService.delete_article", new=AsyncMock(return_value=True)):
+async def test_delete_article_api_invalid_id():
+    """Test DELETE /articles/{id} endpoint with invalid ObjectId"""
+    mock_response = DeleteArticleResponse(success=False, message="Invalid article ID")
+    
+    with patch("app.services.article.article_service.ArticleService.delete_article", new=AsyncMock(return_value=mock_response)):
         transport = ASGITransport(app=app)
         async with AsyncClient(transport=transport, base_url="http://test") as ac:
-            # Test without id parameter - should return validation error
-            response = await ac.post("/articles/delete")
-            assert response.status_code == 422  # Validation error
+            response = await ac.delete("/articles/invalid-id")
+            assert response.status_code == 400
             data = response.json()
-            assert "detail" in data
+            assert data["detail"] == "Invalid article ID"
 
 
 @pytest.mark.asyncio

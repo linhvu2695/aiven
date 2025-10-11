@@ -27,3 +27,7 @@ class CreateOrUpdateArticleResponse(BaseModel):
 
 class SearchArticlesResponse(BaseModel):
     articles: list[ArticleInfo] 
+
+class DeleteArticleResponse(BaseModel):
+    success: bool
+    message: str

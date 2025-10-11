@@ -1,9 +1,12 @@
 import logging
 from datetime import datetime, timezone
+
+from bson.objectid import ObjectId
 from app.classes.article import (
     CreateOrUpdateArticleRequest,
     CreateOrUpdateArticleResponse,
     ArticleInfo,
+    DeleteArticleResponse,
     SearchArticlesResponse,
 )
 from app.core.database import insert_document, get_document, update_document, list_documents, delete_document, find_documents_by_field
@@ -114,7 +117,10 @@ class ArticleService:
         ]
         return SearchArticlesResponse(articles=articles)
     
-    async def delete_article(self, id: str) -> bool:
+    async def delete_article(self, id: str) -> DeleteArticleResponse:        
+        if not ObjectId.is_valid(id):
+            return DeleteArticleResponse(success=False, message="Invalid article ID")
+        
         try:
             # First, find all children of this article
             child_documents = await find_documents_by_field(ARTICLE_COLLECTION_NAME, "parent", id)
@@ -124,12 +130,14 @@ class ArticleService:
                 child_id = str(child_doc.get("_id", ""))
                 if child_id:
                     child_deleted = await self.delete_article(child_id)
-                    if not child_deleted:
-                        logging.getLogger("uvicorn.error").error(f"Failed to delete child article {child_id}")
-                        return False
+                    if not child_deleted.success:
+                        return DeleteArticleResponse(success=False, message=f"Failed to delete child article {child_id}")
             
             # After all children are deleted, delete the original article
-            return await delete_document(ARTICLE_COLLECTION_NAME, id)
+            article_deleted = await delete_document(ARTICLE_COLLECTION_NAME, id)
+            if article_deleted:
+                return DeleteArticleResponse(success=True, message="")
+            else:
+                return DeleteArticleResponse(success=False, message=f"Failed to delete article {id}")
         except Exception as e:
-            logging.getLogger("uvicorn.error").error(f"Failed to delete article {id}: {e}")
-            return False 
+            return DeleteArticleResponse(success=False, message=str(e))
