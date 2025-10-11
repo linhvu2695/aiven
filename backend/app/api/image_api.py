@@ -1,7 +1,8 @@
 import logging
 from fastapi import APIRouter, HTTPException
 from app.services.image.image_service import ImageService
-from app.classes.image import ImageUrlsResponse
+from app.classes.image import DeleteImageResponse, ImageGenerateRequest, ImageGenerateResponse
+from app.services.image.image_gen.image_gen_providers import ImageGenProvider
 
 MAX_IMAGES_LIMIT = 50
 
@@ -14,6 +15,24 @@ async def get_image(image_id: str):
     if not response.success:
         raise HTTPException(status_code=404, detail=response.message)
     return response
+
+@router.delete("/{image_id}", response_model=DeleteImageResponse)
+async def delete_image(image_id: str):
+    """Delete an image by its ID"""
+    response = await ImageService().delete_image(image_id, soft_delete=False)
+    if response.success:
+        return response
+    else:
+        raise HTTPException(status_code=400, detail=response.message)
+
+@router.post("/bin/{image_id}", response_model=DeleteImageResponse)
+async def bin_image(image_id: str):
+    """Bin an image by its ID"""
+    response = await ImageService().delete_image(image_id, soft_delete=True)
+    if response.success:
+        return response
+    else:
+        raise HTTPException(status_code=400, detail=response.message)
 
 @router.get("/serve/{image_id}")
 async def serve_image(image_id: str):
@@ -47,3 +66,13 @@ async def serve_images(image_ids: str):
     except ValueError as e:
         logging.getLogger("uvicorn.error").error(f"Error getting image urls: {str(e)}")
         raise HTTPException(status_code=400, detail=f"Error getting image urls: {str(e)}")
+
+@router.post("/generate", response_model=ImageGenerateResponse)
+async def generate_image(prompt: str, provider: ImageGenProvider = ImageGenProvider.GEMINI):
+    """Generate an image using the specified provider"""
+    response = await ImageService().generate_image(ImageGenerateRequest(prompt=prompt, provider=provider))
+    if response.success:
+        return response
+    else:
+        raise HTTPException(status_code=400, detail=response.message)
+    

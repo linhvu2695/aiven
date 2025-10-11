@@ -14,7 +14,7 @@ from app.classes.plant import (
     PlantHealthStatus,
     PlantSpecies,
 )
-from app.classes.image import ImageType, ImageUploadResponse
+from app.classes.image import ImageType, ImageCreateResponse
 
 
 @pytest.fixture
@@ -346,7 +346,7 @@ class TestPlantServiceAddPlantPhoto:
     async def test_add_plant_photo_success(self, plant_service, add_photo_request, mock_plant_data):
         """Test successful photo addition"""
         mock_image_service = MagicMock()
-        mock_image_response = ImageUploadResponse(
+        mock_image_response = ImageCreateResponse(
             success=True,
             image_id="new_photo_789",
             storage_path="images/plants/photo.jpg",
@@ -395,7 +395,7 @@ class TestPlantServiceAddPlantPhoto:
     async def test_add_plant_photo_image_upload_failure(self, plant_service, add_photo_request, mock_plant_data):
         """Test photo addition when image upload fails"""
         mock_image_service = MagicMock()
-        mock_image_response = ImageUploadResponse(
+        mock_image_response = ImageCreateResponse(
             success=False,
             image_id="",
             storage_path="",

@@ -28,6 +28,7 @@ class ImageSourceType(str, Enum):
     BASE64 = "base64"
     URL = "url"
     CAMERA = "camera"
+    AI_GENERATE = "ai_generate"
 
 class ImageProcessingStatus(str, Enum):
     """Status of image processing"""
@@ -117,7 +118,7 @@ class UpdateImageRequest(BaseModel):
     tags: Optional[list[str]] = None
     notes: Optional[str] = None
 
-class ImageUploadResponse(BaseModel):
+class ImageCreateResponse(BaseModel):
     """Response model for image upload operations"""
     success: bool
     image_id: str
@@ -166,5 +167,22 @@ class ImageUrlsResponse(BaseModel):
     results: list[ImageUrlInfo]
     message: str
 
+class ImageGenerateRequest(BaseModel):
+    """Request model for generating an image"""
+    prompt: str
+    provider: str
 
+class ImageGenerateResponse(BaseModel):
+    """Response model for generating an image"""
+    success: bool
+    image_id: Optional[str] = None
+    text_data: Optional[str] = None
+    message: str
+
+class GenImageResponse(BaseModel):
+    """Response model for generating an image from a provider"""
+    image_data: Optional[bytes] = None
+    text_data: Optional[str] = None
+    mimetype: Optional[str] = None
+    message: str
 

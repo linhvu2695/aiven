@@ -9,10 +9,12 @@ import requests
 import asyncio
 
 from app.classes.image import (
+    ImageGenerateRequest,
+    ImageGenerateResponse,
     ImageInfo,
     CreateImageRequest,
     UpdateImageRequest,
-    ImageUploadResponse,
+    ImageCreateResponse,
     ImageResponse,
     ImageListResponse,
     ImageUrlResponse,
@@ -39,6 +41,8 @@ from app.utils.string.string_utils import (
     validate_exactly_one_field,
 )
 from app.utils.image.image_utils import generate_storage_path
+from app.services.image.image_gen.image_gen_gemini import ImageGenGemini
+from app.services.image.image_gen.image_gen_providers import ImageGenProvider
 
 IMAGE_COLLECTION_NAME = "images"
 IMAGE_STORAGE_FOLDER = "images"
@@ -123,12 +127,12 @@ class ImageService:
         else:
             raise ValueError("No image data source provided")
 
-    async def create_image(self, request: CreateImageRequest) -> ImageUploadResponse:
+    async def create_image(self, request: CreateImageRequest) -> ImageCreateResponse:
         """Create and upload a new image"""
         valid, warning = self._validate_create_image_request(request)
         if not valid:
             logging.getLogger("uvicorn.warning").warning(warning)
-            return ImageUploadResponse(
+            return ImageCreateResponse(
                 success=False, image_id="", storage_path="", message=warning
             )
 
@@ -179,7 +183,7 @@ class ImageService:
             # Insert into MongoDB
             image_id = await insert_document(IMAGE_COLLECTION_NAME, document)
 
-            return ImageUploadResponse(
+            return ImageCreateResponse(
                 success=True,
                 image_id=image_id,
                 storage_path=storage_path,
@@ -191,7 +195,7 @@ class ImageService:
         except Exception as e:
             error_msg = f"Failed to create image: {str(e)}"
             logging.getLogger("uvicorn.error").error(error_msg)
-            return ImageUploadResponse(
+            return ImageCreateResponse(
                 success=False, image_id="", storage_path="", message=error_msg
             )
 
@@ -484,3 +488,29 @@ class ImageService:
                 message=error_msg
             )
 
+    async def generate_image(self, request: ImageGenerateRequest) -> ImageGenerateResponse:
+        if request.provider == ImageGenProvider.GEMINI:
+            genimage_response = ImageGenGemini().generate_image(request.prompt)
+        else:
+            return ImageGenerateResponse(success=False, image_id="", message=f"Provider {request.provider} not supported")
+
+        if genimage_response.image_data:
+            create_image_response = await self.create_image(CreateImageRequest(
+                filename=f"image_{request.provider}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.{genimage_response.mimetype}",
+                image_type=ImageType.GENERAL,
+                source_type=ImageSourceType.AI_GENERATE,
+                file_data=genimage_response.image_data,
+                description=f"Generated image for prompt: {request.prompt}",
+            ))
+
+            if create_image_response.success:
+                return ImageGenerateResponse(
+                    success=True, 
+                    image_id=create_image_response.image_id, 
+                    text_data=genimage_response.text_data,
+                    message=create_image_response.message
+                    )
+            else:
+                return ImageGenerateResponse(success=False, image_id="", message=create_image_response.message)
+        else:
+            return ImageGenerateResponse(success=False, image_id="", message=genimage_response.message)

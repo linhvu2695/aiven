@@ -11,7 +11,7 @@ from app.classes.image import (
     ImageInfo,
     CreateImageRequest,
     UpdateImageRequest,
-    ImageUploadResponse,
+    ImageCreateResponse,
     ImageResponse,
     ImageListResponse,
     ImageUrlResponse,
@@ -300,7 +300,7 @@ class TestImageServiceCreateImage:
             
             response = await image_service.create_image(create_image_request_file_data)
             
-            assert isinstance(response, ImageUploadResponse)
+            assert isinstance(response, ImageCreateResponse)
             assert response.success is True
             assert response.image_id == "image_123"
             assert response.storage_path == "test/path"
@@ -318,7 +318,7 @@ class TestImageServiceCreateImage:
         
         response = await image_service.create_image(invalid_request)
         
-        assert isinstance(response, ImageUploadResponse)
+        assert isinstance(response, ImageCreateResponse)
         assert response.success is False
         assert response.image_id == ""
         assert response.storage_path == ""
@@ -330,7 +330,7 @@ class TestImageServiceCreateImage:
         with patch("app.services.image.image_service.generate_storage_path", side_effect=Exception("Storage error")):
             response = await image_service.create_image(create_image_request_file_data)
             
-            assert isinstance(response, ImageUploadResponse)
+            assert isinstance(response, ImageCreateResponse)
             assert response.success is False
             assert response.image_id == ""
             assert response.storage_path == ""

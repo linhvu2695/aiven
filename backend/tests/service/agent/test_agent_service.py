@@ -355,7 +355,7 @@ class TestAgentService:
     @pytest.mark.asyncio
     async def test_update_agent_avatar_success(self, agent_service):
         """Test successful avatar update"""
-        from app.classes.image import ImageUploadResponse
+        from app.classes.image import ImageCreateResponse
         
         mock_file = MagicMock()
         mock_file.read = MagicMock(return_value=b"fake image data")
@@ -374,7 +374,7 @@ class TestAgentService:
         )
         
         mock_image_service = MagicMock()
-        mock_upload_response = ImageUploadResponse(
+        mock_upload_response = ImageCreateResponse(
             success=True,
             image_id="new_image_123",
             storage_path="images/agent_test_id/avatar.jpg",
