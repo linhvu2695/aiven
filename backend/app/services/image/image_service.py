@@ -496,7 +496,7 @@ class ImageService:
 
         if genimage_response.image_data:
             create_image_response = await self.create_image(CreateImageRequest(
-                filename=f"image_{request.provider}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.{genimage_response.mimetype}",
+                filename=f"image_{request.provider}_{datetime.now().strftime('%Y%m%d_%H%M%S')}{genimage_response.mimetype}",
                 image_type=ImageType.GENERAL,
                 source_type=ImageSourceType.AI_GENERATE,
                 file_data=genimage_response.image_data,

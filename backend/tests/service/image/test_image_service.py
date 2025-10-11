@@ -23,6 +23,9 @@ from app.classes.image import (
     ImageProcessingStatus,
     ImageType,
     ImageSourceType,
+    ImageGenerateRequest,
+    ImageGenerateResponse,
+    GenImageResponse,
 )
 
 
@@ -830,3 +833,210 @@ class TestImageServiceBatchPresignedUrls:
             # Concurrent should be closer to 0.01 seconds
             execution_time = (end_time - start_time).total_seconds()
             assert execution_time < 0.02, f"Execution took {execution_time} seconds, expected concurrent execution"
+
+class TestImageServiceGenerateImage:
+    
+    @pytest.mark.asyncio
+    async def test_generate_image_success_gemini(self, image_service: ImageService, sample_image_bytes):
+        """Test successful image generation with Gemini provider"""
+        from app.services.image.image_gen.image_gen_providers import ImageGenProvider
+        
+        # Create request
+        request = ImageGenerateRequest(
+            prompt="A beautiful sunset over mountains",
+            provider=ImageGenProvider.GEMINI
+        )
+        
+        # Mock the GenImageResponse
+        mock_gen_response = GenImageResponse(
+            image_data=sample_image_bytes,
+            text_data="Generated a beautiful sunset image",
+            mimetype=".png",
+            message=""
+        )
+        
+        # Mock the create_image response
+        mock_create_response = ImageCreateResponse(
+            success=True,
+            image_id="test-image-id",
+            storage_path="test/path",
+            storage_url="https://storage.url",
+            message="Image uploaded successfully"
+        )
+        
+        with patch("app.services.image.image_service.ImageGenGemini") as mock_gemini_class:
+            mock_gemini_instance = MagicMock()
+            mock_gemini_instance.generate_image.return_value = mock_gen_response
+            mock_gemini_class.return_value = mock_gemini_instance
+            
+            with patch.object(image_service, "create_image", return_value=mock_create_response):
+                response = await image_service.generate_image(request)
+                
+                assert isinstance(response, ImageGenerateResponse)
+                assert response.success is True
+                assert response.image_id == "test-image-id"
+                assert response.text_data == "Generated a beautiful sunset image"
+                assert response.message == "Image uploaded successfully"
+                
+                # Verify ImageGenGemini was called correctly
+                mock_gemini_instance.generate_image.assert_called_once_with("A beautiful sunset over mountains")
+    
+    @pytest.mark.asyncio
+    async def test_generate_image_unsupported_provider(self, image_service: ImageService):
+        """Test image generation with unsupported provider"""
+        request = ImageGenerateRequest(
+            prompt="A beautiful sunset",
+            provider="unsupported_provider"
+        )
+        
+        response = await image_service.generate_image(request)
+        
+        assert isinstance(response, ImageGenerateResponse)
+        assert response.success is False
+        assert response.image_id == ""
+        assert "Provider unsupported_provider not supported" in response.message
+    
+    @pytest.mark.asyncio
+    async def test_generate_image_generation_failure(self, image_service: ImageService):
+        """Test image generation when provider fails to generate image"""
+        from app.services.image.image_gen.image_gen_providers import ImageGenProvider
+        
+        request = ImageGenerateRequest(
+            prompt="A beautiful sunset",
+            provider=ImageGenProvider.GEMINI
+        )
+        
+        # Mock the GenImageResponse with no image data (failure)
+        mock_gen_response = GenImageResponse(
+            image_data=None,
+            text_data=None,
+            mimetype=None,
+            message="Failed to generate image: API error"
+        )
+        
+        with patch("app.services.image.image_service.ImageGenGemini") as mock_gemini_class:
+            mock_gemini_instance = MagicMock()
+            mock_gemini_instance.generate_image.return_value = mock_gen_response
+            mock_gemini_class.return_value = mock_gemini_instance
+            
+            response = await image_service.generate_image(request)
+            
+            assert isinstance(response, ImageGenerateResponse)
+            assert response.success is False
+            assert response.image_id == ""
+            assert response.message == "Failed to generate image: API error"
+    
+    @pytest.mark.asyncio
+    async def test_generate_image_create_image_failure(self, image_service: ImageService, sample_image_bytes):
+        """Test image generation when create_image fails"""
+        from app.services.image.image_gen.image_gen_providers import ImageGenProvider
+        
+        request = ImageGenerateRequest(
+            prompt="A beautiful sunset",
+            provider=ImageGenProvider.GEMINI
+        )
+        
+        # Mock successful generation but failed storage
+        mock_gen_response = GenImageResponse(
+            image_data=sample_image_bytes,
+            text_data="Generated image",
+            mimetype=".png",
+            message=""
+        )
+        
+        mock_create_response = ImageCreateResponse(
+            success=False,
+            image_id="",
+            storage_path="",
+            message="Failed to upload to storage"
+        )
+        
+        with patch("app.services.image.image_service.ImageGenGemini") as mock_gemini_class:
+            mock_gemini_instance = MagicMock()
+            mock_gemini_instance.generate_image.return_value = mock_gen_response
+            mock_gemini_class.return_value = mock_gemini_instance
+            
+            with patch.object(image_service, "create_image", return_value=mock_create_response):
+                response = await image_service.generate_image(request)
+                
+                assert isinstance(response, ImageGenerateResponse)
+                assert response.success is False
+                assert response.image_id == ""
+                assert response.message == "Failed to upload to storage"
+    
+    @pytest.mark.asyncio
+    async def test_generate_image_with_text_data_only(self, image_service: ImageService):
+        """Test image generation when only text data is returned"""
+        from app.services.image.image_gen.image_gen_providers import ImageGenProvider
+        
+        request = ImageGenerateRequest(
+            prompt="A beautiful sunset",
+            provider=ImageGenProvider.GEMINI
+        )
+        
+        # Mock response with text but no image
+        mock_gen_response = GenImageResponse(
+            image_data=None,
+            text_data="Cannot generate this image due to safety concerns",
+            mimetype=None,
+            message=""
+        )
+        
+        with patch("app.services.image.image_service.ImageGenGemini") as mock_gemini_class:
+            mock_gemini_instance = MagicMock()
+            mock_gemini_instance.generate_image.return_value = mock_gen_response
+            mock_gemini_class.return_value = mock_gemini_instance
+            
+            response = await image_service.generate_image(request)
+            
+            assert isinstance(response, ImageGenerateResponse)
+            assert response.success is False
+            assert response.image_id == ""
+            assert response.message == ""
+    
+    @pytest.mark.asyncio
+    async def test_generate_image_creates_proper_request(self, image_service: ImageService, sample_image_bytes):
+        """Test that generate_image creates proper CreateImageRequest"""
+        from app.services.image.image_gen.image_gen_providers import ImageGenProvider
+        
+        request = ImageGenerateRequest(
+            prompt="test prompt",
+            provider=ImageGenProvider.GEMINI
+        )
+        
+        mock_gen_response = GenImageResponse(
+            image_data=sample_image_bytes,
+            text_data="text",
+            mimetype=".png",
+            message=""
+        )
+        
+        mock_create_response = ImageCreateResponse(
+            success=True,
+            image_id="test-id",
+            storage_path="path",
+            message="success"
+        )
+        
+        with patch("app.services.image.image_service.ImageGenGemini") as mock_gemini_class, \
+             patch("app.services.image.image_service.datetime") as mock_datetime:
+            
+            # Mock datetime to have predictable filename
+            mock_datetime.now.return_value.strftime.return_value = "20241011_120000"
+            
+            mock_gemini_instance = MagicMock()
+            mock_gemini_instance.generate_image.return_value = mock_gen_response
+            mock_gemini_class.return_value = mock_gemini_instance
+            
+            with patch.object(image_service, "create_image", return_value=mock_create_response) as mock_create:
+                await image_service.generate_image(request)
+                
+                # Verify create_image was called with correct parameters
+                mock_create.assert_called_once()
+                create_request = mock_create.call_args[0][0]
+                
+                assert create_request.filename == "image_gemini_20241011_120000.png"
+                assert create_request.image_type == ImageType.GENERAL
+                assert create_request.source_type == ImageSourceType.AI_GENERATE
+                assert create_request.file_data == sample_image_bytes
+                assert "Generated image for prompt: test prompt" in create_request.description

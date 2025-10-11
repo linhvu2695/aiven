@@ -24,33 +24,43 @@ class ImageGenGemini:
 
     def generate_image(self, prompt: str) -> GenImageResponse:
         text_data = ""
+        data_buffer = None
+        mimetype = ""
 
-        for chunk in self.client.models.generate_content_stream(
-            model=self._model,
-            contents=prompt,
-            config=types.GenerateContentConfig(
-                response_modalities=[
-                    "IMAGE",
-                    "TEXT",
-                ],
-            ),
-        ):
-            if (
-                chunk.candidates is None
-                or chunk.candidates[0].content is None
-                or chunk.candidates[0].content.parts is None
+        try:
+            for chunk in self.client.models.generate_content_stream(
+                model=self._model,
+                contents=prompt,
+                config=types.GenerateContentConfig(
+                    response_modalities=[
+                        "IMAGE",
+                        "TEXT",
+                    ],
+                ),
             ):
-                continue
-            
-            if (
-                chunk.candidates[0].content.parts[0].inline_data 
-                and chunk.candidates[0].content.parts[0].inline_data.data
-            ):
-                inline_data = chunk.candidates[0].content.parts[0].inline_data
-                data_buffer = inline_data.data
-                mimetype = mimetypes.guess_extension(str(inline_data.mime_type))
-            else:
-                text_data = text_data + str(chunk.text)
+                if (
+                    chunk.candidates is None
+                    or chunk.candidates[0].content is None
+                    or chunk.candidates[0].content.parts is None
+                ):
+                    continue
+                
+                if (
+                    chunk.candidates[0].content.parts[0].inline_data 
+                    and chunk.candidates[0].content.parts[0].inline_data.data
+                ):
+                    inline_data = chunk.candidates[0].content.parts[0].inline_data
+                    data_buffer = inline_data.data
+                    mimetype = mimetypes.guess_extension(str(inline_data.mime_type))
+                else:
+                    text_data = text_data + str(chunk.text)
+        except Exception as e:
+            return GenImageResponse(
+                message=str(e),
+                image_data=None,
+                text_data=None,
+                mimetype=None,
+            )
 
         return GenImageResponse(
             message="",
