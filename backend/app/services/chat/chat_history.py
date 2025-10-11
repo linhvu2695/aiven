@@ -1,11 +1,12 @@
 from collections.abc import Sequence
 import asyncio, logging
 from datetime import datetime, timezone
+from bson import ObjectId
 from langchain_core.messages import HumanMessage, AIMessage, SystemMessage
 from langchain_core.chat_history import BaseChatMessageHistory
 from langchain_core.messages.base import BaseMessage
 from app.core.database import delete_document, get_document, update_document, insert_document, get_mongodb_conn
-from app.classes.conversation import Conversation, ConversationInfo
+from app.classes.conversation import Conversation, ConversationDeleteRequest, ConversationInfo
 
 CONVERSATION_COLLECTION = "conversation"
 
@@ -215,19 +216,15 @@ class ConversationRepository:
             logging.getLogger("uvicorn.error").error(f"Error retrieving conversation: {e}")
             return None
         
-    async def delete_conversation(self, id: str) -> bool:
-        """
-        Delete a conversation by its ID.
+    async def delete_conversation(self, id: str) -> ConversationDeleteRequest:
+        if not ObjectId.is_valid(id):
+            return ConversationDeleteRequest(success=False, message="Invalid conversation ID")
         
-        Args:
-            id: The ID of the conversation to delete
-            
-        Returns:
-            True if deletion was successful, False otherwise
-        """
         try:
-            await delete_document(CONVERSATION_COLLECTION, id)
-            return True
+            deleted = await delete_document(CONVERSATION_COLLECTION, id)
+            if deleted:
+                return ConversationDeleteRequest(success=True, message="")
+            else:
+                return ConversationDeleteRequest(success=False, message="Failed to delete conversation")
         except Exception as e:
-            logging.getLogger("uvicorn.error").error(f"Error deleting conversation: {e}")
-            return False
+            return ConversationDeleteRequest(success=False, message=str(e))

@@ -81,9 +81,12 @@ export const ArticleTreeItem = ({
 
     const handleDeleteArticle = async (articleId: string) => {
         const response = await fetch(
-            BASE_URL + `/api/article/delete?id=${articleId}`,
+            BASE_URL + `/api/article/${articleId}`,
             {
-                method: "POST",
+                method: "DELETE",
+                headers: {
+                    "Content-Type": "application/json",
+                },
             }
         );
 

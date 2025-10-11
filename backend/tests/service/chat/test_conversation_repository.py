@@ -7,17 +7,15 @@ from app.services.chat.chat_history import ConversationRepository, CONVERSATION_
 from app.classes.conversation import Conversation, ConversationInfo
 
 # Test constants
-TEST_SESSION_ID = "test-session-id"
-TEST_SESSION_ID_2 = "test-session-id-2"
-TEST_OBJECT_ID = ObjectId("507f1f77bcf86cd799439011")
-TEST_OBJECT_ID_2 = ObjectId("507f1f77bcf86cd799439012")
+TEST_SESSION_ID_1 = "000000000000000000000001"
+TEST_SESSION_ID_2 = "000000000000000000000002"
 
 
 @pytest.fixture
 def sample_conversation_data():
     """Sample conversation data from database."""
     return {
-        "_id": TEST_OBJECT_ID,
+        "_id": TEST_SESSION_ID_1,
         "name": "Test Conversation",
         "messages": [
             {"content": "Hello", "type": "human"},
@@ -33,12 +31,12 @@ def sample_conversation_info_data():
     """Sample conversation info data for list queries."""
     return [
         {
-            "_id": TEST_OBJECT_ID,
+            "_id": TEST_SESSION_ID_1,
             "name": "Recent Conversation",
             "updated_at": datetime(2023, 1, 2, 12, 0, 0, tzinfo=timezone.utc)
         },
         {
-            "_id": TEST_OBJECT_ID_2,
+            "_id": TEST_SESSION_ID_2,
             "name": "Older Conversation", 
             "updated_at": datetime(2023, 1, 1, 12, 0, 0, tzinfo=timezone.utc)
         }
@@ -103,9 +101,9 @@ class TestGetConversations:
         # Verify results
         assert len(conversations) == 2
         assert all(isinstance(conv, ConversationInfo) for conv in conversations)
-        assert conversations[0].session_id == str(TEST_OBJECT_ID)
+        assert conversations[0].session_id == TEST_SESSION_ID_1
         assert conversations[0].name == "Recent Conversation"
-        assert conversations[1].session_id == str(TEST_OBJECT_ID_2)
+        assert conversations[1].session_id == TEST_SESSION_ID_2
         assert conversations[1].name == "Older Conversation"
     
     @pytest.mark.asyncio
@@ -200,7 +198,7 @@ class TestGetConversations:
         
         # Document without name field
         conversation_without_name = {
-            "_id": TEST_OBJECT_ID,
+            "_id": TEST_SESSION_ID_1,
             "updated_at": datetime(2023, 1, 1, 12, 0, 0, tzinfo=timezone.utc)
         }
         
@@ -324,13 +322,13 @@ class TestGetConversation:
         mock_get_document.return_value = sample_conversation_data
         
         repo = ConversationRepository()
-        conversation = await repo.get_conversation(TEST_SESSION_ID)
+        conversation = await repo.get_conversation(TEST_SESSION_ID_1)
         
-        mock_get_document.assert_called_once_with(CONVERSATION_COLLECTION, TEST_SESSION_ID)
+        mock_get_document.assert_called_once_with(CONVERSATION_COLLECTION, TEST_SESSION_ID_1)
         
         assert conversation is not None
         assert isinstance(conversation, Conversation)
-        assert conversation.id == str(TEST_OBJECT_ID)
+        assert conversation.id == TEST_SESSION_ID_1
         assert conversation.name == "Test Conversation"
         assert len(conversation.messages) == 2
         assert conversation.created_at == sample_conversation_data["created_at"]
@@ -352,14 +350,14 @@ class TestGetConversation:
     @patch('app.services.chat.chat_history.get_document')
     async def test_get_conversation_minimal_data(self, mock_get_document):
         """Test handling of conversation with minimal data."""
-        minimal_data = {"_id": TEST_OBJECT_ID}
+        minimal_data = {"_id": TEST_SESSION_ID_1}
         mock_get_document.return_value = minimal_data
         
         repo = ConversationRepository()
-        conversation = await repo.get_conversation(TEST_SESSION_ID)
+        conversation = await repo.get_conversation(TEST_SESSION_ID_1)
         
         assert conversation is not None
-        assert conversation.id == str(TEST_OBJECT_ID)
+        assert conversation.id == TEST_SESSION_ID_1
         assert conversation.name == ""  # Should default to empty string
         assert conversation.messages == []  # Should default to empty list
         assert isinstance(conversation.created_at, datetime)
@@ -376,7 +374,7 @@ class TestGetConversation:
         mock_get_document.side_effect = Exception("Database error")
         
         repo = ConversationRepository()
-        conversation = await repo.get_conversation(TEST_SESSION_ID)
+        conversation = await repo.get_conversation(TEST_SESSION_ID_1)
         
         # Should return None on error
         assert conversation is None
@@ -390,16 +388,16 @@ class TestGetConversation:
     async def test_get_conversation_missing_fields(self, mock_get_document):
         """Test handling of conversation data with missing optional fields."""
         data_missing_fields = {
-            "_id": TEST_OBJECT_ID,
+            "_id": TEST_SESSION_ID_1,
             # Missing name, messages, created_at, updated_at
         }
         mock_get_document.return_value = data_missing_fields
         
         repo = ConversationRepository()
-        conversation = await repo.get_conversation(TEST_SESSION_ID)
+        conversation = await repo.get_conversation(TEST_SESSION_ID_1)
         
         assert conversation is not None
-        assert conversation.id == str(TEST_OBJECT_ID)
+        assert conversation.id == TEST_SESSION_ID_1
         assert conversation.name == ""
         assert conversation.messages == []
         # Timestamps should be set to current time when missing
@@ -414,114 +412,104 @@ class TestDeleteConversation:
     @patch('app.services.chat.chat_history.delete_document')
     async def test_delete_conversation_success(self, mock_delete_document):
         """Test successful deletion of a conversation."""
-        mock_delete_document.return_value = None  # delete_document doesn't return anything on success
+        mock_delete_document.return_value = True
         
         repo = ConversationRepository()
-        result = await repo.delete_conversation(TEST_SESSION_ID)
+        result = await repo.delete_conversation(TEST_SESSION_ID_1)
         
-        mock_delete_document.assert_called_once_with(CONVERSATION_COLLECTION, TEST_SESSION_ID)
-        assert result is True
+        mock_delete_document.assert_called_once_with(CONVERSATION_COLLECTION, TEST_SESSION_ID_1)
+        assert result.success is True
+        assert result.message == ""
     
     @pytest.mark.asyncio
     @patch('app.services.chat.chat_history.delete_document')
-    @patch('logging.getLogger')
-    async def test_delete_conversation_database_error(self, mock_get_logger, mock_delete_document):
+    async def test_delete_conversation_database_error(self, mock_delete_document):
         """Test error handling when delete_document fails."""
-        mock_logger = MagicMock()
-        mock_get_logger.return_value = mock_logger
-        
         mock_delete_document.side_effect = Exception("Database deletion failed")
         
         repo = ConversationRepository()
-        result = await repo.delete_conversation(TEST_SESSION_ID)
+        result = await repo.delete_conversation(TEST_SESSION_ID_1)
         
         # Should return False on error
-        assert result is False
-        
-        # Should log the error
-        mock_logger.error.assert_called_once()
-        error_message = mock_logger.error.call_args[0][0]
-        assert "Error deleting conversation" in error_message
-        assert "Database deletion failed" in error_message
+        assert result.success is False
+        assert result.message == "Database deletion failed"
     
     @pytest.mark.asyncio
     @patch('app.services.chat.chat_history.delete_document')
-    async def test_delete_conversation_nonexistent_id(self, mock_delete_document):
+    async def test_delete_conversation_invalid_id(self, mock_delete_document):
         """Test deletion of non-existent conversation ID."""
-        mock_delete_document.return_value = None  # delete_document doesn't throw for non-existent docs
+        mock_delete_document.return_value = True
         
         repo = ConversationRepository()
-        result = await repo.delete_conversation("nonexistent-id")
+        result = await repo.delete_conversation("invalid-id")
         
-        mock_delete_document.assert_called_once_with(CONVERSATION_COLLECTION, "nonexistent-id")
-        assert result is True  # Should still return True as delete_document succeeded
+        # Should not call delete_document with invalid ID - validation happens first
+        mock_delete_document.assert_not_called()
+        assert result.success is False
+        assert result.message == "Invalid conversation ID"
     
     @pytest.mark.asyncio
     @patch('app.services.chat.chat_history.delete_document')
     async def test_delete_conversation_empty_id(self, mock_delete_document):
         """Test deletion with empty ID string."""
-        mock_delete_document.return_value = None
+        mock_delete_document.return_value = True
         
         repo = ConversationRepository()
         result = await repo.delete_conversation("")
         
-        mock_delete_document.assert_called_once_with(CONVERSATION_COLLECTION, "")
-        assert result is True
+        # Should not call delete_document with empty ID - validation happens first
+        mock_delete_document.assert_not_called()
+        assert result.success is False
+        assert result.message == "Invalid conversation ID"
     
     @pytest.mark.asyncio
     @patch('app.services.chat.chat_history.delete_document')
     async def test_delete_conversation_with_object_id(self, mock_delete_document):
         """Test deletion using ObjectId string format."""
-        mock_delete_document.return_value = None
-        object_id_string = str(TEST_OBJECT_ID)
+        mock_delete_document.return_value = True
+        object_id_string = TEST_SESSION_ID_1
         
         repo = ConversationRepository()
         result = await repo.delete_conversation(object_id_string)
         
         mock_delete_document.assert_called_once_with(CONVERSATION_COLLECTION, object_id_string)
-        assert result is True
+        assert result.success is True
+        assert result.message == ""
     
     @pytest.mark.asyncio
     @patch('app.services.chat.chat_history.delete_document')
-    @patch('logging.getLogger')
-    async def test_delete_conversation_connection_error(self, mock_get_logger, mock_delete_document):
+    async def test_delete_conversation_connection_error(self, mock_delete_document):
         """Test error handling when database connection fails."""
-        mock_logger = MagicMock()
-        mock_get_logger.return_value = mock_logger
-        
         mock_delete_document.side_effect = ConnectionError("Failed to connect to database")
         
         repo = ConversationRepository()
-        result = await repo.delete_conversation(TEST_SESSION_ID)
+        result = await repo.delete_conversation(TEST_SESSION_ID_1)
         
-        # Should return False on connection error
-        assert result is False
-        
-        # Should log the error with proper context
-        mock_logger.error.assert_called_once()
-        error_message = mock_logger.error.call_args[0][0]
-        assert "Error deleting conversation" in error_message
-        assert "Failed to connect to database" in error_message
+        # Should return ConversationDeleteRequest with success=False on connection error
+        assert result.success is False
+        assert result.message == "Failed to connect to database"
     
     @pytest.mark.asyncio
     @patch('app.services.chat.chat_history.delete_document')
     async def test_delete_conversation_idempotence(self, mock_delete_document):
         """Test that deleting the same conversation twice is idempotent and doesn't cause issues."""
-        mock_delete_document.return_value = None
+        mock_delete_document.return_value = True
         
         repo = ConversationRepository()
         
         # Delete the same conversation twice
-        result1 = await repo.delete_conversation(TEST_SESSION_ID)
-        assert result1 is True
+        result1 = await repo.delete_conversation(TEST_SESSION_ID_1)
+        assert result1.success is True
+        assert result1.message == ""
         
-        result2 = await repo.delete_conversation(TEST_SESSION_ID)
-        assert result2 is True
+        result2 = await repo.delete_conversation(TEST_SESSION_ID_1)
+        assert result2.success is True
+        assert result2.message == ""
         
         # Verify both calls were made with the same parameters
         assert mock_delete_document.call_count == 2
         mock_delete_document.assert_has_calls([
-            call(CONVERSATION_COLLECTION, TEST_SESSION_ID),
-            call(CONVERSATION_COLLECTION, TEST_SESSION_ID)
+            call(CONVERSATION_COLLECTION, TEST_SESSION_ID_1),
+            call(CONVERSATION_COLLECTION, TEST_SESSION_ID_1)
         ])
     

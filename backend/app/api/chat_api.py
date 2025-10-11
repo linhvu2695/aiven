@@ -6,6 +6,7 @@ import json, logging, base64, mimetypes
 from app.classes.chat import ChatRequest, ChatResponse, ChatMessage, ChatStreamChunk, ChatFileContent
 from app.services.chat.chat_service import ChatService
 from app.services.chat.chat_history import ConversationRepository
+from app.classes.conversation import ConversationDeleteRequest
 
 router = APIRouter()
 
@@ -258,6 +259,10 @@ async def get_conversation(id: str):
     return await ConversationRepository().get_conversation(id)
 
 
-@router.delete("/conversations/{id}")
+@router.delete("/conversations/{id}", response_model=ConversationDeleteRequest)
 async def delete_conversation(id: str):
-    return await ConversationRepository().delete_conversation(id)
+    result = await ConversationRepository().delete_conversation(id)
+    if result.success:
+        return result
+    else:
+        raise HTTPException(status_code=400, detail=result.message)

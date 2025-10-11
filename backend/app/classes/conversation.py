@@ -14,3 +14,7 @@ class ConversationInfo(BaseModel):
     session_id: str
     name: str
     updated_at: datetime
+
+class ConversationDeleteRequest(BaseModel):
+    success: bool
+    message: str
