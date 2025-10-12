@@ -9,6 +9,7 @@ import { AgentProvider } from "./context/agent-ctx";
 import { ArticleProvider } from "./context/article-ctx";
 import { ChatProvider } from "./context/chat-ctx";
 import { Toaster } from "./components/ui/toaster";
+import ImagePage from "./pages/image-page";
 
 export const BASE_URL = import.meta.env.VITE_API_BASE_URL;
 
@@ -35,6 +36,10 @@ function App() {
                                     <AgentManagementPage />
                                 </AgentProvider>
                             }
+                        />
+                        <Route
+                            path="/image"
+                            element={<ImagePage />}
                         />
                         <Route
                             path="/knowledge"

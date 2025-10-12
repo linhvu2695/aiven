@@ -11,3 +11,20 @@ export interface ImageUrlsResponse {
     results: ImageUrlInfo[];
     message: string;
 }
+
+export interface ImageInfo {
+    id: string;
+    uploaded_at: string;
+    updated_at: string;
+    description?: string;
+    title?: string;
+    filename?: string;
+    original_filename?: string;
+}
+
+export interface ImageListResponse {
+    success: boolean;
+    images: ImageInfo[];
+    message: string;
+    total_count: number;
+}

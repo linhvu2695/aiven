@@ -1,6 +1,6 @@
 import { Box, Container, Flex, Text, IconButton } from "@chakra-ui/react";
 import { ColorModeButton } from "@/components/ui/color-mode";
-import { FaBook, FaComment, FaSeedling } from "react-icons/fa";
+import { FaBook, FaComment, FaImages, FaSeedling } from "react-icons/fa";
 import { Tooltip } from "@/components/ui/tooltip";
 import { useNavigate } from "react-router-dom";
 import { FaRobot } from "react-icons/fa6";
@@ -69,10 +69,22 @@ function Navbar() {
                                 </IconButton>
                             </Tooltip>
 
-                            {/* Knowledge base */}
-                            <Tooltip content="Knowledge base" showArrow>
+                            {/* Image library */}
+                            <Tooltip content="Image" showArrow>
                                 <IconButton
-                                    aria-label="Knowledge base"
+                                    aria-label="Image library"
+                                    variant="ghost"
+                                    size="xl"
+                                    onClick={() => navigate("/image")}
+                                >
+                                    <FaImages />
+                                </IconButton>
+                            </Tooltip>
+
+                            {/* Knowledge */}
+                            <Tooltip content="Knowledge" showArrow>
+                                <IconButton
+                                    aria-label="Knowledge"
                                     variant="ghost"
                                     size="xl"
                                     onClick={() => navigate("/knowledge")}
