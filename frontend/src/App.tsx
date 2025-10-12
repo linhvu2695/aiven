@@ -8,6 +8,7 @@ import PlantPage from "./pages/plant-page";
 import { AgentProvider } from "./context/agent-ctx";
 import { ArticleProvider } from "./context/article-ctx";
 import { ChatProvider } from "./context/chat-ctx";
+import { ImageProvider } from "./context/image-ctx";
 import { Toaster } from "./components/ui/toaster";
 import ImagePage from "./pages/image-page";
 
@@ -39,7 +40,11 @@ function App() {
                         />
                         <Route
                             path="/image"
-                            element={<ImagePage />}
+                            element={
+                                <ImageProvider>
+                                    <ImagePage />
+                                </ImageProvider>
+                            }
                         />
                         <Route
                             path="/knowledge"

@@ -13,20 +13,17 @@ import {
 import { useEffect, useState } from "react";
 import { toaster } from "@/components/ui/toaster";
 import type {
-    ImageInfo,
     ImageListResponse,
     ImageUrlsResponse,
 } from "@/types/image";
-import { ImageCard } from "@/components/image";
-
-interface ImageWithUrl extends ImageInfo {
-    url?: string;
-}
+import { ImageCard, ImageDetailDialog } from "@/components/image";
+import { useImage, type ImageWithUrl } from "@/context/image-ctx";
 
 export const ImagePage = () => {
     const [images, setImages] = useState<ImageWithUrl[]>([]);
     const [loading, setLoading] = useState(true);
     const [searchQuery, setSearchQuery] = useState("");
+    const { openImageDialog } = useImage();
 
     const fetchImages = async () => {
         try {
@@ -133,12 +130,18 @@ export const ImagePage = () => {
                             p={4}
                         >
                             {images.map((image) => (
-                                <ImageCard key={image.id} image={image} />
+                                <ImageCard 
+                                    key={image.id} 
+                                    image={image}
+                                    onClick={() => openImageDialog(image)}
+                                />
                             ))}
                         </Grid>
                     )}
                 </Box>
             </Flex>
+
+            <ImageDetailDialog />
         </Box>
     );
 };

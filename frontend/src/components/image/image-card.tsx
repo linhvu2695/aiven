@@ -14,11 +14,22 @@ interface ImageWithUrl extends ImageInfo {
 
 interface ImageCardProps {
     image: ImageWithUrl;
+    onClick?: () => void;
 }
 
-export const ImageCard = ({ image }: ImageCardProps) => {
+export const ImageCard = ({ image, onClick }: ImageCardProps) => {
     return (
-        <Card.Root key={image.id} overflow="hidden">
+        <Card.Root 
+            key={image.id} 
+            overflow="hidden"
+            cursor="pointer"
+            onClick={onClick}
+            _hover={{
+                transform: "scale(1.02)",
+                transition: "transform 0.2s",
+                boxShadow: "lg",
+            }}
+        >
             <VStack align="stretch" gap={0}>
                 {image.url ? (
                     <Image
