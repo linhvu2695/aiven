@@ -31,6 +31,7 @@ from app.services.agent.agent_service import AgentService
 from app.services.tool.tool_service import ToolService
 from app.services.chat.chat_history import MongoDBChatHistory
 from app.core.database import update_document
+from app.utils.string.string_utils import is_empty_string
 
 GPT_DEFAULT_MODEL = LLMModel.GPT_4O_MINI
 
@@ -400,27 +401,42 @@ class ChatService:
                 config=config,
                 stream_mode="messages"
             ):
+                logging.getLogger("uvicorn.debug").debug(f"Token: {token}")
                 # Stream individual tokens as they are produced
                 token_content = ""
+                message_id = ""
+                tool_call_id = ""
+                tool_name = ""
+
                 if isinstance(token, str):
                     token_content = token
-                elif hasattr(token, 'content') and token.content:
-                    if isinstance(token.content, str):
-                        token_content = token.content
-                    elif isinstance(token.content, list):
-                        # Handle list content (like tool calls or complex content)
-                        for item in token.content:
-                            if isinstance(item, str):
-                                token_content += item
-                            elif isinstance(item, dict) and "text" in item:
-                                token_content += item["text"]
-                
-                # Yield token as ChatStreamChunk
+                else:
+                    # Handle text content
+                    if hasattr(token, 'content') and token.content:
+                        if isinstance(token.content, str):
+                            token_content = token.content
+                        elif isinstance(token.content, list):
+                            for item in token.content:
+                                if isinstance(item, str):
+                                    token_content += item
+                                elif isinstance(item, dict) and "text" in item:
+                                    token_content += item["text"]
+                    
+                    # Handle IDs
+                    if hasattr(token, 'id'):
+                        message_id = token.id
+                    if hasattr(token, 'tool_call_id'):
+                        tool_call_id = token.tool_call_id
+                        tool_name = token.name
+
+                # Yield token content as ChatStreamChunk
                 if token_content:
                     chunk = ChatStreamChunk(
                         content=token_content,
                         session_id=history._session_id if not first_chunk_sent else "",
-                        is_complete=False
+                        message_id=message_id,
+                        is_complete=False,
+                        tool_name=tool_name
                     )
                     first_chunk_sent = True
                     yield chunk

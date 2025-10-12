@@ -46,6 +46,14 @@ const ChatContainerContent = () => {
         });
     };
 
+    const getDataToken = (data: any) => {
+        console.log("Data:", data);
+        if (data.tool_name) {
+            return `Called \`${data.tool_name}\``;
+        }
+        return data.token;
+    }
+
     const handleStreamingResponse = async (
         response: Response,
         assistantMessageIndex: number
@@ -55,6 +63,8 @@ const ChatContainerContent = () => {
 
         if (reader) {
             let buffer = "";
+            let currentMessageId: string | null = null;
+            let currentMessageIndex = assistantMessageIndex;
 
             while (true) {
                 const { done, value } = await reader.read();
@@ -79,17 +89,46 @@ const ChatContainerContent = () => {
                             }
 
                             if (data.type === "token" && data.token) {
-                                // Update assistant message with new token
-                                setMessages((prev) => {
-                                    const newMessages = [...prev];
-                                    newMessages[assistantMessageIndex] = {
-                                        ...newMessages[assistantMessageIndex],
-                                        content:
-                                            newMessages[assistantMessageIndex]
-                                                .content + data.token,
-                                    };
-                                    return newMessages;
-                                });
+                                // Check if we got a new message_id
+                                if (data.message_id && data.message_id !== currentMessageId) {
+                                    // New message detected
+                                    if (currentMessageId !== null) {
+                                        // Not the first message, create a new one
+                                        setMessages((prev) => [
+                                            ...prev,
+                                            {
+                                                role: "assistant",
+                                                content: getDataToken(data),
+                                                message_id: data.message_id,
+                                            },
+                                        ]);
+                                        currentMessageIndex = currentMessageIndex + 1;
+                                    } else {
+                                        // First message, update the existing empty one
+                                        setMessages((prev) => {
+                                            const newMessages = [...prev];
+                                            newMessages[currentMessageIndex] = {
+                                                ...newMessages[currentMessageIndex],
+                                                content: getDataToken(data),
+                                                message_id: data.message_id,
+                                            };
+                                            return newMessages;
+                                        });
+                                    }
+                                    currentMessageId = data.message_id;
+                                } else {
+                                    // Same message, append token
+                                    setMessages((prev) => {
+                                        const newMessages = [...prev];
+                                        newMessages[currentMessageIndex] = {
+                                            ...newMessages[currentMessageIndex],
+                                            content:
+                                                newMessages[currentMessageIndex]
+                                                    .content + data.token,
+                                        };
+                                        return newMessages;
+                                    });
+                                }
                             } else if (data.type === "done") {
                                 // Final session_id confirmation (safety net)
                                 if (data.session_id && !sessionId) {

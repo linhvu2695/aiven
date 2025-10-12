@@ -208,7 +208,12 @@ async def stream_chat_endpoint(request: Request):
             ):
                 # Handle ChatStreamChunk objects
                 if isinstance(chunk, ChatStreamChunk):
-                    response_data = {"token": chunk.content, "type": "token"}
+                    response_data = {
+                        "token": chunk.content,
+                        "type": "token",
+                        "message_id": chunk.message_id,
+                        "tool_name": chunk.tool_name,
+                    }
 
                     # Include session_id if present (typically in first chunk or completion)
                     if chunk.session_id:

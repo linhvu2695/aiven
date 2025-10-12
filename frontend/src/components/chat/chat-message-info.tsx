@@ -11,4 +11,6 @@ export interface ChatMessageInfo {
     role: string;
     file?: File;
     filePreview?: string | null;
+    message_id?: string;
+    tool_name?: string;
 }

@@ -18,8 +18,10 @@ class ChatResponse(BaseModel):
 
 class ChatStreamChunk(BaseModel):
     content: str = ""
+    message_id: str = ""
     session_id: str = ""
     is_complete: bool = False
+    tool_name: str = ""
 
 class ChatFileContent(BaseModel):
     type: str
