@@ -2,13 +2,16 @@ import { Box, Container, Flex, Text, IconButton } from "@chakra-ui/react";
 import { ColorModeButton } from "@/components/ui/color-mode";
 import { FaBook, FaComment, FaImages, FaSeedling } from "react-icons/fa";
 import { Tooltip } from "@/components/ui/tooltip";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { FaRobot } from "react-icons/fa6";
 import { useChat } from "@/context/chat-ctx";
 
 function Navbar() {
     const navigate = useNavigate();
+    const location = useLocation();
     const { resetMessages } = useChat();
+    
+    const isActive = (path: string) => location.pathname === path;
     
     return (
         <>
@@ -46,7 +49,8 @@ function Navbar() {
                             <Tooltip content="Start new chat" showArrow>
                                 <IconButton
                                     aria-label="Start new chat"
-                                    variant="ghost"
+                                    variant={isActive("/chat") ? "solid" : "ghost"}
+                                    colorPalette={isActive("/chat") ? "teal" : undefined}
                                     size="xl"
                                     onClick={() => {
                                         resetMessages();
@@ -61,7 +65,8 @@ function Navbar() {
                             <Tooltip content="Agents" showArrow>
                                 <IconButton
                                     aria-label="Agent management"
-                                    variant="ghost"
+                                    variant={isActive("/agent") ? "solid" : "ghost"}
+                                    colorPalette={isActive("/agent") ? "teal" : undefined}
                                     size="xl"
                                     onClick={() => navigate("/agent")}
                                 >
@@ -73,7 +78,8 @@ function Navbar() {
                             <Tooltip content="Image" showArrow>
                                 <IconButton
                                     aria-label="Image library"
-                                    variant="ghost"
+                                    variant={isActive("/image") ? "solid" : "ghost"}
+                                    colorPalette={isActive("/image") ? "teal" : undefined}
                                     size="xl"
                                     onClick={() => navigate("/image")}
                                 >
@@ -85,7 +91,8 @@ function Navbar() {
                             <Tooltip content="Knowledge" showArrow>
                                 <IconButton
                                     aria-label="Knowledge"
-                                    variant="ghost"
+                                    variant={isActive("/knowledge") ? "solid" : "ghost"}
+                                    colorPalette={isActive("/knowledge") ? "teal" : undefined}
                                     size="xl"
                                     onClick={() => navigate("/knowledge")}
                                 >
@@ -97,7 +104,8 @@ function Navbar() {
                             <Tooltip content="Plant" showArrow>
                                 <IconButton
                                     aria-label="Plant"
-                                    variant="ghost"
+                                    variant={isActive("/plant") ? "solid" : "ghost"}
+                                    colorPalette={isActive("/plant") ? "teal" : undefined}
                                     size="xl"
                                     onClick={() => navigate("/plant")}
                                 >
