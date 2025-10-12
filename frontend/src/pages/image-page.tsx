@@ -134,6 +134,7 @@ export const ImagePage = () => {
                                     key={image.id} 
                                     image={image}
                                     onClick={() => openImageDialog(image)}
+                                    onDelete={fetchImages}
                                 />
                             ))}
                         </Grid>

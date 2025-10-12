@@ -5,8 +5,11 @@ import {
     Text,
     Center,
     Image,
+    useDisclosure,
 } from "@chakra-ui/react";
 import type { ImageInfo } from "@/types/image";
+import { DeleteItemButton } from "@/components/ui";
+import { ImageDeleteDialog } from "./image-delete-dialog";
 
 interface ImageWithUrl extends ImageInfo {
     url?: string;
@@ -15,22 +18,36 @@ interface ImageWithUrl extends ImageInfo {
 interface ImageCardProps {
     image: ImageWithUrl;
     onClick?: () => void;
+    onDelete?: () => void;
 }
 
-export const ImageCard = ({ image, onClick }: ImageCardProps) => {
+export const ImageCard = ({ image, onClick, onDelete }: ImageCardProps) => {
+    const { open, onOpen, onClose } = useDisclosure();
+
     return (
-        <Card.Root 
-            key={image.id} 
-            overflow="hidden"
-            cursor="pointer"
-            onClick={onClick}
-            _hover={{
-                transform: "scale(1.02)",
-                transition: "transform 0.2s",
-                boxShadow: "lg",
-            }}
-        >
-            <VStack align="stretch" gap={0}>
+        <>
+            <Card.Root 
+                key={image.id} 
+                overflow="hidden"
+                cursor="pointer"
+                position="relative"
+                onClick={onClick}
+                _hover={{
+                    transform: "scale(1.02)",
+                    transition: "transform 0.2s",
+                    boxShadow: "lg",
+                }}
+            >
+                {/* Delete button */}
+                <DeleteItemButton
+                    aria-label="Delete image"
+                    onClick={(e) => {
+                        e?.stopPropagation();
+                        onOpen();
+                    }}
+                />
+
+                <VStack align="stretch" gap={0}>
                 {image.url ? (
                     <Image
                         src={image.url}
@@ -93,6 +110,15 @@ export const ImageCard = ({ image, onClick }: ImageCardProps) => {
                 </Box>
             </VStack>
         </Card.Root>
+
+        <ImageDeleteDialog
+            isOpen={open}
+            onClose={onClose}
+            imageId={image.id}
+            imageName={image.title || image.filename}
+            onDelete={onDelete}
+        />
+    </>
     );
 };
 
