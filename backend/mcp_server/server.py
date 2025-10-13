@@ -22,7 +22,8 @@ from mcp_server.client import AivenAPIClient
 from mcp_server.tools import (
     register_health_tools,
     register_agent_tools,
-    register_article_tools
+    register_article_tools,
+    register_image_tools
 )
 from mcp_server.resources import (
     register_api_docs_resource,
@@ -43,6 +44,7 @@ def create_mcp_server() -> FastMCP:
     register_health_tools(mcp, client)
     register_agent_tools(mcp, client)
     register_article_tools(mcp, client)
+    register_image_tools(mcp, client)
     
     # Register all resources
     register_api_docs_resource(mcp)

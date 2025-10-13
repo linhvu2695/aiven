@@ -22,6 +22,13 @@ TOOL_COLLECTION = [
         emoji="❤️",
         mcp_functions=["ping_health"]
     ),
+    ToolInfo(
+        id="image-generation",
+        name="Image Generation",
+        description="Tools for generating images using AI - create images from text prompts using various AI providers",
+        emoji="🎨",
+        mcp_functions=["generate_image"]
+    ),
 ]
 
 
