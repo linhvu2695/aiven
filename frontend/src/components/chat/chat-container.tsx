@@ -46,14 +46,6 @@ const ChatContainerContent = () => {
         });
     };
 
-    const getDataToken = (data: any) => {
-        console.log("Data:", data);
-        if (data.tool_name) {
-            return `Called \`${data.tool_name}\``;
-        }
-        return data.token;
-    }
-
     const handleStreamingResponse = async (
         response: Response,
         assistantMessageIndex: number
@@ -98,7 +90,7 @@ const ChatContainerContent = () => {
                                             ...prev,
                                             {
                                                 role: "assistant",
-                                                content: getDataToken(data),
+                                                content: data.token,
                                                 message_id: data.message_id,
                                             },
                                         ]);
@@ -109,7 +101,7 @@ const ChatContainerContent = () => {
                                             const newMessages = [...prev];
                                             newMessages[currentMessageIndex] = {
                                                 ...newMessages[currentMessageIndex],
-                                                content: getDataToken(data),
+                                                content: data.token,
                                                 message_id: data.message_id,
                                             };
                                             return newMessages;

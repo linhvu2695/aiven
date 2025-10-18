@@ -25,6 +25,23 @@ TEST_UNKNOWN_FILE = "unknown_file"
 TEST_ALTERNATE_SESSION_ID = "test-alternate-session-id"
 
 
+# Mock token classes for testing streaming responses
+class MockToolResultToken:
+    """Mock token representing a tool execution result with tool_call_id and name attributes."""
+    def __init__(self, message_id, tool_call_id, tool_name, content):
+        self.id = message_id
+        self.tool_call_id = tool_call_id
+        self.name = tool_name
+        self.content = content
+
+
+class MockTextToken:
+    """Mock token representing a regular AI text response."""
+    def __init__(self, message_id, content):
+        self.id = message_id
+        self.content = content
+
+
 class TestChatServiceSingleton:
     """Test ChatService singleton pattern."""
     
@@ -376,6 +393,8 @@ class TestGenerateChatResponse:
         # Create a mock response message with the expected structure
         mock_response_message = MagicMock()
         mock_response_message.content = "I'm doing well, thank you!"
+        mock_response_message.tool_call_id = None
+        mock_response_message.name = None
         
         # Create a mock graph with complete mocking
         mock_graph = AsyncMock()
@@ -438,6 +457,8 @@ class TestGenerateChatResponse:
         mock_model = MagicMock()
         mock_response_message = MagicMock()
         mock_response_message.content = "I can see the image"
+        mock_response_message.tool_call_id = None
+        mock_response_message.name = None
         
         mock_graph = AsyncMock()
         mock_graph.ainvoke.return_value = {"messages": [mock_response_message]}
@@ -481,6 +502,8 @@ class TestGenerateChatResponse:
         mock_model = MagicMock()
         mock_response_message = MagicMock()
         mock_response_message.content = "No image provided"
+        mock_response_message.tool_call_id = None
+        mock_response_message.name = None
         
         mock_graph = AsyncMock()
         mock_graph.ainvoke.return_value = {"messages": [mock_response_message]}
@@ -586,6 +609,182 @@ class TestGenerateChatResponse:
         
         assert isinstance(result, ChatResponse)
         assert "❌ An error occurred" in result.response
+    
+    @pytest.mark.asyncio
+    async def test_generate_chat_response_with_tool_result(self, chat_service, sample_agent, sample_chat_request):
+        """Test chat response with tool execution result."""
+        mock_model = MagicMock()
+        
+        # Use shared MockToolResultToken class
+        mock_tool_result = MockToolResultToken("msg-tool-result", "tool-call-123", "calculate", "The result is 42")
+        
+        mock_graph = AsyncMock()
+        mock_graph.ainvoke.return_value = {"messages": [mock_tool_result]}
+        
+        mock_history = AsyncMock()
+        mock_history.aget_messages.return_value = []
+        
+        with patch.object(chat_service, 'get_chat_model', return_value=mock_model), \
+             patch.object(AgentService, 'get_agent', new=AsyncMock(return_value=sample_agent)), \
+             patch('app.services.chat.chat_service.create_react_agent') as mock_create_agent, \
+             patch('app.services.chat.chat_service.MongoDBChatHistory', return_value=mock_history):
+            
+            mock_create_agent.return_value = mock_graph
+            
+            result = await chat_service.generate_chat_response(sample_chat_request)
+        
+        assert isinstance(result, ChatResponse)
+        assert result.response == "Call `calculate`"
+    
+    @pytest.mark.asyncio
+    async def test_generate_chat_response_with_multiple_tool_results(self, chat_service, sample_agent, sample_chat_request):
+        """Test chat response with multiple tool execution results."""
+        mock_model = MagicMock()
+        
+        # Use shared MockToolResultToken class
+        mock_tool_result_1 = MockToolResultToken("msg-1", "tool-call-1", "get_weather", "Temperature: 72°F")
+        mock_tool_result_2 = MockToolResultToken("msg-2", "tool-call-2", "get_time", "12:30 PM")
+        
+        mock_graph = AsyncMock()
+        mock_graph.ainvoke.return_value = {"messages": [mock_tool_result_1, mock_tool_result_2]}
+        
+        mock_history = AsyncMock()
+        mock_history.aget_messages.return_value = []
+        
+        with patch.object(chat_service, 'get_chat_model', return_value=mock_model), \
+             patch.object(AgentService, 'get_agent', new=AsyncMock(return_value=sample_agent)), \
+             patch('app.services.chat.chat_service.create_react_agent') as mock_create_agent, \
+             patch('app.services.chat.chat_service.MongoDBChatHistory', return_value=mock_history):
+            
+            mock_create_agent.return_value = mock_graph
+            
+            result = await chat_service.generate_chat_response(sample_chat_request)
+        
+        assert isinstance(result, ChatResponse)
+        # Should return the last message (get_time)
+        assert result.response == "Call `get_time`"
+    
+    @pytest.mark.asyncio
+    async def test_generate_chat_response_with_tool_result_and_ai_response(self, chat_service, sample_agent, sample_chat_request):
+        """Test chat response with tool result followed by AI text response."""
+        mock_model = MagicMock()
+        
+        # Use shared mock classes
+        mock_tool_result = MockToolResultToken("msg-tool", "tool-call-1", "search", "Search completed")
+        
+        # For AI response, use MagicMock with spec to ensure no tool_call_id attribute
+        mock_ai_response = MagicMock(spec=['id', 'content'])
+        mock_ai_response.id = "msg-ai"
+        mock_ai_response.content = "Based on the search results, here's what I found..."
+        
+        mock_graph = AsyncMock()
+        mock_graph.ainvoke.return_value = {"messages": [mock_tool_result, mock_ai_response]}
+        
+        mock_history = AsyncMock()
+        mock_history.aget_messages.return_value = []
+        
+        with patch.object(chat_service, 'get_chat_model', return_value=mock_model), \
+             patch.object(AgentService, 'get_agent', new=AsyncMock(return_value=sample_agent)), \
+             patch('app.services.chat.chat_service.create_react_agent') as mock_create_agent, \
+             patch('app.services.chat.chat_service.MongoDBChatHistory', return_value=mock_history):
+            
+            mock_create_agent.return_value = mock_graph
+            
+            result = await chat_service.generate_chat_response(sample_chat_request)
+        
+        assert isinstance(result, ChatResponse)
+        # Should return the last message (AI response)
+        assert result.response == "Based on the search results, here's what I found..."
+    
+    @pytest.mark.asyncio
+    async def test_generate_chat_response_with_tool_result_without_content(self, chat_service, sample_agent, sample_chat_request):
+        """Test chat response with tool result that has no text content."""
+        mock_model = MagicMock()
+        
+        # Use shared MockToolResultToken class with None content
+        mock_tool_result = MockToolResultToken("msg-tool", "tool-call-1", "get_data", None)
+        
+        mock_graph = AsyncMock()
+        mock_graph.ainvoke.return_value = {"messages": [mock_tool_result]}
+        
+        mock_history = AsyncMock()
+        mock_history.aget_messages.return_value = []
+        
+        with patch.object(chat_service, 'get_chat_model', return_value=mock_model), \
+             patch.object(AgentService, 'get_agent', new=AsyncMock(return_value=sample_agent)), \
+             patch('app.services.chat.chat_service.create_react_agent') as mock_create_agent, \
+             patch('app.services.chat.chat_service.MongoDBChatHistory', return_value=mock_history):
+            
+            mock_create_agent.return_value = mock_graph
+            
+            result = await chat_service.generate_chat_response(sample_chat_request)
+        
+        assert isinstance(result, ChatResponse)
+        # Should still format as tool call even without content
+        assert result.response == "Call `get_data`"
+    
+    @pytest.mark.asyncio
+    async def test_generate_chat_response_with_tool_result_empty_name(self, chat_service, sample_agent, sample_chat_request):
+        """Test chat response with tool result that has empty tool name (edge case)."""
+        mock_model = MagicMock()
+        
+        # Use shared MockToolResultToken class with empty name
+        mock_tool_result = MockToolResultToken("msg-tool", "tool-call-1", "", "Tool execution completed")
+        
+        mock_graph = AsyncMock()
+        mock_graph.ainvoke.return_value = {"messages": [mock_tool_result]}
+        
+        mock_history = AsyncMock()
+        mock_history.aget_messages.return_value = []
+        
+        with patch.object(chat_service, 'get_chat_model', return_value=mock_model), \
+             patch.object(AgentService, 'get_agent', new=AsyncMock(return_value=sample_agent)), \
+             patch('app.services.chat.chat_service.create_react_agent') as mock_create_agent, \
+             patch('app.services.chat.chat_service.MongoDBChatHistory', return_value=mock_history):
+            
+            mock_create_agent.return_value = mock_graph
+            
+            result = await chat_service.generate_chat_response(sample_chat_request)
+        
+        assert isinstance(result, ChatResponse)
+        # Should use regular content when tool name is empty
+        assert result.response == "Tool execution completed"
+    
+    @pytest.mark.asyncio
+    async def test_generate_chat_response_with_mixed_messages(self, chat_service, sample_agent, sample_chat_request):
+        """Test chat response with mixed regular and tool result messages."""
+        mock_model = MagicMock()
+        
+        # Create a sequence of mixed messages using spec to control attributes for AI messages
+        mock_ai_msg_1 = MagicMock(spec=['id', 'content'])
+        mock_ai_msg_1.id = "msg-ai-1"
+        mock_ai_msg_1.content = "Let me search for that information."
+        
+        # Use shared MockToolResultToken class
+        mock_tool_result = MockToolResultToken("msg-tool", "tool-call-1", "search_web", "Search completed")
+        
+        mock_ai_msg_2 = MagicMock(spec=['id', 'content'])
+        mock_ai_msg_2.id = "msg-ai-2"
+        mock_ai_msg_2.content = "Here's what I found from the search."
+        
+        mock_graph = AsyncMock()
+        mock_graph.ainvoke.return_value = {"messages": [mock_ai_msg_1, mock_tool_result, mock_ai_msg_2]}
+        
+        mock_history = AsyncMock()
+        mock_history.aget_messages.return_value = []
+        
+        with patch.object(chat_service, 'get_chat_model', return_value=mock_model), \
+             patch.object(AgentService, 'get_agent', new=AsyncMock(return_value=sample_agent)), \
+             patch('app.services.chat.chat_service.create_react_agent') as mock_create_agent, \
+             patch('app.services.chat.chat_service.MongoDBChatHistory', return_value=mock_history):
+            
+            mock_create_agent.return_value = mock_graph
+            
+            result = await chat_service.generate_chat_response(sample_chat_request)
+        
+        assert isinstance(result, ChatResponse)
+        # Should return the last message
+        assert result.response == "Here's what I found from the search."
 
 
 class TestGenerateStreamingChatResponse:
@@ -1127,6 +1326,207 @@ class TestGenerateStreamingChatResponse:
         
         # Should only get the token with valid content
         assert content_items == ["Valid content"]
+    
+    @pytest.mark.asyncio
+    async def test_generate_streaming_chat_response_with_tool_call_result(self, chat_service, sample_agent, sample_chat_request):
+        """Test streaming when tool execution returns a result message."""
+        mock_model = MagicMock()
+        
+        async def mock_astream(*args, **kwargs):
+            # Simulate tool result (output from tool execution)
+            yield MockToolResultToken("msg-tool-result", "tool-call-123", "calculate", "The result is 42"), {}
+        
+        mock_graph = AsyncMock()
+        mock_graph.astream = mock_astream
+        
+        mocks = self.setup_base_mocks(chat_service, mock_model, sample_agent)
+        
+        with mocks['model_patch'], mocks['agent_patch'], mocks['history_patch'], \
+             patch('app.services.chat.chat_service.create_react_agent') as mock_create_agent:
+            
+            mock_create_agent.return_value = mock_graph
+            
+            content_items, chunks = await self.collect_stream(
+                chat_service.generate_streaming_chat_response(sample_chat_request)
+            )
+        
+        # Should have tool result formatted
+        assert content_items == ["Called `calculate`"]
+        
+        # Verify chunk has tool_name
+        content_chunks = [c for c in chunks if c.content]
+        assert len(content_chunks) == 1
+        assert content_chunks[0].tool_name == "calculate"
+    
+    @pytest.mark.asyncio
+    async def test_generate_streaming_chat_response_with_multiple_tool_results(self, chat_service, sample_agent, sample_chat_request):
+        """Test streaming with multiple sequential tool results."""
+        mock_model = MagicMock()
+        
+        async def mock_astream(*args, **kwargs):
+            # Multiple tool results from different tool executions
+            yield MockToolResultToken("msg-1", "tool-call-1", "get_weather", "Temperature: 72°F"), {}
+            yield MockToolResultToken("msg-2", "tool-call-2", "get_time", "12:30 PM"), {}
+            yield MockToolResultToken("msg-3", "tool-call-3", "search_web", "Found 5 results"), {}
+        
+        mock_graph = AsyncMock()
+        mock_graph.astream = mock_astream
+        
+        mocks = self.setup_base_mocks(chat_service, mock_model, sample_agent)
+        
+        with mocks['model_patch'], mocks['agent_patch'], mocks['history_patch'], \
+             patch('app.services.chat.chat_service.create_react_agent') as mock_create_agent:
+            
+            mock_create_agent.return_value = mock_graph
+            
+            content_items, chunks = await self.collect_stream(
+                chat_service.generate_streaming_chat_response(sample_chat_request)
+            )
+        
+        # Should have all three tool results formatted
+        expected = ["Called `get_weather`", "Called `get_time`", "Called `search_web`"]
+        assert content_items == expected
+        
+        # Verify each chunk has correct tool_name
+        content_chunks = [c for c in chunks if c.content]
+        assert len(content_chunks) == 3
+        assert content_chunks[0].tool_name == "get_weather"
+        assert content_chunks[1].tool_name == "get_time"
+        assert content_chunks[2].tool_name == "search_web"
+    
+    @pytest.mark.asyncio
+    async def test_generate_streaming_chat_response_tool_result_with_ai_response(self, chat_service, sample_agent, sample_chat_request):
+        """Test streaming with tool result followed by AI text response."""
+        mock_model = MagicMock()
+        
+        async def mock_astream(*args, **kwargs):
+            # Tool result
+            yield MockToolResultToken("msg-tool", "tool-call-1", "get_weather", "Temperature: 72°F"), {}
+            # AI response after processing tool result
+            yield MockTextToken("msg-text", "The weather"), {}
+            yield MockTextToken("msg-text", " is sunny"), {}
+            yield MockTextToken("msg-text", " today!"), {}
+        
+        mock_graph = AsyncMock()
+        mock_graph.astream = mock_astream
+        
+        mocks = self.setup_base_mocks(chat_service, mock_model, sample_agent)
+        
+        with mocks['model_patch'], mocks['agent_patch'], mocks['history_patch'], \
+             patch('app.services.chat.chat_service.create_react_agent') as mock_create_agent:
+            
+            mock_create_agent.return_value = mock_graph
+            
+            content_items, chunks = await self.collect_stream(
+                chat_service.generate_streaming_chat_response(sample_chat_request)
+            )
+        
+        # Should have tool result followed by text response
+        expected = ["Called `get_weather`", "The weather", " is sunny", " today!"]
+        assert content_items == expected
+        
+        # Verify tool chunk has tool_name but text chunks don't
+        content_chunks = [c for c in chunks if c.content]
+        assert content_chunks[0].tool_name == "get_weather"
+        assert content_chunks[1].tool_name == ""
+        assert content_chunks[2].tool_name == ""
+        assert content_chunks[3].tool_name == ""
+    
+    @pytest.mark.asyncio
+    async def test_generate_streaming_chat_response_tool_result_with_message_id_change(self, chat_service, sample_agent, sample_chat_request):
+        """Test message accumulation when message_id changes during tool results and AI responses."""
+        mock_model = MagicMock()
+        
+        async def mock_astream(*args, **kwargs):
+            # First message - tool result
+            yield MockToolResultToken("msg-1", "tool-1", "search", "Search completed"), {}
+            # Second message - AI response
+            yield MockTextToken("msg-2", "Based on"), {}
+            yield MockTextToken("msg-2", " the search"), {}
+        
+        mock_graph = AsyncMock()
+        mock_graph.astream = mock_astream
+        
+        mocks = self.setup_base_mocks(chat_service, mock_model, sample_agent)
+        
+        with mocks['model_patch'], mocks['agent_patch'], mocks['history_patch'], \
+             patch('app.services.chat.chat_service.create_react_agent') as mock_create_agent:
+            
+            mock_create_agent.return_value = mock_graph
+            
+            content_items, chunks = await self.collect_stream(
+                chat_service.generate_streaming_chat_response(sample_chat_request)
+            )
+        
+        # Verify content
+        expected = ["Called `search`", "Based on", " the search"]
+        assert content_items == expected
+        
+        # Verify message_id tracking
+        content_chunks = [c for c in chunks if c.content]
+        assert content_chunks[0].message_id == "msg-1"
+        assert content_chunks[1].message_id == "msg-2"
+        assert content_chunks[2].message_id == "msg-2"
+    
+    @pytest.mark.asyncio
+    async def test_generate_streaming_chat_response_tool_result_without_text_content(self, chat_service, sample_agent, sample_chat_request):
+        """Test tool result tokens that don't have text content (only have tool metadata)."""
+        mock_model = MagicMock()
+        
+        async def mock_astream(*args, **kwargs):
+            yield MockToolResultToken("msg-123", "tool-1", "get_data", None), {}
+        
+        mock_graph = AsyncMock()
+        mock_graph.astream = mock_astream
+        
+        mocks = self.setup_base_mocks(chat_service, mock_model, sample_agent)
+        
+        with mocks['model_patch'], mocks['agent_patch'], mocks['history_patch'], \
+             patch('app.services.chat.chat_service.create_react_agent') as mock_create_agent:
+            
+            mock_create_agent.return_value = mock_graph
+            
+            content_items, chunks = await self.collect_stream(
+                chat_service.generate_streaming_chat_response(sample_chat_request)
+            )
+        
+        # Should still generate formatted tool result even with None content
+        assert content_items == ["Called `get_data`"]
+        assert chunks[0].tool_name == "get_data"
+    
+    @pytest.mark.asyncio
+    async def test_generate_streaming_chat_response_tool_result_with_empty_name(self, chat_service, sample_agent, sample_chat_request):
+        """Test handling of tool result tokens with empty tool name (edge case)."""
+        mock_model = MagicMock()
+        
+        class MockTokenWithEmptyToolName:
+            def __init__(self):
+                self.id = "msg-123"
+                self.tool_call_id = "tool-1"
+                self.name = ""  # Empty name
+                self.content = "Tool execution completed"
+        
+        async def mock_astream(*args, **kwargs):
+            yield MockTokenWithEmptyToolName(), {}
+            yield "normal text", {}
+        
+        mock_graph = AsyncMock()
+        mock_graph.astream = mock_astream
+        
+        mocks = self.setup_base_mocks(chat_service, mock_model, sample_agent)
+        
+        with mocks['model_patch'], mocks['agent_patch'], mocks['history_patch'], \
+             patch('app.services.chat.chat_service.create_react_agent') as mock_create_agent:
+            
+            mock_create_agent.return_value = mock_graph
+            
+            content_items, chunks = await self.collect_stream(
+                chat_service.generate_streaming_chat_response(sample_chat_request)
+            )
+        
+        # Should use regular content when tool name is empty (not formatted as tool result)
+        assert content_items == ["Tool execution completed", "normal text"]
+        assert chunks[0].tool_name == ""
     
     
 class TestGetModels:

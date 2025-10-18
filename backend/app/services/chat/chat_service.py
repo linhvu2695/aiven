@@ -238,7 +238,7 @@ class ChatService:
         Generate a chat response using LangGraph's invoke capabilities.
         Persists messages to chat history and returns the complete response.
         """
-        assistant_response = ""
+        assistant_responses: list[AIMessage] = []
         history = None
         
         try:
@@ -258,12 +258,12 @@ class ChatService:
                     {"type": "text", "text": request.message},
                     file_content.model_dump()
                 ]
-                current_message = HumanMessage(content=multimodal_content)
+                human_message = HumanMessage(content=multimodal_content)
             else:
                 # Use the converted content as-is (handles both string and multimodal)
-                current_message = HumanMessage(content=request.message)
-            await history.aadd_messages([current_message])
-            history_messages.append(current_message)
+                human_message = HumanMessage(content=request.message)
+            await history.aadd_messages([human_message])
+            history_messages.append(human_message)
 
             logging.getLogger("uvicorn.info").info("Step 4: Loading MCP tools")
             functions = []
@@ -290,20 +290,36 @@ class ChatService:
             result = await graph.ainvoke({"messages": history_messages}, config=config)
 
             # Extract the final response from the graph result
-            response_message = result["messages"][-1]
-            response_content = response_message.content
-            if isinstance(response_content, list):
-                # Handle list content (like tool calls or complex content)
-                assistant_response = ""
-                for item in response_content:
-                    if isinstance(item, str):
-                        assistant_response += item
-                    elif isinstance(item, dict) and "text" in item:
-                        assistant_response += item["text"]
-            else:
-                assistant_response = str(response_content)
+            response_messages = result["messages"]
+            for response_message in response_messages:
+                content = ""
+                message_id = ""
+                tool_call_id = ""
+                tool_name = ""
 
-            return ChatResponse(response=assistant_response)
+                # Handle message ID
+                if hasattr(response_message, 'id'):
+                    message_id = response_message.id
+
+                # Handle tool call
+                if hasattr(response_message, 'tool_call_id'):
+                    tool_call_id = response_message.tool_call_id
+                    tool_name = response_message.name
+
+                # Handle content
+                if (
+                    hasattr(response_message, 'content') 
+                    and response_message.content 
+                    and isinstance(response_message.content, str)
+                ):
+                    content = response_message.content
+
+                if not is_empty_string(tool_name):
+                    content = f"Call `{tool_name}`"
+
+                assistant_responses.append(AIMessage(content=content))
+
+            return ChatResponse(response=str(assistant_responses[-1].content))
 
         except Exception as e:
             error_msg = str(e)
@@ -326,15 +342,14 @@ class ChatService:
         
         finally:
             logging.getLogger("uvicorn.info").info("Step 8: Persisting assistant's response to chat history")
-            if history and assistant_response.strip():
+            if history and len(assistant_responses) > 0:
                 try:
-                    assistant_message = AIMessage(content=assistant_response)
-                    await history.aadd_messages([assistant_message])
+                    await history.aadd_messages(assistant_responses)
                 except Exception as persist_error:
                     logging.getLogger("uvicorn.error").error(f"Failed to persist assistant message: {persist_error}")
             
             logging.getLogger("uvicorn.info").info("Step 9: Generating conversation name for new conversations")
-            if history and assistant_response.strip():
+            if history and len(assistant_responses) > 0:
                 try:
                     await self._generate_conversation_name_if_needed(history, request.agent)
                 except Exception as name_error:
@@ -346,7 +361,7 @@ class ChatService:
         Yields individual tokens as they are produced by the LLM.
         After streaming completes, persists the assistant's response to chat history.
         """
-        assistant_response = "" 
+        assistant_responses: list[AIMessage] = []
         history = None
         first_chunk_sent = False
         
@@ -367,12 +382,12 @@ class ChatService:
                         {"type": "text", "text": request.message},
                         file_content.model_dump()
                     ]
-                current_message = HumanMessage(content=multimodal_content)
+                human_message = HumanMessage(content=multimodal_content)
             else:
                 # Use the converted content as-is (handles both string and multimodal)
-                current_message = HumanMessage(content=request.message)
-            await history.aadd_messages([current_message])
-            history_messages.append(current_message)
+                human_message = HumanMessage(content=request.message)
+            await history.aadd_messages([human_message])
+            history_messages.append(human_message)
 
             logging.getLogger("uvicorn.info").info("Step 4: Loading MCP tools")
             functions = []
@@ -396,13 +411,21 @@ class ChatService:
             )
 
             logging.getLogger("uvicorn.info").info("Step 7: Streaming graph response")
+            current_message_id = ""
+            current_message = ""
+
+            def accumulate_current_message():
+                if not is_empty_string(current_message_id) and not is_empty_string(current_message):
+                    assistant_responses.append(AIMessage(content=current_message))
+            
             async for token, metadata in graph.astream(
                 {"messages": history_messages}, 
                 config=config,
                 stream_mode="messages"
             ):
                 logging.getLogger("uvicorn.debug").debug(f"Token: {token}")
-                # Stream individual tokens as they are produced
+
+                # 1. Extract data from token
                 token_content = ""
                 message_id = ""
                 tool_call_id = ""
@@ -410,7 +433,16 @@ class ChatService:
 
                 if isinstance(token, str):
                     token_content = token
-                else:
+                else:                    
+                    # Handle message ID
+                    if hasattr(token, 'id'):
+                        message_id = token.id
+
+                    # Handle tool call
+                    if hasattr(token, 'tool_call_id'):
+                        tool_call_id = token.tool_call_id
+                        tool_name = token.name
+
                     # Handle text content
                     if hasattr(token, 'content') and token.content:
                         if isinstance(token.content, str):
@@ -421,15 +453,13 @@ class ChatService:
                                     token_content += item
                                 elif isinstance(item, dict) and "text" in item:
                                     token_content += item["text"]
-                    
-                    # Handle IDs
-                    if hasattr(token, 'id'):
-                        message_id = token.id
-                    if hasattr(token, 'tool_call_id'):
-                        tool_call_id = token.tool_call_id
-                        tool_name = token.name
 
-                # Yield token content as ChatStreamChunk
+                    # Accumulate the response content
+                    if not is_empty_string(tool_name):
+                        token_content = f"Called `{tool_name}`"
+                    current_message += token_content
+
+                # 2. Yield token content as ChatStreamChunk
                 if token_content:
                     chunk = ChatStreamChunk(
                         content=token_content,
@@ -440,9 +470,16 @@ class ChatService:
                     )
                     first_chunk_sent = True
                     yield chunk
-                    
-                    # Accumulate the response content
-                    assistant_response += token_content
+
+                # 3. Handle message accumulation
+                if message_id != current_message_id:
+                    # End of current message
+                    accumulate_current_message()
+                    current_message_id = message_id
+                    current_message = ""
+
+            # Persist the final message
+            accumulate_current_message()
 
         except Exception as e:
             error_msg = str(e)
@@ -461,7 +498,7 @@ class ChatService:
                 error_response = f"❌ An error occurred while processing your request. Please try again or contact support if the issue persists."
             
             # Yield error as ChatStreamChunk
-            assistant_response = error_response
+            current_message = error_response
             yield ChatStreamChunk(
                 content=error_response,
                 session_id=history._session_id if history else "",
@@ -470,15 +507,14 @@ class ChatService:
         
         finally:
             logging.getLogger("uvicorn.info").info("Step 8: Persisting assistant's response to chat history")
-            if history and assistant_response.strip():
+            if history and len(assistant_responses) > 0:
                 try:
-                    assistant_message = AIMessage(content=assistant_response)
-                    await history.aadd_messages([assistant_message])
+                    await history.aadd_messages(assistant_responses)
                 except Exception as persist_error:
                     logging.getLogger("uvicorn.error").error(f"Failed to persist assistant message: {persist_error}")
             
             logging.getLogger("uvicorn.info").info("Step 9: Generating conversation name for new conversations")
-            if history and assistant_response.strip():
+            if history and len(assistant_responses) > 0:
                 try:
                     await self._generate_conversation_name_if_needed(history, request.agent)
                 except Exception as name_error:
