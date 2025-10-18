@@ -1,0 +1,44 @@
+from datetime import datetime
+from pydantic import BaseModel
+
+
+class UserInfo(BaseModel):
+    id: str
+    username: str
+    email: str
+    password_hash: str
+    password_salt: str
+    hash_algorithm: str
+    created_at: datetime
+    updated_at: datetime
+
+class RegisterUserRequest(BaseModel):
+    username: str
+    email: str
+    password: str
+
+class RegisterUserResponse(BaseModel):
+    success: bool
+    user_id: str
+    status_code: int
+    message: str
+
+class CreateUserRequest(BaseModel):
+    username: str
+    email: str
+    password: str
+
+class CreateUserResponse(BaseModel):
+    success: bool
+    user_id: str
+    message: str
+
+class LoginUserRequest(BaseModel):
+    email: str
+    password: str
+
+class LoginUserResponse(BaseModel):
+    success: bool
+    user_id: str
+    message: str
+
