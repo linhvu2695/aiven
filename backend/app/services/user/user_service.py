@@ -1,5 +1,6 @@
+import logging
 from app.services.user.user_repository import UserRepository
-from app.classes.user import CreateUserRequest, RegisterUserRequest, RegisterUserResponse
+from app.classes.user import CreateUserRequest, GetUserByEmailRequest, RegisterUserRequest, RegisterUserResponse
 
 
 class UserService:
@@ -21,8 +22,18 @@ class UserService:
             )
         
         # 2. Check if user already exists
-        user = await UserRepository().get_user_by_email(request.email)
-        if user:
+        get_user_by_email_response = await UserRepository().get_user_by_email(
+            GetUserByEmailRequest(email=request.email, include_disabled=False)
+        )
+        logging.getLogger("uvicorn.error").info(f"get_user_by_email_response: {get_user_by_email_response}")
+        if not get_user_by_email_response.success:
+            return RegisterUserResponse(
+                success=False,
+                user_id="",
+                status_code=500,
+                message="Failed to to check if user already exists"
+            )
+        if get_user_by_email_response.user:
             return RegisterUserResponse(
                 success=False,
                 user_id="",

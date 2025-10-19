@@ -1,8 +1,9 @@
 from datetime import datetime, timezone
 import secrets
 import hashlib
-from app.classes.user import CreateUserRequest, CreateUserResponse, UserInfo
-from app.core.database import insert_document
+from typing import Dict, Any
+from app.classes.user import CreateUserRequest, CreateUserResponse, GetUserByEmailRequest, GetUserByEmailResponse, UserInfo
+from app.core.database import find_documents_with_filters, insert_document
 
 USER_COLLECTION_NAME = "users"
 
@@ -44,7 +45,8 @@ class UserRepository:
             "password_salt": password_salt,
             "hash_algorithm": hash_algorithm,
             "created_at": datetime.now(timezone.utc),
-            "updated_at": datetime.now(timezone.utc)
+            "updated_at": datetime.now(timezone.utc),
+            "disabled": False
         }
 
         try:
@@ -68,16 +70,48 @@ class UserRepository:
                 message="Failed to insert user into DB"
             )
 
-        
+    async def get_user_by_email(self, request: GetUserByEmailRequest) -> GetUserByEmailResponse:
+        try:
+            # Build filters conditionally
+            filters: Dict[str, Any] = {"email": request.email}
+            if not request.include_disabled:
+                filters["disabled"] = False
+            
+            users = await find_documents_with_filters(
+                USER_COLLECTION_NAME, 
+                filters,
+                limit=1
+            )
 
-    async def get_user_by_email(self, email: str) -> UserInfo:
-        return UserInfo(
-            id="123",
-            username="test",
-            email="test@test.com",
-            password_hash="123",
-            password_salt="456",
-            hash_algorithm="pbkdf2_sha256",
-            created_at=datetime.now(),
-            updated_at=datetime.now()
-        )
+            if not users:
+                return GetUserByEmailResponse(
+                    success=True,
+                    user=None,
+                    message="User not found"
+                )
+            
+            user = users[0]
+            user_info = UserInfo(
+                id=str(user["_id"]),
+                username=user["username"],
+                email=user["email"],
+                password_hash=user["password_hash"],
+                password_salt=user["password_salt"],
+                hash_algorithm=user["hash_algorithm"],
+                created_at=user["created_at"],
+                updated_at=user["updated_at"],
+                disabled=user["disabled"]
+            )
+            
+            return GetUserByEmailResponse(
+                success=True,
+                user=user_info,
+                message=""
+            )
+
+        except Exception as e:
+            return GetUserByEmailResponse(
+                success=False,
+                user=None,
+                message=f"Failed to get user by email: {e}"
+            )

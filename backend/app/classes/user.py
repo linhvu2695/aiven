@@ -11,6 +11,7 @@ class UserInfo(BaseModel):
     hash_algorithm: str
     created_at: datetime
     updated_at: datetime
+    disabled: bool = False
 
 class RegisterUserRequest(BaseModel):
     username: str
@@ -42,3 +43,11 @@ class LoginUserResponse(BaseModel):
     user_id: str
     message: str
 
+class GetUserByEmailRequest(BaseModel):
+    email: str
+    include_disabled: bool = False
+
+class GetUserByEmailResponse(BaseModel):
+    success: bool
+    user: UserInfo | None
+    message: str
