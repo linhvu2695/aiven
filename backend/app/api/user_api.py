@@ -17,7 +17,7 @@ async def register_user(request: RegisterUserRequest):
 @router.get("/{id}", response_model=GetUserApiResponse)
 async def get_user(id: str):
     response = await UserRepository().get_user_by_id(id)
-    
+
     if response.success and response.user:
         # Remove password_hash, password_salt, and hash_algorithm from the response
         user_dict = response.user.model_dump()
@@ -30,5 +30,13 @@ async def get_user(id: str):
             status_code=response.status_code,
             message=response.message
         )
+    else:
+        raise HTTPException(status_code=response.status_code, detail=response.message)
+
+@router.delete("/{id}")
+async def delete_user(id: str):
+    response = await UserRepository().delete_user(id)
+    if response.success and response.status_code == 200:
+        return response
     else:
         raise HTTPException(status_code=response.status_code, detail=response.message)

@@ -72,3 +72,8 @@ class GetUserApiResponse(BaseModel):
     user: dict | None
     status_code: int
     message: str
+
+class DeleteUserResponse(BaseModel):
+    success: bool
+    message: str
+    status_code: int

@@ -589,3 +589,220 @@ class TestUserRepositoryGetUserById:
             assert response.user is not None
             assert response.user.disabled is True
             assert response.user.username == "disableduser"
+
+
+class TestUserRepositoryDeleteUser:
+
+    @pytest.mark.asyncio
+    async def test_delete_user_success(self, user_repository: UserRepository):
+        """Test successful user deletion"""
+        from bson import ObjectId
+        
+        # Use a valid ObjectId format
+        valid_id = str(ObjectId())
+        
+        mock_user_data = {
+            "_id": valid_id,
+            "username": "testuser",
+            "email": "test@example.com",
+            "password_hash": "hashed_password",
+            "password_salt": "salt_value",
+            "hash_algorithm": HASH_ALGORITHM,
+            "created_at": datetime.now(timezone.utc),
+            "updated_at": datetime.now(timezone.utc),
+            "disabled": False
+        }
+        
+        with patch("app.services.user.user_repository.get_document", new_callable=AsyncMock, return_value=mock_user_data) as mock_get, \
+             patch("app.services.user.user_repository.delete_document", new_callable=AsyncMock, return_value=True) as mock_delete:
+            response = await user_repository.delete_user(valid_id)
+            
+            # Verify response
+            assert response.success is True
+            assert response.status_code == 200
+            assert response.message == "User deleted successfully"
+            
+            # Verify get_document was called
+            mock_get.assert_called_once_with("users", valid_id)
+            
+            # Verify delete_document was called
+            mock_delete.assert_called_once_with("users", valid_id)
+
+    @pytest.mark.asyncio
+    async def test_delete_user_not_found(self, user_repository: UserRepository):
+        """Test deleting a user that does not exist"""
+        from bson import ObjectId
+        
+        # Use a valid ObjectId format
+        valid_id = str(ObjectId())
+        
+        with patch("app.services.user.user_repository.get_document", new_callable=AsyncMock, return_value=None) as mock_get, \
+             patch("app.services.user.user_repository.delete_document", new_callable=AsyncMock) as mock_delete:
+            response = await user_repository.delete_user(valid_id)
+            
+            # Verify response
+            assert response.success is False
+            assert response.status_code == 404
+            assert response.message == "User not found"
+            
+            # Verify get_document was called
+            mock_get.assert_called_once_with("users", valid_id)
+            
+            # Verify delete_document was NOT called since user doesn't exist
+            mock_delete.assert_not_called()
+
+    @pytest.mark.asyncio
+    async def test_delete_user_invalid_id_format(self, user_repository: UserRepository):
+        """Test deleting a user with invalid ID format"""
+        with patch("app.services.user.user_repository.get_document", new_callable=AsyncMock) as mock_get, \
+             patch("app.services.user.user_repository.delete_document", new_callable=AsyncMock) as mock_delete:
+            response = await user_repository.delete_user("invalid_id_format")
+            
+            # Verify response
+            assert response.success is False
+            assert response.status_code == 400
+            assert "Invalid user ID format" in response.message
+            
+            # Verify neither get_document nor delete_document were called
+            mock_get.assert_not_called()
+            mock_delete.assert_not_called()
+
+    @pytest.mark.asyncio
+    async def test_delete_user_delete_failure(self, user_repository: UserRepository):
+        """Test when delete_document returns False (deletion failed)"""
+        from bson import ObjectId
+        
+        # Use a valid ObjectId format
+        valid_id = str(ObjectId())
+        
+        mock_user_data = {
+            "_id": valid_id,
+            "username": "testuser",
+            "email": "test@example.com",
+            "password_hash": "hashed_password",
+            "password_salt": "salt_value",
+            "hash_algorithm": HASH_ALGORITHM,
+            "created_at": datetime.now(timezone.utc),
+            "updated_at": datetime.now(timezone.utc),
+            "disabled": False
+        }
+        
+        with patch("app.services.user.user_repository.get_document", new_callable=AsyncMock, return_value=mock_user_data) as mock_get, \
+             patch("app.services.user.user_repository.delete_document", new_callable=AsyncMock, return_value=False) as mock_delete:
+            response = await user_repository.delete_user(valid_id)
+            
+            # Verify response
+            assert response.success is False
+            assert response.status_code == 500
+            assert response.message == "Failed to delete user"
+            
+            # Verify both functions were called
+            mock_get.assert_called_once_with("users", valid_id)
+            mock_delete.assert_called_once_with("users", valid_id)
+
+    @pytest.mark.asyncio
+    async def test_delete_user_database_exception_on_get(self, user_repository: UserRepository):
+        """Test when get_document throws an exception"""
+        from bson import ObjectId
+        
+        # Use a valid ObjectId format
+        valid_id = str(ObjectId())
+        
+        with patch("app.services.user.user_repository.get_document", new_callable=AsyncMock, side_effect=Exception("Database connection error")) as mock_get, \
+             patch("app.services.user.user_repository.delete_document", new_callable=AsyncMock) as mock_delete:
+            response = await user_repository.delete_user(valid_id)
+            
+            # Verify response
+            assert response.success is False
+            assert response.status_code == 500
+            assert "Failed to delete user" in response.message
+            assert "Database connection error" in response.message
+            
+            # Verify get_document was called
+            mock_get.assert_called_once_with("users", valid_id)
+            
+            # Verify delete_document was NOT called due to exception
+            mock_delete.assert_not_called()
+
+    @pytest.mark.asyncio
+    async def test_delete_user_database_exception_on_delete(self, user_repository: UserRepository):
+        """Test when delete_document throws an exception"""
+        from bson import ObjectId
+        
+        # Use a valid ObjectId format
+        valid_id = str(ObjectId())
+        
+        mock_user_data = {
+            "_id": valid_id,
+            "username": "testuser",
+            "email": "test@example.com",
+            "password_hash": "hashed_password",
+            "password_salt": "salt_value",
+            "hash_algorithm": HASH_ALGORITHM,
+            "created_at": datetime.now(timezone.utc),
+            "updated_at": datetime.now(timezone.utc),
+            "disabled": False
+        }
+        
+        with patch("app.services.user.user_repository.get_document", new_callable=AsyncMock, return_value=mock_user_data) as mock_get, \
+             patch("app.services.user.user_repository.delete_document", new_callable=AsyncMock, side_effect=Exception("Delete operation failed")) as mock_delete:
+            response = await user_repository.delete_user(valid_id)
+            
+            # Verify response
+            assert response.success is False
+            assert response.status_code == 500
+            assert "Failed to delete user" in response.message
+            assert "Delete operation failed" in response.message
+            
+            # Verify both functions were called
+            mock_get.assert_called_once_with("users", valid_id)
+            mock_delete.assert_called_once_with("users", valid_id)
+
+    @pytest.mark.asyncio
+    async def test_delete_user_deletes_disabled_user(self, user_repository: UserRepository):
+        """Test that disabled users can also be deleted"""
+        from bson import ObjectId
+        
+        # Use a valid ObjectId format
+        valid_id = str(ObjectId())
+        
+        mock_user_data = {
+            "_id": valid_id,
+            "username": "disableduser",
+            "email": "disabled@example.com",
+            "password_hash": "hashed_password",
+            "password_salt": "salt_value",
+            "hash_algorithm": HASH_ALGORITHM,
+            "created_at": datetime.now(timezone.utc),
+            "updated_at": datetime.now(timezone.utc),
+            "disabled": True
+        }
+        
+        with patch("app.services.user.user_repository.get_document", new_callable=AsyncMock, return_value=mock_user_data) as mock_get, \
+             patch("app.services.user.user_repository.delete_document", new_callable=AsyncMock, return_value=True) as mock_delete:
+            response = await user_repository.delete_user(valid_id)
+            
+            # Verify response
+            assert response.success is True
+            assert response.status_code == 200
+            assert response.message == "User deleted successfully"
+            
+            # Verify both functions were called
+            mock_get.assert_called_once_with("users", valid_id)
+            mock_delete.assert_called_once_with("users", valid_id)
+
+    @pytest.mark.asyncio
+    async def test_delete_user_empty_id(self, user_repository: UserRepository):
+        """Test deleting a user with empty ID string"""
+        with patch("app.services.user.user_repository.get_document", new_callable=AsyncMock) as mock_get, \
+             patch("app.services.user.user_repository.delete_document", new_callable=AsyncMock) as mock_delete:
+            response = await user_repository.delete_user("")
+            
+            # Verify response
+            assert response.success is False
+            assert response.status_code == 400
+            assert "Invalid user ID format" in response.message
+            
+            # Verify neither function was called
+            mock_get.assert_not_called()
+            mock_delete.assert_not_called()

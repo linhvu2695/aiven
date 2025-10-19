@@ -4,8 +4,8 @@ import hashlib
 from typing import Dict, Any
 
 from bson import ObjectId
-from app.classes.user import CreateUserRequest, CreateUserResponse, GetUserByEmailRequest, GetUserByEmailResponse, GetUserByUsernameRequest, GetUserByUsernameResponse, GetUserByIdResponse, UserInfo
-from app.core.database import find_documents_with_filters, get_document, insert_document
+from app.classes.user import CreateUserRequest, CreateUserResponse, DeleteUserResponse, GetUserByEmailRequest, GetUserByEmailResponse, GetUserByUsernameRequest, GetUserByUsernameResponse, GetUserByIdResponse, UserInfo
+from app.core.database import delete_document, find_documents_with_filters, get_document, insert_document
 
 USER_COLLECTION_NAME = "users"
 
@@ -208,4 +208,41 @@ class UserRepository:
                 user=None,
                 status_code=500,
                 message=f"Failed to get user by id: {e}"
+            )
+
+    async def delete_user(self, id: str) -> DeleteUserResponse:
+        if not ObjectId.is_valid(id):
+            return DeleteUserResponse(
+                success=False,
+                message="Invalid user ID format",
+                status_code=400
+            )
+        
+        try:
+            user = await get_document(USER_COLLECTION_NAME, id)
+            if not user:
+                return DeleteUserResponse(
+                    success=False,
+                    message="User not found",
+                    status_code=404
+                )
+            
+            user_deleted = await delete_document(USER_COLLECTION_NAME, id)
+            if user_deleted:
+                return DeleteUserResponse(
+                    success=True,
+                    message="User deleted successfully",
+                    status_code=200
+                )
+            else:
+                return DeleteUserResponse(
+                    success=False,
+                    message="Failed to delete user",
+                    status_code=500
+                )
+        except Exception as e:
+            return DeleteUserResponse(
+                success=False,
+                message=f"Failed to delete user: {e}",
+                status_code=500
             )

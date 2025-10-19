@@ -6,14 +6,14 @@ from datetime import datetime, timezone
 from bson import ObjectId
 
 from app.api.user_api import router
-from app.classes.user import GetUserByIdResponse, UserInfo
+from app.classes.user import GetUserByIdResponse, UserInfo, DeleteUserResponse
 
 
 app = FastAPI()
 app.include_router(router, prefix="/users")
 
 
-class TestUserApi:
+class TestGetUserApi:
     @pytest.mark.asyncio
     async def test_get_user_success(self):
         """Test successful user retrieval"""
@@ -225,3 +225,136 @@ class TestUserApi:
                 assert "password_salt" not in user_data
                 assert "hash_algorithm" not in user_data
 
+
+class TestDeleteUserApi:
+    
+    @pytest.mark.asyncio
+    async def test_delete_user_success(self):
+        """Test successful user deletion"""
+        user_id = str(ObjectId())
+        
+        mock_response = DeleteUserResponse(
+            success=True,
+            message="User deleted successfully",
+            status_code=200
+        )
+
+        mock_delete = AsyncMock(return_value=mock_response)
+        with patch("app.services.user.user_repository.UserRepository.delete_user", new=mock_delete):
+            transport = ASGITransport(app=app)
+            async with AsyncClient(transport=transport, base_url="http://test") as ac:
+                response = await ac.delete(f"/users/{user_id}")
+                
+                assert response.status_code == 200
+                data = response.json()
+                
+                assert data["success"] is True
+                assert data["message"] == "User deleted successfully"
+                assert data["status_code"] == 200
+                mock_delete.assert_called_once_with(user_id)
+
+
+    @pytest.mark.asyncio
+    async def test_delete_user_not_found(self):
+        """Test deleting a user that does not exist"""
+        user_id = str(ObjectId())
+        
+        mock_response = DeleteUserResponse(
+            success=False,
+            message="User not found",
+            status_code=404
+        )
+        
+        with patch("app.services.user.user_repository.UserRepository.delete_user", new=AsyncMock(return_value=mock_response)):
+            transport = ASGITransport(app=app)
+            async with AsyncClient(transport=transport, base_url="http://test") as ac:
+                response = await ac.delete(f"/users/{user_id}")
+                
+                assert response.status_code == 404
+                data = response.json()
+                assert data["detail"] == "User not found"
+
+
+    @pytest.mark.asyncio
+    async def test_delete_user_invalid_id_format(self):
+        """Test deleting a user with invalid ID format"""
+        invalid_id = "invalid_id_format"
+        
+        mock_response = DeleteUserResponse(
+            success=False,
+            message="Invalid user ID format",
+            status_code=400
+        )
+        
+        with patch("app.services.user.user_repository.UserRepository.delete_user", new=AsyncMock(return_value=mock_response)):
+            transport = ASGITransport(app=app)
+            async with AsyncClient(transport=transport, base_url="http://test") as ac:
+                response = await ac.delete(f"/users/{invalid_id}")
+                
+                assert response.status_code == 400
+                data = response.json()
+                assert data["detail"] == "Invalid user ID format"
+
+
+    @pytest.mark.asyncio
+    async def test_delete_user_database_error(self):
+        """Test user deletion when database error occurs"""
+        user_id = str(ObjectId())
+        
+        mock_response = DeleteUserResponse(
+            success=False,
+            message="Failed to delete user: Database connection error",
+            status_code=500
+        )
+        
+        with patch("app.services.user.user_repository.UserRepository.delete_user", new=AsyncMock(return_value=mock_response)):
+            transport = ASGITransport(app=app)
+            async with AsyncClient(transport=transport, base_url="http://test") as ac:
+                response = await ac.delete(f"/users/{user_id}")
+                
+                assert response.status_code == 500
+                data = response.json()
+                assert "Failed to delete user" in data["detail"]
+
+
+    @pytest.mark.asyncio
+    async def test_delete_user_deletion_failure(self):
+        """Test user deletion when delete operation fails"""
+        user_id = str(ObjectId())
+        
+        mock_response = DeleteUserResponse(
+            success=False,
+            message="Failed to delete user",
+            status_code=500
+        )
+        
+        with patch("app.services.user.user_repository.UserRepository.delete_user", new=AsyncMock(return_value=mock_response)):
+            transport = ASGITransport(app=app)
+            async with AsyncClient(transport=transport, base_url="http://test") as ac:
+                response = await ac.delete(f"/users/{user_id}")
+                
+                assert response.status_code == 500
+                data = response.json()
+                assert data["detail"] == "Failed to delete user"
+
+
+    @pytest.mark.asyncio
+    async def test_delete_user_disabled_user(self):
+        """Test that disabled users can be deleted"""
+        user_id = str(ObjectId())
+        
+        mock_response = DeleteUserResponse(
+            success=True,
+            message="User deleted successfully",
+            status_code=200
+        )
+        
+        with patch("app.services.user.user_repository.UserRepository.delete_user", new=AsyncMock(return_value=mock_response)):
+            transport = ASGITransport(app=app)
+            async with AsyncClient(transport=transport, base_url="http://test") as ac:
+                response = await ac.delete(f"/users/{user_id}")
+                
+                assert response.status_code == 200
+                data = response.json()
+                assert data["success"] is True
+                assert data["message"] == "User deleted successfully"

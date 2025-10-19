@@ -1,9 +1,7 @@
 import pytest
-from datetime import datetime
 from unittest.mock import patch, MagicMock, AsyncMock
 from app.services.agent.agent_service import AgentService
 from app.classes.agent import AgentInfo, SearchAgentsResponse, CreateOrUpdateAgentRequest, CreateOrUpdateAgentResponse, DeleteAgentResponse, UpdateAgentAvatarResponse
-from app.classes.image import ImageInfo, ImageType, ImageResponse
 from app.core.constants import LLMModel
 
 
@@ -64,7 +62,7 @@ class TestAgentService:
     
     
     @pytest.mark.asyncio
-    async def test_search_agents_returns_all_agents(self, agent_service):
+    async def test_search_agents_returns_all_agents(self, agent_service: AgentService):
         """Test search_agents returns all agents with avatar image IDs"""
         mock_agents = [
             {
@@ -116,7 +114,7 @@ class TestAgentService:
 
 
     @pytest.mark.asyncio
-    async def test_get_agent_success(self, agent_service, mock_agent_data):
+    async def test_get_agent_success(self, agent_service: AgentService, mock_agent_data):
         """Test successful agent retrieval"""
         with patch("app.services.agent.agent_service.get_document", return_value=mock_agent_data), \
              patch.object(agent_service, "_get_avatar_url", return_value="http://avatar.jpg"):
@@ -136,7 +134,7 @@ class TestAgentService:
 
 
     @pytest.mark.asyncio
-    async def test_get_avatar_url_with_avatar(self, agent_service):
+    async def test_get_avatar_url_with_avatar(self, agent_service: AgentService):
         """Test _get_avatar_url with avatar image ID"""
         from app.classes.image import ImageUrlResponse
         
@@ -155,23 +153,23 @@ class TestAgentService:
 
 
     @pytest.mark.asyncio
-    async def test_get_avatar_url_without_avatar(self, agent_service):
+    async def test_get_avatar_url_without_avatar(self, agent_service: AgentService):
         """Test _get_avatar_url without avatar image ID"""
         url = await agent_service._get_avatar_url("")
         assert url == ""
         
-        url = await agent_service._get_avatar_url(None)
+        url = await agent_service._get_avatar_url("")
         assert url == ""
 
 
-    def test_validate_create_agent_request_valid(self, agent_service, create_agent_request):
+    def test_validate_create_agent_request_valid(self, agent_service: AgentService, create_agent_request: CreateOrUpdateAgentRequest):
         """Test validation with valid request"""
         valid, warning = agent_service._validate_create_agent_request(create_agent_request)
         assert valid is True
         assert warning == ""
 
 
-    def test_validate_create_agent_request_missing_name(self, agent_service):
+    def test_validate_create_agent_request_missing_name(self, agent_service: AgentService):
         """Test validation with missing name"""
         request = CreateOrUpdateAgentRequest(
             name="",
@@ -186,7 +184,7 @@ class TestAgentService:
         assert "Missing value for field: name" in warning
 
 
-    def test_validate_create_agent_request_missing_model(self, agent_service):
+    def test_validate_create_agent_request_missing_model(self, agent_service: AgentService):
         """Test validation with missing model"""
         # Create a mock request with empty model string
         request = MagicMock()
@@ -199,7 +197,7 @@ class TestAgentService:
 
 
     @pytest.mark.asyncio
-    async def test_create_agent_success(self, agent_service, create_agent_request):
+    async def test_create_agent_success(self, agent_service: AgentService, create_agent_request):
         """Test successful agent creation"""
         with patch("app.services.agent.agent_service.insert_document", return_value="new_id_123"):
             response = await agent_service.create_or_update_agent(create_agent_request)
@@ -211,7 +209,7 @@ class TestAgentService:
 
 
     @pytest.mark.asyncio
-    async def test_create_agent_validation_failure(self, agent_service):
+    async def test_create_agent_validation_failure(self, agent_service: AgentService):
         """Test agent creation with validation failure"""
         invalid_request = CreateOrUpdateAgentRequest(
             name="",
@@ -231,7 +229,7 @@ class TestAgentService:
 
 
     @pytest.mark.asyncio
-    async def test_create_agent_exception(self, agent_service, create_agent_request):
+    async def test_create_agent_exception(self, agent_service: AgentService, create_agent_request):
         """Test agent creation with database exception"""
         with patch("app.services.agent.agent_service.insert_document", side_effect=Exception("Database error")):
             response = await agent_service.create_or_update_agent(create_agent_request)
@@ -243,7 +241,7 @@ class TestAgentService:
 
 
     @pytest.mark.asyncio
-    async def test_update_agent_success(self, agent_service, update_agent_request):
+    async def test_update_agent_success(self, agent_service: AgentService, update_agent_request):
         """Test successful agent update"""
         with patch("app.services.agent.agent_service.update_document", return_value="test_id_123"):
             response = await agent_service.create_or_update_agent(update_agent_request)
@@ -255,7 +253,7 @@ class TestAgentService:
 
 
     @pytest.mark.asyncio
-    async def test_update_agent_failure(self, agent_service, update_agent_request):
+    async def test_update_agent_failure(self, agent_service: AgentService, update_agent_request):
         """Test agent update failure"""
         with patch("app.services.agent.agent_service.update_document", side_effect=Exception("Database error")):
             response = await agent_service.create_or_update_agent(update_agent_request)
@@ -267,8 +265,14 @@ class TestAgentService:
 
 
     @pytest.mark.asyncio
-    async def test_delete_agent_success_with_avatar(self, agent_service, mock_agent_data):
+    async def test_delete_agent_success_with_avatar(self, agent_service: AgentService, mock_agent_data):
         """Test successful agent deletion with avatar"""
+        from bson import ObjectId
+        
+        # Use a valid ObjectId format
+        valid_id = str(ObjectId())
+        mock_agent_data["_id"] = valid_id
+        
         mock_image_service = MagicMock()
         mock_image_service.delete_image = AsyncMock()
         
@@ -276,34 +280,44 @@ class TestAgentService:
              patch("app.services.agent.agent_service.ImageService", return_value=mock_image_service), \
              patch("app.services.agent.agent_service.delete_document", return_value=True):
             
-            result = await agent_service.delete_agent("test_id_123")
+            result = await agent_service.delete_agent(valid_id)
             
             assert isinstance(result, DeleteAgentResponse)
             assert result.success is True
-            assert result.id == "test_id_123"
+            assert result.id == valid_id
             assert result.message == "Agent deleted successfully"
             mock_image_service.delete_image.assert_called_once_with("image_123", soft_delete=False)
 
 
     @pytest.mark.asyncio
-    async def test_delete_agent_success_without_avatar(self, agent_service):
+    async def test_delete_agent_success_without_avatar(self, agent_service: AgentService):
         """Test successful agent deletion without avatar"""
-        mock_data = {"_id": "test_id_123", "name": "Test Agent", "avatar_image_id": None}
+        from bson import ObjectId
+        
+        # Use a valid ObjectId format
+        valid_id = str(ObjectId())
+        mock_data = {"_id": valid_id, "name": "Test Agent", "avatar_image_id": None}
         
         with patch("app.services.agent.agent_service.get_document", return_value=mock_data), \
              patch("app.services.agent.agent_service.delete_document", return_value=True):
             
-            result = await agent_service.delete_agent("test_id_123")
+            result = await agent_service.delete_agent(valid_id)
             
             assert isinstance(result, DeleteAgentResponse)
             assert result.success is True
-            assert result.id == "test_id_123"
+            assert result.id == valid_id
             assert result.message == "Agent deleted successfully"
 
 
     @pytest.mark.asyncio
-    async def test_delete_agent_avatar_deletion_failure(self, agent_service, mock_agent_data):
+    async def test_delete_agent_avatar_deletion_failure(self, agent_service: AgentService, mock_agent_data):
         """Test agent deletion when avatar deletion fails"""
+        from bson import ObjectId
+        
+        # Use a valid ObjectId format
+        valid_id = str(ObjectId())
+        mock_agent_data["_id"] = valid_id
+        
         mock_image_service = MagicMock()
         mock_image_service.delete_image = AsyncMock(side_effect=Exception("Image service error"))
         
@@ -311,49 +325,88 @@ class TestAgentService:
              patch("app.services.agent.agent_service.ImageService", return_value=mock_image_service), \
              patch("app.services.agent.agent_service.delete_document", return_value=True):
             
-            result = await agent_service.delete_agent("test_id_123")
+            result = await agent_service.delete_agent(valid_id)
             
             assert isinstance(result, DeleteAgentResponse)
             assert result.success is True  # Should still succeed even if avatar deletion fails
-            assert result.id == "test_id_123"
+            assert result.id == valid_id
             assert result.message == "Agent deleted successfully"
 
 
     @pytest.mark.asyncio
-    async def test_delete_agent_failure(self, agent_service):
+    async def test_delete_agent_failure(self, agent_service: AgentService):
         """Test agent deletion failure"""
+        from bson import ObjectId
+        
+        # Use a valid ObjectId format
+        valid_id = str(ObjectId())
+        
         with patch("app.services.agent.agent_service.get_document", side_effect=Exception("Database error")):
-            result = await agent_service.delete_agent("test_id_123")
+            result = await agent_service.delete_agent(valid_id)
             
             assert isinstance(result, DeleteAgentResponse)
             assert result.success is False
-            assert result.id == "test_id_123"
-            assert "Failed to delete agent test_id_123: Database error" in result.message
+            assert result.id == valid_id
+            assert f"Failed to delete agent {valid_id}: Database error" in result.message
 
     @pytest.mark.asyncio
-    async def test_delete_agent_not_found(self, agent_service):
+    async def test_delete_agent_not_found(self, agent_service: AgentService):
         """Test agent deletion when agent doesn't exist"""
+        from bson import ObjectId
+        
+        # Use a valid ObjectId format
+        valid_id = str(ObjectId())
+        
         with patch("app.services.agent.agent_service.get_document", return_value=None):
-            result = await agent_service.delete_agent("nonexistent_id")
+            result = await agent_service.delete_agent(valid_id)
             
             assert isinstance(result, DeleteAgentResponse)
             assert result.success is False
-            assert result.id == "nonexistent_id"
+            assert result.id == valid_id
             assert result.message == "Agent not found"
 
     @pytest.mark.asyncio
-    async def test_delete_agent_empty_id(self, agent_service):
+    async def test_delete_agent_invalid_id(self, agent_service: AgentService):
+        """Test agent deletion with invalid ID"""
+        result = await agent_service.delete_agent("invalid_id_format")
+        
+        assert isinstance(result, DeleteAgentResponse)
+        assert result.success is False
+        assert result.id == "invalid_id_format"
+        assert result.message == "Invalid agent ID"
+
+    @pytest.mark.asyncio
+    async def test_delete_agent_empty_id(self, agent_service: AgentService):
         """Test agent deletion with empty ID"""
         result = await agent_service.delete_agent("")
         
         assert isinstance(result, DeleteAgentResponse)
         assert result.success is False
         assert result.id == ""
-        assert result.message == "Agent ID is required"
+        assert result.message == "Invalid agent ID"
+
+    @pytest.mark.asyncio
+    async def test_delete_agent_database_deletion_failure(self, agent_service: AgentService):
+        """Test when delete_document returns False"""
+        from bson import ObjectId
+        
+        # Use a valid ObjectId format
+        valid_id = str(ObjectId())
+        mock_data = {"_id": valid_id, "name": "Test Agent", "avatar_image_id": None}
+        
+        with patch("app.services.agent.agent_service.get_document", return_value=mock_data), \
+             patch("app.services.agent.agent_service.delete_document", return_value=False):
+            
+            result = await agent_service.delete_agent(valid_id)
+            
+            assert isinstance(result, DeleteAgentResponse)
+            assert result.success is False
+            assert result.id == valid_id
+            assert result.message == "Failed to delete agent from database"
 
 
     @pytest.mark.asyncio
-    async def test_update_agent_avatar_success(self, agent_service):
+    async def test_update_agent_avatar_success(self, agent_service: AgentService):
         """Test successful avatar update"""
         from app.classes.image import ImageCreateResponse
         
@@ -400,7 +453,7 @@ class TestAgentService:
             mock_image_service.delete_image.assert_called_once_with("old_image_123")
 
     @pytest.mark.asyncio
-    async def test_update_agent_avatar_empty_agent_id(self, agent_service):
+    async def test_update_agent_avatar_empty_agent_id(self, agent_service: AgentService):
         """Test avatar update with empty agent ID"""
         mock_file = MagicMock()
         
@@ -412,7 +465,7 @@ class TestAgentService:
         assert result.message == "Agent ID is required"
 
     @pytest.mark.asyncio
-    async def test_update_agent_avatar_no_file(self, agent_service):
+    async def test_update_agent_avatar_no_file(self, agent_service: AgentService):
         """Test avatar update with no file"""
         result = await agent_service.update_agent_avatar("test_id", None, "avatar.jpg")
         
@@ -422,7 +475,7 @@ class TestAgentService:
         assert result.message == "File object is required"
 
     @pytest.mark.asyncio
-    async def test_update_agent_avatar_empty_filename(self, agent_service):
+    async def test_update_agent_avatar_empty_filename(self, agent_service: AgentService):
         """Test avatar update with empty filename"""
         mock_file = MagicMock()
         
@@ -434,7 +487,7 @@ class TestAgentService:
         assert result.message == "Filename is required"
 
     @pytest.mark.asyncio
-    async def test_update_agent_avatar_agent_not_found(self, agent_service):
+    async def test_update_agent_avatar_agent_not_found(self, agent_service: AgentService):
         """Test avatar update when agent doesn't exist"""
         mock_file = MagicMock()
         

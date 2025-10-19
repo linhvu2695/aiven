@@ -1,4 +1,6 @@
 import logging
+
+from bson import ObjectId
 from app.classes.agent import (
     CreateOrUpdateAgentRequest,
     CreateOrUpdateAgentResponse,
@@ -125,11 +127,11 @@ class AgentService:
     async def delete_agent(self, id: str) -> DeleteAgentResponse:
         try:
             # Validate request
-            if is_empty_string(id):
+            if not ObjectId.is_valid(id):
                 return DeleteAgentResponse(
                     success=False,
                     id=id,
-                    message="Agent ID is required"
+                    message="Invalid agent ID"
                 )
 
             # Retrieve agent document to get avatar image ID
