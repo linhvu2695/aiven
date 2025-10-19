@@ -1,6 +1,7 @@
 import logging
+import re
 from app.services.user.user_repository import UserRepository
-from app.classes.user import CreateUserRequest, GetUserByEmailRequest, RegisterUserRequest, RegisterUserResponse
+from app.classes.user import CreateUserRequest, GetUserByEmailRequest, GetUserByUsernameRequest, RegisterUserRequest, RegisterUserResponse
 
 
 class UserService:
@@ -21,26 +22,51 @@ class UserService:
                 message="Invalid input"
             )
         
+        if not re.match(r"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$", request.email):
+            return RegisterUserResponse(
+                success=False,
+                user_id="",
+                status_code=400,
+                message="Invalid email"
+            )
+        
         # 2. Check if user already exists
         get_user_by_email_response = await UserRepository().get_user_by_email(
             GetUserByEmailRequest(email=request.email, include_disabled=False)
         )
-        logging.getLogger("uvicorn.error").info(f"get_user_by_email_response: {get_user_by_email_response}")
         if not get_user_by_email_response.success:
             return RegisterUserResponse(
                 success=False,
                 user_id="",
                 status_code=500,
-                message="Failed to to check if user already exists"
+                message="Failed to to check if user already exists by email"
             )
         if get_user_by_email_response.user:
             return RegisterUserResponse(
                 success=False,
                 user_id="",
                 status_code=400,
-                message="User already exists"
+                message="Email already used"
             )
         
+        get_user_by_username_response = await UserRepository().get_user_by_username(
+            GetUserByUsernameRequest(username=request.username, include_disabled=False)
+        )
+        if not get_user_by_username_response.success:
+            return RegisterUserResponse(
+                success=False,
+                user_id="",
+                status_code=500,
+                message="Failed to to check if user already exists by username"
+            )
+        if get_user_by_username_response.user:
+            return RegisterUserResponse(
+                success=False,
+                user_id="",
+                status_code=400,
+                message="Username already exists"
+            )
+            
         # 3. Create user
         create_user_response = await UserRepository().create_user(CreateUserRequest(
             username=request.username,

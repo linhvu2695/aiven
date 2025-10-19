@@ -51,3 +51,24 @@ class GetUserByEmailResponse(BaseModel):
     success: bool
     user: UserInfo | None
     message: str
+
+class GetUserByUsernameRequest(BaseModel):
+    username: str
+    include_disabled: bool = False
+
+class GetUserByUsernameResponse(BaseModel):
+    success: bool
+    user: UserInfo | None
+    message: str
+
+class GetUserByIdResponse(BaseModel):
+    success: bool
+    user: UserInfo | None
+    status_code: int
+    message: str
+
+class GetUserApiResponse(BaseModel):
+    success: bool
+    user: dict | None
+    status_code: int
+    message: str

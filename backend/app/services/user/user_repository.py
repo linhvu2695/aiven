@@ -2,8 +2,10 @@ from datetime import datetime, timezone
 import secrets
 import hashlib
 from typing import Dict, Any
-from app.classes.user import CreateUserRequest, CreateUserResponse, GetUserByEmailRequest, GetUserByEmailResponse, UserInfo
-from app.core.database import find_documents_with_filters, insert_document
+
+from bson import ObjectId
+from app.classes.user import CreateUserRequest, CreateUserResponse, GetUserByEmailRequest, GetUserByEmailResponse, GetUserByUsernameRequest, GetUserByUsernameResponse, GetUserByIdResponse, UserInfo
+from app.core.database import find_documents_with_filters, get_document, insert_document
 
 USER_COLLECTION_NAME = "users"
 
@@ -114,4 +116,96 @@ class UserRepository:
                 success=False,
                 user=None,
                 message=f"Failed to get user by email: {e}"
+            )
+
+    async def get_user_by_username(self, request: GetUserByUsernameRequest) -> GetUserByUsernameResponse:
+        try:
+            # Build filters conditionally
+            filters: Dict[str, Any] = {"username": request.username}
+            if not request.include_disabled:
+                filters["disabled"] = False
+            
+            users = await find_documents_with_filters(
+                USER_COLLECTION_NAME, 
+                filters,
+                limit=1
+            )
+
+            if not users:
+                return GetUserByUsernameResponse(
+                    success=True,
+                    user=None,
+                    message="User not found"
+                )
+            
+            user = users[0]
+            user_info = UserInfo(
+                id=str(user["_id"]),
+                username=user["username"],
+                email=user["email"],
+                password_hash=user["password_hash"],
+                password_salt=user["password_salt"],
+                hash_algorithm=user["hash_algorithm"],
+                created_at=user["created_at"],
+                updated_at=user["updated_at"],
+                disabled=user["disabled"]
+            )
+            
+            return GetUserByUsernameResponse(
+                success=True,
+                user=user_info,
+                message=""
+            )
+
+        except Exception as e:
+            return GetUserByUsernameResponse(
+                success=False,
+                user=None,
+                message=f"Failed to get user by username: {e}"
+            )
+
+    async def get_user_by_id(self, id: str) -> GetUserByIdResponse:
+        if not ObjectId.is_valid(id):
+            return GetUserByIdResponse(
+                success=False,
+                user=None,
+                status_code=400,
+                message="Invalid user ID format"
+            )
+        
+        try:
+            user = await get_document(USER_COLLECTION_NAME, id)
+            
+            if not user:
+                return GetUserByIdResponse(
+                    success=True,
+                    user=None,
+                    status_code=404,
+                    message="User not found"
+                )
+            
+            user_info = UserInfo(
+                id=str(user["_id"]),
+                username=user["username"],
+                email=user["email"],
+                password_hash=user["password_hash"],
+                password_salt=user["password_salt"],
+                hash_algorithm=user["hash_algorithm"],
+                created_at=user["created_at"],
+                updated_at=user["updated_at"],
+                disabled=user["disabled"]
+            )
+            
+            return GetUserByIdResponse(
+                success=True,
+                user=user_info,
+                status_code=200,
+                message=""
+            )
+        except Exception as e:
+            return GetUserByIdResponse(
+                success=False,
+                user=None,
+                status_code=500,
+                message=f"Failed to get user by id: {e}"
             )
