@@ -11,7 +11,12 @@ async def lifespan(app: FastAPI):
     await check_mongodb_health()
     yield
 
-app = FastAPI(lifespan=lifespan)
+app = FastAPI(
+    title="Aiven API",
+    description="API for Aiven application",
+    version="1.0.0",
+    lifespan=lifespan
+)
 
 # Allow React frontend access (adjust this in production!)
 app.add_middleware(
