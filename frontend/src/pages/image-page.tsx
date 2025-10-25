@@ -9,6 +9,7 @@ import {
     Center,
     HStack,
     Input,
+    IconButton,
 } from "@chakra-ui/react";
 import { useEffect, useState } from "react";
 import { toaster } from "@/components/ui/toaster";
@@ -18,14 +19,19 @@ import type {
 } from "@/types/image";
 import { ImageCard, ImageDetailDialog } from "@/components/image";
 import { useImage, type ImageWithUrl } from "@/context/image-ctx";
+import { FaChevronLeft, FaChevronRight } from "react-icons/fa";
+
+const IMAGES_PER_PAGE = 10;
 
 export const ImagePage = () => {
     const [images, setImages] = useState<ImageWithUrl[]>([]);
     const [loading, setLoading] = useState(true);
     const [searchQuery, setSearchQuery] = useState("");
+    const [currentPage, setCurrentPage] = useState(1);
+    const [totalImages, setTotalImages] = useState(0);
     const { openImageDialog } = useImage();
 
-    const fetchImages = async () => {
+    const fetchImages = async (page: number = currentPage) => {
         try {
             setLoading(true);
             const response = await fetch(BASE_URL + "/api/image/list", {
@@ -34,8 +40,8 @@ export const ImagePage = () => {
                     "Content-Type": "application/json",
                 },
                 body: JSON.stringify({
-                    limit: 100,
-                    offset: 0,
+                    page: page,
+                    page_size: IMAGES_PER_PAGE,
                     image_type: "general",
                     include_deleted: false,
                 }),
@@ -44,6 +50,9 @@ export const ImagePage = () => {
             if (!response.ok) throw new Error("Failed to fetch images");
 
             const data: ImageListResponse = await response.json();
+            
+            setTotalImages(data.total);
+            setCurrentPage(data.page);
 
             // Fetch pre-signed URLs for all images
             if (data.images.length > 0) {
@@ -87,8 +96,22 @@ export const ImagePage = () => {
     };
 
     useEffect(() => {
-        fetchImages();
-    }, []);
+        fetchImages(currentPage);
+    }, [currentPage]);
+
+    const totalPages = Math.ceil(totalImages / IMAGES_PER_PAGE);
+
+    const handlePreviousPage = () => {
+        if (currentPage > 1) {
+            setCurrentPage(currentPage - 1);
+        }
+    };
+
+    const handleNextPage = () => {
+        if (currentPage < totalPages) {
+            setCurrentPage(currentPage + 1);
+        }
+    };
 
     return (
         <Box h="100vh" overflow="hidden">
@@ -106,8 +129,8 @@ export const ImagePage = () => {
             </HStack>
 
             {/* Main Content */}
-            <Flex h="calc(100vh - 120px)" p={4}>
-                <Box flex={1} h="100%" overflow="auto">
+            <Flex h="calc(100vh - 120px)" p={4} direction="column">
+                <Box flex={1} overflow="auto">
                     {loading ? (
                         <Center h="100%">
                             <Spinner size="xl" color="teal.500" />
@@ -134,12 +157,42 @@ export const ImagePage = () => {
                                     key={image.id} 
                                     image={image}
                                     onClick={() => openImageDialog(image)}
-                                    onDelete={fetchImages}
+                                    onDelete={() => fetchImages(currentPage)}
                                 />
                             ))}
                         </Grid>
                     )}
                 </Box>
+
+                {/* Pagination Controls */}
+                {!loading && totalImages > 0 && (
+                    <HStack justify="center" p={4} gap={4}>
+                        <IconButton
+                            onClick={handlePreviousPage}
+                            disabled={currentPage === 1}
+                            variant="ghost"
+                            aria-label="Previous page"
+                        >
+                            <FaChevronLeft />
+                        </IconButton>
+                        <HStack gap={2}>
+                            <Text fontWeight="medium">
+                                Page {currentPage} of {totalPages}
+                            </Text>
+                            <Text fontSize="sm" color="gray.500">
+                                ({totalImages} total images)
+                            </Text>
+                        </HStack>
+                        <IconButton
+                            onClick={handleNextPage}
+                            disabled={currentPage >= totalPages}
+                            variant="ghost"
+                            aria-label="Next page"
+                        >
+                            <FaChevronRight />
+                        </IconButton>
+                    </HStack>
+                )}
             </Flex>
 
             <ImageDetailDialog />

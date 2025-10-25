@@ -23,8 +23,8 @@ export interface ImageInfo {
 }
 
 export interface ImageListResponse {
-    success: boolean;
     images: ImageInfo[];
-    message: string;
-    total_count: number;
+    total: number;
+    page: number;
+    page_size: number;
 }

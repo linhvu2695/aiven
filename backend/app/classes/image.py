@@ -136,7 +136,7 @@ class ImageResponse(BaseModel):
 class ImageListRequest(BaseModel):
     """Request model for listing images"""
     page: int = 1
-    page_size: int = 50
+    page_size: int = 10
     image_type: Optional[ImageType] = None
     entity_id: Optional[str] = None
     entity_type: Optional[str] = None
