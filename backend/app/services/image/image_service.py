@@ -540,7 +540,7 @@ class ImageService:
         image_data = await FirebaseStorageRepository().download(image_response.image.storage_path)
         
         # Generate image
-        genimage_response = gen_provider.edit_image(image_data, request.prompt)
+        genimage_response = gen_provider.generate_image(request.prompt, image_data)
 
         # Persist image to database
         if genimage_response.image_data:
