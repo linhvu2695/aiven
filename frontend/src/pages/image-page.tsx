@@ -19,7 +19,7 @@ import type {
 } from "@/types/image";
 import { ImageCard, ImageDetailDialog } from "@/components/image";
 import { useImage, type ImageWithUrl } from "@/context/image-ctx";
-import { FaChevronLeft, FaChevronRight } from "react-icons/fa";
+import { FaArrowLeft, FaArrowRight } from "react-icons/fa";
 
 const IMAGES_PER_PAGE = 10;
 
@@ -173,14 +173,14 @@ export const ImagePage = () => {
                             variant="ghost"
                             aria-label="Previous page"
                         >
-                            <FaChevronLeft />
+                            <FaArrowLeft />
                         </IconButton>
                         <HStack gap={2}>
                             <Text fontWeight="medium">
                                 Page {currentPage} of {totalPages}
                             </Text>
                             <Text fontSize="sm" color="gray.500">
-                                ({totalImages} total images)
+                                ({totalImages} images)
                             </Text>
                         </HStack>
                         <IconButton
@@ -189,7 +189,7 @@ export const ImagePage = () => {
                             variant="ghost"
                             aria-label="Next page"
                         >
-                            <FaChevronRight />
+                            <FaArrowRight />
                         </IconButton>
                     </HStack>
                 )}
