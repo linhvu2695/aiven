@@ -62,6 +62,9 @@ pytest-asyncio==1.0.0
 pytest-cov==6.2.1
 coverage==7.10.0
 
+# Security & Encryption
+cryptography==44.0.0
+
 # Core Python Dependencies
 typing_extensions==4.14.1
 packaging==24.2

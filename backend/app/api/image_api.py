@@ -1,7 +1,8 @@
 import logging
+from typing import Optional
 from fastapi import APIRouter, HTTPException
 from app.services.image.image_service import ImageService
-from app.classes.image import DeleteImageResponse, ImageGenerateRequest, ImageGenerateResponse, ImageListRequest, ImageListResponse
+from app.classes.image import DeleteImageResponse, ImageEditRequest, ImageGenerateRequest, ImageGenerateResponse, ImageListRequest, ImageListResponse
 from app.services.image.image_gen.image_gen_providers import ImageGenProvider
 
 MAX_IMAGES_LIMIT = 50
@@ -78,11 +79,22 @@ async def serve_images(image_ids: str):
         raise HTTPException(status_code=400, detail=f"Error getting image urls: {str(e)}")
 
 @router.post("/generate", response_model=ImageGenerateResponse)
-async def generate_image(prompt: str, provider: ImageGenProvider = ImageGenProvider.GEMINI):
+async def generate_image(
+    prompt: str, 
+    image_id: Optional[str] = None, 
+    provider: ImageGenProvider = ImageGenProvider.GEMINI
+    ):
     """Generate an image using the specified provider"""
-    response = await ImageService().generate_image(ImageGenerateRequest(prompt=prompt, provider=provider))
-    if response.success:
-        return response
+    if image_id:
+        response = await ImageService().edit_image(ImageEditRequest(image_id=image_id, prompt=prompt, provider=provider))
+        if response.success:
+            return response
+        else:
+            raise HTTPException(status_code=400, detail=response.message)
     else:
-        raise HTTPException(status_code=400, detail=response.message)
+        response = await ImageService().generate_image(ImageGenerateRequest(prompt=prompt, provider=provider))
+        if response.success:
+            return response
+        else:
+            raise HTTPException(status_code=400, detail=response.message)
     

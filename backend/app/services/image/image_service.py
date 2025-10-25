@@ -9,6 +9,7 @@ import requests
 import asyncio
 
 from app.classes.image import (
+    ImageEditRequest,
     ImageGenerateRequest,
     ImageGenerateResponse,
     ImageInfo,
@@ -480,11 +481,21 @@ class ImageService:
             )
 
     async def generate_image(self, request: ImageGenerateRequest) -> ImageGenerateResponse:
+        # Get image generation provider
+        gen_provider = None
         if request.provider == ImageGenProvider.GEMINI:
-            genimage_response = ImageGenGemini().generate_image(request.prompt)
-        else:
-            return ImageGenerateResponse(success=False, image_id="", message=f"Provider {request.provider} not supported")
+            gen_provider = ImageGenGemini()
+        if not gen_provider:
+            return ImageGenerateResponse(
+                success=False, 
+                image_id="", 
+                message=f"Provider {request.provider} not supported"
+                )
 
+        # Generate image
+        genimage_response = gen_provider.generate_image(request.prompt)
+
+        # Persist image to database
         if genimage_response.image_data:
             create_image_response = await self.create_image(CreateImageRequest(
                 filename=f"image_{request.provider}_{datetime.now().strftime('%Y%m%d_%H%M%S')}{genimage_response.mimetype}",
@@ -492,6 +503,53 @@ class ImageService:
                 source_type=ImageSourceType.AI_GENERATE,
                 file_data=genimage_response.image_data,
                 description=f"Generated image for prompt: {request.prompt}",
+            ))
+
+            if create_image_response.success:
+                return ImageGenerateResponse(
+                    success=True, 
+                    image_id=create_image_response.image_id, 
+                    text_data=genimage_response.text_data,
+                    message=create_image_response.message
+                    )
+            else:
+                return ImageGenerateResponse(success=False, image_id="", message=create_image_response.message)
+        else:
+            return ImageGenerateResponse(success=False, image_id="", message=genimage_response.message)
+
+    async def edit_image(self, request: ImageEditRequest) -> ImageGenerateResponse:
+        # Get image generation provider
+        gen_provider = None
+        if request.provider == ImageGenProvider.GEMINI:
+            gen_provider = ImageGenGemini()
+        if not gen_provider:
+            return ImageGenerateResponse(
+                success=False, 
+                image_id="", 
+                message=f"Provider {request.provider} not supported"
+                )
+
+        # Get image data
+        image_response = await self.get_image(request.image_id)
+        if not image_response.success or not image_response.image:
+            return ImageGenerateResponse(
+                success=False, 
+                image_id="", 
+                message=f"Image not found. Error: {image_response.message}"
+                )
+        image_data = await FirebaseStorageRepository().download(image_response.image.storage_path)
+        
+        # Generate image
+        genimage_response = gen_provider.edit_image(image_data, request.prompt)
+
+        # Persist image to database
+        if genimage_response.image_data:
+            create_image_response = await self.create_image(CreateImageRequest(
+                filename=f"image_{request.provider}_{datetime.now().strftime('%Y%m%d_%H%M%S')}{genimage_response.mimetype}",
+                image_type=ImageType.GENERAL,
+                source_type=ImageSourceType.AI_GENERATE,
+                file_data=genimage_response.image_data,
+                description=f"Generated image based on {request.image_id} for prompt: {request.prompt}",
             ))
 
             if create_image_response.success:

@@ -68,3 +68,61 @@ class ImageGenGemini:
             text_data=text_data,
             mimetype=mimetype,
         )
+
+    def edit_image(self, image_data: bytes, prompt: str) -> GenImageResponse:
+        text_data = ""
+        data_buffer = None
+        mimetype = ""
+            
+        try:
+            for chunk in self.client.models.generate_content_stream(
+                model=self._model,
+                contents = [
+                    types.Content(
+                        role="user",
+                        parts=[
+                            types.Part.from_bytes(
+                                mime_type="image/jpeg",
+                                data=image_data,
+                            ),
+                            types.Part.from_text(text=prompt),
+                        ],
+                    ),
+                ],
+                config=types.GenerateContentConfig(
+                    response_modalities=[
+                        "IMAGE",
+                        "TEXT",
+                    ],
+                ),
+            ):
+                if (
+                    chunk.candidates is None
+                    or chunk.candidates[0].content is None
+                    or chunk.candidates[0].content.parts is None
+                ):
+                    continue
+                
+                if (
+                    chunk.candidates[0].content.parts[0].inline_data 
+                    and chunk.candidates[0].content.parts[0].inline_data.data
+                ):
+                    inline_data = chunk.candidates[0].content.parts[0].inline_data
+                    data_buffer = inline_data.data
+                    mimetype = mimetypes.guess_extension(str(inline_data.mime_type))
+                else:
+                    text_data = text_data + str(chunk.text)
+        except Exception as e:
+            return GenImageResponse(
+                message=str(e),
+                image_data=None,
+                text_data=None,
+                mimetype=None,
+            )
+
+        return GenImageResponse(
+            message="",
+            image_data=data_buffer,
+            text_data=text_data,
+            mimetype=mimetype,
+        )

@@ -195,3 +195,8 @@ class GenImageResponse(BaseModel):
     mimetype: Optional[str] = None
     message: str
 
+class ImageEditRequest(BaseModel):
+    """Request model for editing an image"""
+    image_id: str
+    prompt: str
+    provider: str
