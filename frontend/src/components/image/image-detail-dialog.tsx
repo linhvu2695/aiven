@@ -7,8 +7,11 @@ import {
     Portal,
     CloseButton,
     Image,
+    IconButton,
 } from "@chakra-ui/react";
+import { FaEdit, FaMagic } from "react-icons/fa";
 import { useImage } from "@/context/image-ctx";
+import { Tooltip } from "../ui/tooltip";
 
 export const ImageDetailDialog = () => {
     const { selectedImage, isDialogOpen, closeImageDialog } = useImage();
@@ -37,26 +40,69 @@ export const ImageDetailDialog = () => {
                         <Dialog.Body>
                             <VStack align="stretch" gap={4}>
                                 {selectedImage?.url ? (
-                                    <Box
-                                        display="flex"
-                                        justifyContent="center"
-                                        alignItems="center"
-                                        maxH="600px"
-                                        overflow="hidden"
-                                        borderRadius="md"
-                                    >
-                                        <Image
-                                            src={selectedImage.url}
-                                            alt={
-                                                selectedImage.title ||
-                                                selectedImage.filename ||
-                                                selectedImage.description ||
-                                                "image"
-                                            }
-                                            maxW="100%"
+                                    <Box position="relative">
+                                        {/* Buttons Container */}
+                                        <VStack 
+                                            position="absolute"
+                                            left="0"
+                                            top="50%"
+                                            transform="translateY(-50%)"
+                                            zIndex={10}
+                                            gap={2} 
+                                            p={2}
+                                            borderWidth="1px"
+                                            borderColor="gray.800"
+                                            borderRadius="lg"
+                                            padding={4}
+                                            justifyContent="flex-start"
+                                            bg="rgba(255, 255, 255, 0.05)"
+                                            backdropFilter="blur(8px)"
+                                            boxShadow="lg"
+                                            minH="calc(600px - 40px)"
+                                        >
+                                            <Tooltip content="Edit image">
+                                                <IconButton
+                                                    aria-label="Edit image"
+                                                    size="lg"
+                                                    variant="ghost"
+                                                    padding={4}
+                                                    _hover={{ 
+                                                        transform: "scale(1.1)",
+                                                        bgColor: "teal.500",
+                                                        boxShadow: "0px 4px 10px rgba(0, 0, 0, 0.1)", 
+                                                    }}
+                                                >
+                                                    <FaMagic />
+                                                </IconButton>
+                                            </Tooltip>
+                                            
+                                        </VStack>
+
+                                        {/* Image Container */}
+                                        <Box
+                                            display="flex"
+                                            justifyContent="center"
+                                            alignItems="center"
+                                            borderWidth="1px"
+                                            borderColor="gray.800"
+                                            borderRadius="lg"
                                             maxH="600px"
-                                            objectFit="contain"
-                                        />
+                                            overflow="hidden"
+                                            marginLeft="40px"
+                                        >
+                                            <Image
+                                                src={selectedImage.url}
+                                                alt={
+                                                    selectedImage.title ||
+                                                    selectedImage.filename ||
+                                                    selectedImage.description ||
+                                                    "image"
+                                                }
+                                                maxW="100%"
+                                                maxH="600px"
+                                                objectFit="contain"
+                                            />
+                                        </Box>
                                     </Box>
                                 ) : (
                                     <Center
@@ -71,6 +117,7 @@ export const ImageDetailDialog = () => {
                                     </Center>
                                 )}
 
+                                {/* Image Metadata */}
                                 <Box p={4} bg="bg.subtle" borderRadius="md">
                                     <VStack align="stretch" gap={3}>
                                         {selectedImage?.description && (
