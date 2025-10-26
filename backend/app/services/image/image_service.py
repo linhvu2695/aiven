@@ -45,7 +45,7 @@ from app.utils.string.string_utils import (
 from app.utils.image.image_utils import generate_storage_path
 from app.services.image.image_gen.image_gen_gemini import ImageGenGemini
 from app.services.image.image_gen.image_gen_openai import ImageGenOpenAI
-from app.services.image.image_gen.image_gen_providers import ImageGenProvider
+from app.services.image.image_gen.image_gen_providers import ImageGenProvider, ImageGenInterface
 
 IMAGE_COLLECTION_NAME = "images"
 IMAGE_STORAGE_FOLDER = "images"
@@ -483,7 +483,7 @@ class ImageService:
 
     async def generate_image(self, request: ImageGenerateRequest) -> ImageGenerateResponse:
         # Get image generation provider
-        gen_provider = None
+        gen_provider: ImageGenInterface | None = None
         if request.provider == ImageGenProvider.GEMINI:
             gen_provider = ImageGenGemini()
         elif request.provider == ImageGenProvider.OPENAI:

@@ -6,8 +6,9 @@ from app.classes.image import GenImageRequest, GenImageResponse
 from app.core.config import settings
 from app.utils.string.string_utils import is_empty_string
 from app.services.image.image_gen.image_gen_aspect_ratio import ImageGenAspectRatio
+from app.services.image.image_gen.image_gen_providers import ImageGenInterface
 
-class ImageGenGemini:
+class ImageGenGemini(ImageGenInterface):
     """Service for generating images using Google Gemini"""
 
     _instance = None

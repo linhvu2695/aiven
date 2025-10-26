@@ -7,12 +7,13 @@ from app.classes.image import GenImageRequest, GenImageResponse
 from app.core.config import settings
 from app.utils.string.string_utils import is_empty_string
 from app.services.image.image_gen.image_gen_aspect_ratio import ImageGenAspectRatio
+from app.services.image.image_gen.image_gen_providers import ImageGenInterface
 
 # Type alias for OpenAI gpt-image-1 supported sizes
 GptImage1Size = Literal["1024x1024", "1024x1536", "1536x1024"]
 
 
-class ImageGenOpenAI:
+class ImageGenOpenAI(ImageGenInterface):
     """Service for generating images using OpenAI gpt-image-1"""
 
     _instance = None
