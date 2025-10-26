@@ -11,6 +11,8 @@ type ImageContextType = {
     isDialogOpen: boolean;
     openImageDialog: (image: ImageWithUrl) => void;
     closeImageDialog: () => void;
+    isGenDialogOpen: boolean;
+    setIsGenDialogOpen: (isOpen: boolean) => void;
 };
 
 const ImageContext = createContext<ImageContextType | undefined>(undefined);
@@ -26,6 +28,7 @@ export const useImage = () => {
 export const ImageProvider = ({ children }: { children: ReactNode }) => {
     const [selectedImage, setSelectedImage] = useState<ImageWithUrl | null>(null);
     const [isDialogOpen, setIsDialogOpen] = useState(false);
+    const [isGenDialogOpen, setIsGenDialogOpen] = useState(false);
 
     const openImageDialog = (image: ImageWithUrl) => {
         setSelectedImage(image);
@@ -43,7 +46,9 @@ export const ImageProvider = ({ children }: { children: ReactNode }) => {
             setSelectedImage,
             isDialogOpen,
             openImageDialog,
-            closeImageDialog
+            closeImageDialog,
+            isGenDialogOpen,
+            setIsGenDialogOpen
         }}>
             {children}
         </ImageContext.Provider>

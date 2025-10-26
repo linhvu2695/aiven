@@ -17,10 +17,10 @@ import type {
     ImageListResponse,
     ImageUrlsResponse,
 } from "@/types/image";
-import { ImageCard, ImageDetailDialog, ImageViewDialog } from "@/components/image";
+import { ImageCard, ImageDetailDialog, ImageViewDialog, ImageGenDialog } from "@/components/image";
 import { useImage, type ImageWithUrl } from "@/context/image-ctx";
 import { useImageView } from "@/context/image-view-ctx";
-import { FaArrowLeft, FaArrowRight, FaListUl } from "react-icons/fa";
+import { FaArrowLeft, FaArrowRight, FaListUl, FaMagic } from "react-icons/fa";
 import { Tooltip } from "@/components/ui";
 
 export const ImagePage = () => {
@@ -29,7 +29,7 @@ export const ImagePage = () => {
     const [searchQuery, setSearchQuery] = useState("");
     const [currentPage, setCurrentPage] = useState(1);
     const [totalImages, setTotalImages] = useState(0);
-    const { openImageDialog } = useImage();
+    const { openImageDialog, isGenDialogOpen, setIsGenDialogOpen } = useImage();
     const { pageSize, openViewDialog } = useImageView();
 
     const fetchImages = async (page: number = currentPage) => {
@@ -142,6 +142,19 @@ export const ImagePage = () => {
                         <FaListUl />
                     </IconButton>
                 </Tooltip>
+
+                {/* Generate Image */}
+                <Tooltip content="Generate Image">
+                    <IconButton
+                        aria-label="Generate Image"
+                        size="md"
+                        variant="ghost"
+                        borderRadius={"full"}
+                        onClick={() => setIsGenDialogOpen(true)}
+                    >
+                        <FaMagic />
+                    </IconButton>
+                </Tooltip>
                 
             </HStack>
 
@@ -214,6 +227,11 @@ export const ImagePage = () => {
 
             <ImageDetailDialog />
             <ImageViewDialog />
+            <ImageGenDialog 
+                isOpen={isGenDialogOpen} 
+                onClose={() => setIsGenDialogOpen(false)}
+                onSuccess={() => fetchImages(currentPage)}
+            />
         </Box>
     );
 };
