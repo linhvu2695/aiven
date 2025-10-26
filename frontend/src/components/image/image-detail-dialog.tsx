@@ -139,8 +139,7 @@ export const ImageDetailDialog = () => {
                                                     padding={4}
                                                     _hover={{ 
                                                         transform: "scale(1.1)",
-                                                        bgColor: "teal.500",
-                                                        boxShadow: "0px 4px 10px rgba(0, 0, 0, 0.1)", 
+                                                        bgColor: "teal.500", 
                                                     }}
                                                     onClick={() => setShowPromptContainer(!showPromptContainer)}
                                                 >

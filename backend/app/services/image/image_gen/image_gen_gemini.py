@@ -1,10 +1,10 @@
 import mimetypes
-from typing import Optional
 from google import genai
 from google.genai import types
 
-from app.classes.image import GenImageResponse
+from app.classes.image import GenImageRequest, GenImageResponse
 from app.core.config import settings
+from app.utils.string.string_utils import is_empty_string
 
 class ImageGenGemini:
     """Service for generating images using Google Gemini"""
@@ -22,18 +22,27 @@ class ImageGenGemini:
             raise ValueError("GEMINI_API_KEY is not set")
         self.client = genai.Client(api_key=api_key)
 
-    def generate_image(self, prompt: str, image_data: Optional[bytes] = None) -> GenImageResponse:
+    def generate_image(self, request: GenImageRequest) -> GenImageResponse:
+        if is_empty_string(request.prompt):
+            return GenImageResponse(
+                success=False,
+                message="Prompt is required",
+                image_data=None,
+                text_data=None,
+                mimetype=None,
+            )
+
         text_data = ""
         data_buffer = None
         mimetype = ""
 
         content_parts = [
-            types.Part.from_text(text=prompt),
+            types.Part.from_text(text=request.prompt),
         ]
-        if image_data:
+        if request.image_data:
             content_parts.append(types.Part.from_bytes(
                 mime_type="image/jpeg",
-                data=image_data,
+                data=request.image_data,
             ))
 
         try:
@@ -70,6 +79,7 @@ class ImageGenGemini:
                     text_data = text_data + str(chunk.text)
         except Exception as e:
             return GenImageResponse(
+                success=False,
                 message=str(e),
                 image_data=None,
                 text_data=None,
@@ -77,6 +87,7 @@ class ImageGenGemini:
             )
 
         return GenImageResponse(
+            success=True,
             message="",
             image_data=data_buffer,
             text_data=text_data,

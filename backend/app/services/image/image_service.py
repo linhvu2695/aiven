@@ -2,14 +2,14 @@ import logging
 import base64
 import io
 from datetime import datetime, timezone, timedelta
-from typing import Optional, Dict, Any
+from typing import Dict, Any
 from PIL import Image as PILImage
 from PIL.ExifTags import TAGS
 import requests
 import asyncio
 
 from app.classes.image import (
-    ImageEditRequest,
+    GenImageRequest,
     ImageGenerateRequest,
     ImageGenerateResponse,
     ImageInfo,
@@ -492,12 +492,29 @@ class ImageService:
                 message=f"Provider {request.provider} not supported"
                 )
 
+        # Get image data if needed
+        image_data = None
+        if request.image_id:
+            image_response = await self.get_image(request.image_id)
+            if not image_response.success or not image_response.image:
+                return ImageGenerateResponse(
+                    success=False, 
+                    image_id="", 
+                    message=f"Image not found. Error: {image_response.message}"
+                    )
+            image_data = await FirebaseStorageRepository().download(image_response.image.storage_path)
+
         # Generate image
-        genimage_response = gen_provider.generate_image(request.prompt)
+        genimage_response = gen_provider.generate_image(GenImageRequest(
+            prompt=request.prompt, 
+            image_data=image_data
+            ))
+
+        if not genimage_response.success or not genimage_response.image_data:
+            return ImageGenerateResponse(success=False, image_id="", message=genimage_response.message)
 
         # Persist image to database
-        if genimage_response.image_data:
-            create_image_response = await self.create_image(CreateImageRequest(
+        create_image_response = await self.create_image(CreateImageRequest(
                 filename=f"image_{request.provider}_{datetime.now().strftime('%Y%m%d_%H%M%S')}{genimage_response.mimetype}",
                 image_type=ImageType.GENERAL,
                 source_type=ImageSourceType.AI_GENERATE,
@@ -505,61 +522,12 @@ class ImageService:
                 description=f"Generated image for prompt: {request.prompt}",
             ))
 
-            if create_image_response.success:
-                return ImageGenerateResponse(
-                    success=True, 
-                    image_id=create_image_response.image_id, 
-                    text_data=genimage_response.text_data,
-                    message=create_image_response.message
-                    )
-            else:
-                return ImageGenerateResponse(success=False, image_id="", message=create_image_response.message)
-        else:
-            return ImageGenerateResponse(success=False, image_id="", message=genimage_response.message)
+        if not create_image_response.success:
+            return ImageGenerateResponse(success=False, image_id="", message=create_image_response.message)
 
-    async def edit_image(self, request: ImageEditRequest) -> ImageGenerateResponse:
-        # Get image generation provider
-        gen_provider = None
-        if request.provider == ImageGenProvider.GEMINI:
-            gen_provider = ImageGenGemini()
-        if not gen_provider:
-            return ImageGenerateResponse(
-                success=False, 
-                image_id="", 
-                message=f"Provider {request.provider} not supported"
-                )
-
-        # Get image data
-        image_response = await self.get_image(request.image_id)
-        if not image_response.success or not image_response.image:
-            return ImageGenerateResponse(
-                success=False, 
-                image_id="", 
-                message=f"Image not found. Error: {image_response.message}"
-                )
-        image_data = await FirebaseStorageRepository().download(image_response.image.storage_path)
-        
-        # Generate image
-        genimage_response = gen_provider.generate_image(request.prompt, image_data)
-
-        # Persist image to database
-        if genimage_response.image_data:
-            create_image_response = await self.create_image(CreateImageRequest(
-                filename=f"image_{request.provider}_{datetime.now().strftime('%Y%m%d_%H%M%S')}{genimage_response.mimetype}",
-                image_type=ImageType.GENERAL,
-                source_type=ImageSourceType.AI_GENERATE,
-                file_data=genimage_response.image_data,
-                description=f"Generated image based on {request.image_id} for prompt: {request.prompt}",
-            ))
-
-            if create_image_response.success:
-                return ImageGenerateResponse(
-                    success=True, 
-                    image_id=create_image_response.image_id, 
-                    text_data=genimage_response.text_data,
-                    message=create_image_response.message
-                    )
-            else:
-                return ImageGenerateResponse(success=False, image_id="", message=create_image_response.message)
-        else:
-            return ImageGenerateResponse(success=False, image_id="", message=genimage_response.message)
+        return ImageGenerateResponse(
+            success=True,
+            image_id=create_image_response.image_id,
+            text_data=genimage_response.text_data,
+            message=""
+            )

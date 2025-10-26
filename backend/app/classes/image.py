@@ -177,26 +177,27 @@ class ImageUrlsResponse(BaseModel):
     message: str
 
 class ImageGenerateRequest(BaseModel):
-    """Request model for generating an image"""
+    """Request model for generating an image with a provider"""
     prompt: str
     provider: str
+    image_id: Optional[str] = None
 
 class ImageGenerateResponse(BaseModel):
-    """Response model for generating an image"""
+    """Response model for generating an image with a provider"""
     success: bool
     image_id: Optional[str] = None
     text_data: Optional[str] = None
     message: str
 
+class GenImageRequest(BaseModel):
+    """Request model for generating an image"""
+    prompt: str
+    image_data: Optional[bytes] = None
+
 class GenImageResponse(BaseModel):
-    """Response model for generating an image from a provider"""
+    """Response model for generating an image"""
+    success: bool
     image_data: Optional[bytes] = None
     text_data: Optional[str] = None
     mimetype: Optional[str] = None
     message: str
-
-class ImageEditRequest(BaseModel):
-    """Request model for editing an image"""
-    image_id: str
-    prompt: str
-    provider: str

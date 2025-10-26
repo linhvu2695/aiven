@@ -73,6 +73,8 @@ export const ImageCard = ({ image, onClick, onDelete }: ImageCardProps) => {
                         </Text>
                     </Center>
                 )}
+
+                {/* Image Metadata */}
                 <Box p={4}>
                     <VStack align="stretch" gap={2}>
                         <Text

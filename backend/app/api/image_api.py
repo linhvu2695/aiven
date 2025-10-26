@@ -2,7 +2,7 @@ import logging
 from typing import Optional
 from fastapi import APIRouter, HTTPException
 from app.services.image.image_service import ImageService
-from app.classes.image import DeleteImageResponse, ImageEditRequest, ImageGenerateRequest, ImageGenerateResponse, ImageListRequest, ImageListResponse
+from app.classes.image import DeleteImageResponse, ImageGenerateRequest, ImageGenerateResponse, ImageListRequest, ImageListResponse
 from app.services.image.image_gen.image_gen_providers import ImageGenProvider
 
 MAX_IMAGES_LIMIT = 50
@@ -85,16 +85,13 @@ async def generate_image(
     provider: ImageGenProvider = ImageGenProvider.GEMINI
     ):
     """Generate an image using the specified provider"""
-    if image_id:
-        response = await ImageService().edit_image(ImageEditRequest(image_id=image_id, prompt=prompt, provider=provider))
-        if response.success:
-            return response
-        else:
-            raise HTTPException(status_code=400, detail=response.message)
-    else:
-        response = await ImageService().generate_image(ImageGenerateRequest(prompt=prompt, provider=provider))
-        if response.success:
-            return response
-        else:
-            raise HTTPException(status_code=400, detail=response.message)
+    response = await ImageService().generate_image(ImageGenerateRequest(
+        prompt=prompt, 
+        provider=provider, 
+        image_id=image_id
+        ))
+
+    if not response.success:
+        raise HTTPException(status_code=400, detail=response.message)
+    return response
     
