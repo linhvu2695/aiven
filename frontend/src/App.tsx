@@ -9,6 +9,7 @@ import { AgentProvider } from "./context/agent-ctx";
 import { ArticleProvider } from "./context/article-ctx";
 import { ChatProvider } from "./context/chat-ctx";
 import { ImageProvider } from "./context/image-ctx";
+import { ImageViewProvider } from "./context/image-view-ctx";
 import { Toaster } from "./components/ui/toaster";
 import ImagePage from "./pages/image-page";
 
@@ -42,7 +43,9 @@ function App() {
                             path="/image"
                             element={
                                 <ImageProvider>
-                                    <ImagePage />
+                                    <ImageViewProvider>
+                                        <ImagePage />
+                                    </ImageViewProvider>
                                 </ImageProvider>
                             }
                         />

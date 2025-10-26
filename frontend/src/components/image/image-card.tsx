@@ -10,6 +10,7 @@ import {
 import type { ImageInfo } from "@/types/image";
 import { DeleteItemButton } from "@/components/ui";
 import { ImageDeleteDialog } from "./image-delete-dialog";
+import { useImageView, ViewMode } from "@/context/image-view-ctx";
 
 interface ImageWithUrl extends ImageInfo {
     url?: string;
@@ -23,6 +24,7 @@ interface ImageCardProps {
 
 export const ImageCard = ({ image, onClick, onDelete }: ImageCardProps) => {
     const { open, onOpen, onClose } = useDisclosure();
+    const { viewMode } = useImageView();
 
     return (
         <>
@@ -74,42 +76,44 @@ export const ImageCard = ({ image, onClick, onDelete }: ImageCardProps) => {
                     </Center>
                 )}
 
-                {/* Image Metadata */}
-                <Box p={4}>
-                    <VStack align="stretch" gap={2}>
-                        <Text
-                            fontWeight="bold"
-                            fontSize="sm"
-                            overflow="hidden"
-                            textOverflow="ellipsis"
-                            whiteSpace="nowrap"
-                            title={image.title || image.filename || image.id}
-                        >
-                            {image.title || image.filename || image.id}
-                        </Text>
-                        {image.description && (
+                {/* Image Metadata - Show based on view mode */}
+                {viewMode === ViewMode.DETAIL && (
+                    <Box p={4}>
+                        <VStack align="stretch" gap={2}>
                             <Text
+                                fontWeight="bold"
                                 fontSize="sm"
-                                color="gray.600"
                                 overflow="hidden"
                                 textOverflow="ellipsis"
                                 whiteSpace="nowrap"
-                                title={image.description}
+                                title={image.title || image.filename || image.id}
                             >
-                                {image.description}
+                                {image.title || image.filename || image.id}
                             </Text>
-                        )}
-                        <Text
-                            fontSize="xs"
-                            color="gray.400"
-                        >
-                            Created:{" "}
-                            {new Date(
-                                image.uploaded_at
-                            ).toLocaleDateString()}
-                        </Text>
-                    </VStack>
-                </Box>
+                            {image.description && (
+                                <Text
+                                    fontSize="sm"
+                                    color="gray.600"
+                                    overflow="hidden"
+                                    textOverflow="ellipsis"
+                                    whiteSpace="nowrap"
+                                    title={image.description}
+                                >
+                                    {image.description}
+                                </Text>
+                            )}
+                            <Text
+                                fontSize="xs"
+                                color="gray.400"
+                            >
+                                Created:{" "}
+                                {new Date(
+                                    image.uploaded_at
+                                ).toLocaleDateString()}
+                            </Text>
+                        </VStack>
+                    </Box>
+                )}
             </VStack>
         </Card.Root>
 

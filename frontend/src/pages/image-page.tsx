@@ -9,7 +9,7 @@ import {
     Center,
     HStack,
     Input,
-    IconButton,
+    IconButton
 } from "@chakra-ui/react";
 import { useEffect, useState } from "react";
 import { toaster } from "@/components/ui/toaster";
@@ -17,11 +17,11 @@ import type {
     ImageListResponse,
     ImageUrlsResponse,
 } from "@/types/image";
-import { ImageCard, ImageDetailDialog } from "@/components/image";
+import { ImageCard, ImageDetailDialog, ImageViewDialog } from "@/components/image";
 import { useImage, type ImageWithUrl } from "@/context/image-ctx";
-import { FaArrowLeft, FaArrowRight } from "react-icons/fa";
-
-const IMAGES_PER_PAGE = 10;
+import { useImageView } from "@/context/image-view-ctx";
+import { FaArrowLeft, FaArrowRight, FaListUl } from "react-icons/fa";
+import { Tooltip } from "@/components/ui";
 
 export const ImagePage = () => {
     const [images, setImages] = useState<ImageWithUrl[]>([]);
@@ -30,6 +30,7 @@ export const ImagePage = () => {
     const [currentPage, setCurrentPage] = useState(1);
     const [totalImages, setTotalImages] = useState(0);
     const { openImageDialog } = useImage();
+    const { pageSize, openViewDialog } = useImageView();
 
     const fetchImages = async (page: number = currentPage) => {
         try {
@@ -41,7 +42,7 @@ export const ImagePage = () => {
                 },
                 body: JSON.stringify({
                     page: page,
-                    page_size: IMAGES_PER_PAGE,
+                    page_size: pageSize,
                     image_type: "general",
                     include_deleted: false,
                 }),
@@ -97,9 +98,9 @@ export const ImagePage = () => {
 
     useEffect(() => {
         fetchImages(currentPage);
-    }, [currentPage]);
+    }, [currentPage, pageSize]);
 
-    const totalPages = Math.ceil(totalImages / IMAGES_PER_PAGE);
+    const totalPages = Math.ceil(totalImages / pageSize);
 
     const handlePreviousPage = () => {
         if (currentPage > 1) {
@@ -115,8 +116,10 @@ export const ImagePage = () => {
 
     return (
         <Box h="100vh" overflow="hidden">
-            {/* Search */}
+            {/* Header */}
             <HStack as="header" gap={4}>
+
+                {/* Search */}
                 <Input
                     borderRadius={18}
                     width={"40vh"}
@@ -126,6 +129,20 @@ export const ImagePage = () => {
                         setSearchQuery(e.target.value);
                     }}
                 />
+
+                {/* Edit View */}
+                <Tooltip content="Edit View">
+                    <IconButton
+                        aria-label="Edit View"
+                        size="md"
+                        variant="ghost"
+                        borderRadius={"full"}
+                        onClick={openViewDialog}
+                    >
+                        <FaListUl />
+                    </IconButton>
+                </Tooltip>
+                
             </HStack>
 
             {/* Main Content */}
@@ -196,6 +213,7 @@ export const ImagePage = () => {
             </Flex>
 
             <ImageDetailDialog />
+            <ImageViewDialog />
         </Box>
     );
 };
