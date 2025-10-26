@@ -28,3 +28,21 @@ export interface ImageListResponse {
     page: number;
     page_size: number;
 }
+
+export interface AspectRatioOption {
+    label: string;
+    value: string;
+}
+
+export const ASPECT_RATIO_OPTIONS: AspectRatioOption[] = [
+    { label: "Square (1:1)", value: "1:1" },
+    { label: "Portrait (2:3)", value: "2:3" },
+    { label: "Landscape (3:2)", value: "3:2" },
+    { label: "Mobile (3:4)", value: "3:4" },
+    { label: "Twitter (4:3)", value: "4:3" },
+    { label: "Instagram (4:5)", value: "4:5" },
+    { label: "Camera (5:4)", value: "5:4" },
+    { label: "Tiktok (9:16)", value: "9:16" },
+    { label: "Widescreen (16:9)", value: "16:9" },
+    { label: "Ultra-wide (21:9)", value: "21:9" },
+];
