@@ -106,7 +106,10 @@ export const ImageGenDialog = ({ isOpen, onClose, onSuccess }: ImageGenDialogPro
             <Portal>
                 <Dialog.Backdrop />
                 <Dialog.Positioner>
-                    <Dialog.Content>
+                    <Dialog.Content 
+                        bg="rgba(0, 0, 0, 0.80)" 
+                        backdropFilter="blur(8px)"
+                    >
                         <Dialog.Header>
                             <Dialog.Title>Generate Image</Dialog.Title>
                         </Dialog.Header>
@@ -165,9 +168,6 @@ export const ImageGenDialog = ({ isOpen, onClose, onSuccess }: ImageGenDialogPro
                                     flexDirection="row"
                                     gap={4}
                                     padding={4}
-                                    borderRadius="md"
-                                    borderWidth="1px"
-                                    borderColor="gray.200"
                                     _dark={{
                                         borderColor: "gray.600",
                                     }}

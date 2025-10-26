@@ -5,11 +5,26 @@ export enum ViewMode {
     DETAIL = "detail"
 }
 
+export enum ViewRatio {
+    PORTRAIT = "portrait",
+    SQUARE = "square",
+    LANDSCAPE = "landscape"
+}
+
+const VIEW_RATIO_SIZES: Record<ViewRatio, number> = {
+    [ViewRatio.PORTRAIT]: 200,
+    [ViewRatio.SQUARE]: 300,
+    [ViewRatio.LANDSCAPE]: 400
+};
+
 type ImageViewContextType = {
     pageSize: number;
     setPageSize: (size: number) => void;
     viewMode: ViewMode;
     setViewMode: (mode: ViewMode) => void;
+    viewRatio: ViewRatio;
+    setViewRatio: (ratio: ViewRatio) => void;
+    getViewRatioSize: () => number;
     isViewDialogOpen: boolean;
     openViewDialog: () => void;
     closeViewDialog: () => void;
@@ -28,6 +43,7 @@ export const useImageView = () => {
 export const ImageViewProvider = ({ children }: { children: ReactNode }) => {
     const [pageSize, setPageSize] = useState(10);
     const [viewMode, setViewMode] = useState<ViewMode>(ViewMode.SIMPLE);
+    const [viewRatio, setViewRatio] = useState<ViewRatio>(ViewRatio.SQUARE);
     const [isViewDialogOpen, setIsViewDialogOpen] = useState(false);
 
     const openViewDialog = () => {
@@ -38,12 +54,19 @@ export const ImageViewProvider = ({ children }: { children: ReactNode }) => {
         setIsViewDialogOpen(false);
     };
 
+    const getViewRatioSize = () => {
+        return VIEW_RATIO_SIZES[viewRatio];
+    };
+
     return (
         <ImageViewContext.Provider value={{ 
             pageSize,
             setPageSize,
             viewMode,
             setViewMode,
+            viewRatio,
+            setViewRatio,
+            getViewRatioSize,
             isViewDialogOpen,
             openViewDialog,
             closeViewDialog

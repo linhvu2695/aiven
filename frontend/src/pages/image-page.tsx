@@ -30,7 +30,7 @@ export const ImagePage = () => {
     const [currentPage, setCurrentPage] = useState(1);
     const [totalImages, setTotalImages] = useState(0);
     const { openImageDialog, isGenDialogOpen, setIsGenDialogOpen } = useImage();
-    const { pageSize, openViewDialog } = useImageView();
+    const { pageSize, openViewDialog, getViewRatioSize } = useImageView();
 
     const fetchImages = async (page: number = currentPage) => {
         try {
@@ -178,7 +178,7 @@ export const ImagePage = () => {
                         </Center>
                     ) : (
                         <Grid
-                            templateColumns="repeat(auto-fill, minmax(300px, 1fr))"
+                            templateColumns={`repeat(auto-fill, minmax(${getViewRatioSize()}px, 1fr))`}
                             gap={4}
                             p={4}
                         >

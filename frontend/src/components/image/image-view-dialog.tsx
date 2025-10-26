@@ -8,19 +8,19 @@ import {
     HStack,
     Fieldset,
 } from "@chakra-ui/react";
-import { useImageView, ViewMode } from "@/context/image-view-ctx";
+import { useImageView, ViewMode, ViewRatio } from "@/context/image-view-ctx";
 
 const PAGE_SIZE_OPTIONS = [5, 10, 20, 30, 50] as const;
 
-interface ViewModeButtonProps {
-    mode: ViewMode;
-    currentMode: ViewMode;
+interface ViewOptionButtonProps<T> {
+    value: T;
+    currentValue: T;
     label: string;
     onClick: () => void;
 }
 
-const ViewModeButton = ({ mode, currentMode, label, onClick }: ViewModeButtonProps) => {
-    const isSelected = currentMode === mode;
+const ViewOptionButton = <T,>({ value, currentValue, label, onClick }: ViewOptionButtonProps<T>) => {
+    const isSelected = currentValue === value;
     
     return (
         <Box
@@ -49,6 +49,8 @@ export const ImageViewDialog = () => {
         setPageSize, 
         viewMode, 
         setViewMode,
+        viewRatio,
+        setViewRatio,
         isViewDialogOpen,
         closeViewDialog
     } = useImageView();
@@ -67,7 +69,10 @@ export const ImageViewDialog = () => {
             <Portal>
                 <Dialog.Backdrop />
                 <Dialog.Positioner>
-                    <Dialog.Content>
+                    <Dialog.Content
+                        bg="rgba(0, 0, 0, 0.80)" 
+                        backdropFilter="blur(8px)"
+                    >
                         <Dialog.Header>
                             <Dialog.Title>
                                 View Settings
@@ -109,17 +114,46 @@ export const ImageViewDialog = () => {
                                     </Fieldset.Legend>
                                     <Fieldset.Content>
                                         <HStack gap={4}>
-                                            <ViewModeButton
-                                                mode={ViewMode.SIMPLE}
-                                                currentMode={viewMode}
+                                            <ViewOptionButton
+                                                value={ViewMode.SIMPLE}
+                                                currentValue={viewMode}
                                                 label="Simple"
                                                 onClick={() => setViewMode(ViewMode.SIMPLE)}
                                             />
-                                            <ViewModeButton
-                                                mode={ViewMode.DETAIL}
-                                                currentMode={viewMode}
+                                            <ViewOptionButton
+                                                value={ViewMode.DETAIL}
+                                                currentValue={viewMode}
                                                 label="Detail"
                                                 onClick={() => setViewMode(ViewMode.DETAIL)}
+                                            />
+                                        </HStack>
+                                    </Fieldset.Content>
+                                </Fieldset.Root>
+
+                                {/* View Ratio Settings */}
+                                <Fieldset.Root>
+                                    <Fieldset.Legend>
+                                        Grid Size
+                                    </Fieldset.Legend>
+                                    <Fieldset.Content>
+                                        <HStack gap={4}>
+                                            <ViewOptionButton
+                                                value={ViewRatio.PORTRAIT}
+                                                currentValue={viewRatio}
+                                                label="Portrait"
+                                                onClick={() => setViewRatio(ViewRatio.PORTRAIT)}
+                                            />
+                                            <ViewOptionButton
+                                                value={ViewRatio.SQUARE}
+                                                currentValue={viewRatio}
+                                                label="Square"
+                                                onClick={() => setViewRatio(ViewRatio.SQUARE)}
+                                            />
+                                            <ViewOptionButton
+                                                value={ViewRatio.LANDSCAPE}
+                                                currentValue={viewRatio}
+                                                label="Landscape"
+                                                onClick={() => setViewRatio(ViewRatio.LANDSCAPE)}
                                             />
                                         </HStack>
                                     </Fieldset.Content>
