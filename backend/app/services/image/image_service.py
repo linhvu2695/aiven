@@ -507,7 +507,8 @@ class ImageService:
         # Generate image
         genimage_response = gen_provider.generate_image(GenImageRequest(
             prompt=request.prompt, 
-            image_data=image_data
+            image_data=image_data,
+            aspect_ratio=request.aspect_ratio
             ))
 
         if not genimage_response.success or not genimage_response.image_data:

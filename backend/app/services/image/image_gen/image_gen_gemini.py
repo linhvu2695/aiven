@@ -5,6 +5,7 @@ from google.genai import types
 from app.classes.image import GenImageRequest, GenImageResponse
 from app.core.config import settings
 from app.utils.string.string_utils import is_empty_string
+from app.services.image.image_gen.image_gen_aspect_ratio import ImageGenAspectRatio
 
 class ImageGenGemini:
     """Service for generating images using Google Gemini"""
@@ -35,6 +36,7 @@ class ImageGenGemini:
         text_data = ""
         data_buffer = None
         mimetype = ""
+        aspect_ratio = request.aspect_ratio if request.aspect_ratio else ImageGenAspectRatio.RATIO_1_1
 
         content_parts = [
             types.Part.from_text(text=request.prompt),
@@ -59,6 +61,9 @@ class ImageGenGemini:
                         "IMAGE",
                         "TEXT",
                     ],
+                    image_config=types.ImageConfig(
+                        aspect_ratio=aspect_ratio.value,
+                    )
                 ),
             ):
                 if (

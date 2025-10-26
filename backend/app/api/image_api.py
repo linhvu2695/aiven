@@ -4,6 +4,7 @@ from fastapi import APIRouter, HTTPException
 from app.services.image.image_service import ImageService
 from app.classes.image import DeleteImageResponse, ImageGenerateRequest, ImageGenerateResponse, ImageListRequest, ImageListResponse
 from app.services.image.image_gen.image_gen_providers import ImageGenProvider
+from app.services.image.image_gen.image_gen_aspect_ratio import ImageGenAspectRatio
 
 MAX_IMAGES_LIMIT = 50
 
@@ -82,13 +83,15 @@ async def serve_images(image_ids: str):
 async def generate_image(
     prompt: str, 
     image_id: Optional[str] = None, 
-    provider: ImageGenProvider = ImageGenProvider.GEMINI
+    provider: ImageGenProvider = ImageGenProvider.GEMINI,
+    aspect_ratio: Optional[ImageGenAspectRatio] = ImageGenAspectRatio.RATIO_1_1
     ):
     """Generate an image using the specified provider"""
     response = await ImageService().generate_image(ImageGenerateRequest(
         prompt=prompt, 
         provider=provider, 
-        image_id=image_id
+        image_id=image_id,
+        aspect_ratio=aspect_ratio
         ))
 
     if not response.success:

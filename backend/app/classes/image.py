@@ -3,6 +3,8 @@ from typing import Optional, Dict, Any
 from pydantic import BaseModel, Field
 from enum import Enum
 
+from app.services.image.image_gen.image_gen_aspect_ratio import ImageGenAspectRatio
+
 class ImageType(str, Enum):
     """Types of images in the platform"""
     PLANT_PHOTO = "plant_photo"
@@ -181,6 +183,7 @@ class ImageGenerateRequest(BaseModel):
     prompt: str
     provider: str
     image_id: Optional[str] = None
+    aspect_ratio: Optional[ImageGenAspectRatio] = ImageGenAspectRatio.RATIO_1_1
 
 class ImageGenerateResponse(BaseModel):
     """Response model for generating an image with a provider"""
@@ -193,6 +196,7 @@ class GenImageRequest(BaseModel):
     """Request model for generating an image"""
     prompt: str
     image_data: Optional[bytes] = None
+    aspect_ratio: Optional[ImageGenAspectRatio] = ImageGenAspectRatio.RATIO_1_1
 
 class GenImageResponse(BaseModel):
     """Response model for generating an image"""
