@@ -44,9 +44,7 @@ export const ImageDetailDialog = () => {
         try {
             setIsEditing(true);
             
-            const response = await fetch(`${BASE_URL}/api/image/generate?
-                prompt=${encodeURIComponent(prompt)}
-                &image_id=${selectedImage.id}`, 
+            const response = await fetch(`${BASE_URL}/api/image/generate?prompt=${encodeURIComponent(prompt)}&image_id=${selectedImage.id}`, 
             {
                 method: "POST",
                 headers: {

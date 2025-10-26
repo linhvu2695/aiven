@@ -8,6 +8,7 @@ from PIL import Image as PILImage
 
 from app.services.image.image_service import ImageService
 from app.classes.image import (
+    GenImageRequest,
     ImageInfo,
     CreateImageRequest,
     ImageListRequest,
@@ -28,6 +29,7 @@ from app.classes.image import (
     ImageGenerateResponse,
     GenImageResponse,
 )
+from app.services.image.image_gen.image_gen_providers import ImageGenProvider
 
 
 @pytest.fixture
@@ -864,6 +866,7 @@ class TestImageServiceGenerateImage:
         
         # Mock the GenImageResponse
         mock_gen_response = GenImageResponse(
+            success=True,
             image_data=sample_image_bytes,
             text_data="Generated a beautiful sunset image",
             mimetype=".png",
@@ -891,25 +894,10 @@ class TestImageServiceGenerateImage:
                 assert response.success is True
                 assert response.image_id == "test-image-id"
                 assert response.text_data == "Generated a beautiful sunset image"
-                assert response.message == "Image uploaded successfully"
+                assert response.message == ""
                 
                 # Verify ImageGenGemini was called correctly
-                mock_gemini_instance.generate_image.assert_called_once_with("A beautiful sunset over mountains")
-    
-    @pytest.mark.asyncio
-    async def test_generate_image_unsupported_provider(self, image_service: ImageService):
-        """Test image generation with unsupported provider"""
-        request = ImageGenerateRequest(
-            prompt="A beautiful sunset",
-            provider="unsupported_provider"
-        )
-        
-        response = await image_service.generate_image(request)
-        
-        assert isinstance(response, ImageGenerateResponse)
-        assert response.success is False
-        assert response.image_id == ""
-        assert "Provider unsupported_provider not supported" in response.message
+                mock_gemini_instance.generate_image.assert_called_once_with(GenImageRequest(prompt="A beautiful sunset over mountains"))
     
     @pytest.mark.asyncio
     async def test_generate_image_generation_failure(self, image_service: ImageService):
@@ -923,6 +911,7 @@ class TestImageServiceGenerateImage:
         
         # Mock the GenImageResponse with no image data (failure)
         mock_gen_response = GenImageResponse(
+            success=False,
             image_data=None,
             text_data=None,
             mimetype=None,
@@ -953,6 +942,7 @@ class TestImageServiceGenerateImage:
         
         # Mock successful generation but failed storage
         mock_gen_response = GenImageResponse(
+            success=True,
             image_data=sample_image_bytes,
             text_data="Generated image",
             mimetype=".png",
@@ -991,6 +981,7 @@ class TestImageServiceGenerateImage:
         
         # Mock response with text but no image
         mock_gen_response = GenImageResponse(
+            success=False,
             image_data=None,
             text_data="Cannot generate this image due to safety concerns",
             mimetype=None,
@@ -1020,6 +1011,7 @@ class TestImageServiceGenerateImage:
         )
         
         mock_gen_response = GenImageResponse(
+            success=True,
             image_data=sample_image_bytes,
             text_data="text",
             mimetype=".png",

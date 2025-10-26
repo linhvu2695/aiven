@@ -11,7 +11,7 @@ import { useState } from "react";
 import { BASE_URL } from "@/App";
 import { toaster } from "../ui/toaster";
 import { Dropdown } from "@/components/ui/dropdown";
-import { ASPECT_RATIO_OPTIONS } from "@/types/image";
+import { ASPECT_RATIO_OPTIONS, PROVIDER_OPTIONS } from "@/types/image";
 
 interface ImageGenDialogProps {
     isOpen: boolean;
@@ -22,6 +22,7 @@ interface ImageGenDialogProps {
 export const ImageGenDialog = ({ isOpen, onClose, onSuccess }: ImageGenDialogProps) => {
     const [prompt, setPrompt] = useState("");
     const [aspectRatio, setAspectRatio] = useState(ASPECT_RATIO_OPTIONS[0].value);
+    const [provider, setProvider] = useState(PROVIDER_OPTIONS[0].value);
     const [isGenerating, setIsGenerating] = useState(false);
 
     const handleGenerateImage = async () => {
@@ -36,9 +37,7 @@ export const ImageGenDialog = ({ isOpen, onClose, onSuccess }: ImageGenDialogPro
         try {
             setIsGenerating(true);
             
-            const response = await fetch(`${BASE_URL}/api/image/generate?
-                prompt=${encodeURIComponent(prompt)}
-                &aspect_ratio=${encodeURIComponent(aspectRatio)}`, 
+            const response = await fetch(`${BASE_URL}/api/image/generate?prompt=${encodeURIComponent(prompt)}&aspect_ratio=${encodeURIComponent(aspectRatio)}&provider=${encodeURIComponent(provider)}`, 
                 {
                     method: "POST",
                     headers: {
@@ -88,6 +87,7 @@ export const ImageGenDialog = ({ isOpen, onClose, onSuccess }: ImageGenDialogPro
         if (!isGenerating) {
             setPrompt("");
             setAspectRatio(ASPECT_RATIO_OPTIONS[0].value);
+            setProvider(PROVIDER_OPTIONS[0].value);
             onClose();
         }
     };
@@ -159,18 +159,49 @@ export const ImageGenDialog = ({ isOpen, onClose, onSuccess }: ImageGenDialogPro
                                     </Button>
                                 </Box>
 
-                                {/* Aspect Ratio Selector */}
-                                <Dropdown
-                                    title="Aspect Ratio"
-                                    value={aspectRatio}
-                                    onValueChange={setAspectRatio}
-                                    options={ASPECT_RATIO_OPTIONS}
-                                    placeholder="Select aspect ratio"
-                                    disabled={isGenerating}
-                                    fontSize="sm"
-                                    fontWeight="medium"
-                                    mb={0}
-                                />
+                                {/* Settings Panel */}
+                                <Box
+                                    display="flex"
+                                    flexDirection="row"
+                                    gap={4}
+                                    padding={4}
+                                    borderRadius="md"
+                                    borderWidth="1px"
+                                    borderColor="gray.200"
+                                    _dark={{
+                                        borderColor: "gray.600",
+                                    }}
+                                >
+                                    {/* Provider Selector */}
+                                    <Box flex={1}>
+                                        <Dropdown
+                                            title="Provider"
+                                            value={provider}
+                                            onValueChange={setProvider}
+                                            options={PROVIDER_OPTIONS}
+                                            placeholder="Select provider"
+                                            disabled={isGenerating}
+                                            fontSize="sm"
+                                            fontWeight="medium"
+                                            mb={0}
+                                        />
+                                    </Box>
+
+                                    {/* Aspect Ratio Selector */}
+                                    <Box flex={1}>
+                                        <Dropdown
+                                            title="Aspect Ratio"
+                                            value={aspectRatio}
+                                            onValueChange={setAspectRatio}
+                                            options={ASPECT_RATIO_OPTIONS}
+                                            placeholder="Select aspect ratio"
+                                            disabled={isGenerating}
+                                            fontSize="sm"
+                                            fontWeight="medium"
+                                            mb={0}
+                                        />
+                                    </Box>
+                                </Box>
                             </Box>
                         </Dialog.Body>
 

@@ -3,7 +3,7 @@ from unittest.mock import patch, MagicMock
 from google.genai import types
 
 from app.services.image.image_gen.image_gen_gemini import ImageGenGemini
-from app.classes.image import GenImageResponse
+from app.classes.image import GenImageRequest, GenImageResponse
 
 
 @pytest.fixture(autouse=True)
@@ -104,7 +104,7 @@ class TestImageGenGeminiGenerateImage:
         
         with patch("app.services.image.image_gen.image_gen_gemini.genai.Client", return_value=mock_gemini_client):
             service = ImageGenGemini(api_key="test-api-key")
-            response = service.generate_image("Generate a beautiful landscape")
+            response = service.generate_image(GenImageRequest(prompt="Generate a beautiful landscape"))
             
             assert isinstance(response, GenImageResponse)
             assert response.image_data == sample_image_data
@@ -118,7 +118,7 @@ class TestImageGenGeminiGenerateImage:
         
         with patch("app.services.image.image_gen.image_gen_gemini.genai.Client", return_value=mock_gemini_client):
             service = ImageGenGemini(api_key="test-api-key")
-            response = service.generate_image("Generate a sunset")
+            response = service.generate_image(GenImageRequest(prompt="Generate a sunset"))
             
             assert isinstance(response, GenImageResponse)
             assert response.image_data == sample_image_data
@@ -133,7 +133,7 @@ class TestImageGenGeminiGenerateImage:
         
         with patch("app.services.image.image_gen.image_gen_gemini.genai.Client", return_value=mock_gemini_client):
             service = ImageGenGemini(api_key="test-api-key")
-            response = service.generate_image("Generate a forest")
+            response = service.generate_image(GenImageRequest(prompt="Generate a forest"))
             
             assert isinstance(response, GenImageResponse)
             assert response.image_data is None
@@ -173,7 +173,7 @@ class TestImageGenGeminiGenerateImage:
         
         with patch("app.services.image.image_gen.image_gen_gemini.genai.Client", return_value=mock_gemini_client):
             service = ImageGenGemini(api_key="test-api-key")
-            response = service.generate_image("Generate an image")
+            response = service.generate_image(GenImageRequest(prompt="Generate an image"))
             
             assert isinstance(response, GenImageResponse)
             assert response.text_data == "Part 1 Part 2"
@@ -190,7 +190,7 @@ class TestImageGenGeminiGenerateImage:
         
         with patch("app.services.image.image_gen.image_gen_gemini.genai.Client", return_value=mock_gemini_client):
             service = ImageGenGemini(api_key="test-api-key")
-            response = service.generate_image("Generate an image")
+            response = service.generate_image(GenImageRequest(prompt="Generate an image"))
             
             assert isinstance(response, GenImageResponse)
             assert response.image_data is None
@@ -208,7 +208,7 @@ class TestImageGenGeminiGenerateImage:
         
         with patch("app.services.image.image_gen.image_gen_gemini.genai.Client", return_value=mock_gemini_client):
             service = ImageGenGemini(api_key="test-api-key")
-            response = service.generate_image("Generate an image")
+            response = service.generate_image(GenImageRequest(prompt="Generate an image"))
             
             assert isinstance(response, GenImageResponse)
             assert response.image_data is None
@@ -227,7 +227,7 @@ class TestImageGenGeminiGenerateImage:
         
         with patch("app.services.image.image_gen.image_gen_gemini.genai.Client", return_value=mock_gemini_client):
             service = ImageGenGemini(api_key="test-api-key")
-            response = service.generate_image("Generate an image")
+            response = service.generate_image(GenImageRequest(prompt="Generate an image"))
             
             assert isinstance(response, GenImageResponse)
             assert response.image_data is None
@@ -251,7 +251,7 @@ class TestImageGenGeminiGenerateImage:
         
         with patch("app.services.image.image_gen.image_gen_gemini.genai.Client", return_value=mock_gemini_client):
             service = ImageGenGemini(api_key="test-api-key")
-            response = service.generate_image("Generate an image")
+            response = service.generate_image(GenImageRequest(prompt="Generate an image"))
             
             assert isinstance(response, GenImageResponse)
             assert response.image_data is None
@@ -265,13 +265,16 @@ class TestImageGenGeminiGenerateImage:
         
         with patch("app.services.image.image_gen.image_gen_gemini.genai.Client", return_value=mock_gemini_client):
             service = ImageGenGemini(api_key="test-api-key")
-            service.generate_image("test prompt")
+            service.generate_image(GenImageRequest(prompt="test prompt"))
             
             # Verify the API was called with correct parameters
             mock_gemini_client.models.generate_content_stream.assert_called_once()
             call_args = mock_gemini_client.models.generate_content_stream.call_args
             
-            assert call_args.kwargs["contents"] == "test prompt"
+            assert call_args.kwargs["contents"] is not None
+            assert len(call_args.kwargs["contents"]) == 1
+            assert call_args.kwargs["contents"][0].role == "user"
+            assert call_args.kwargs["contents"][0].parts[0].text == "test prompt"
             
             # Verify config has correct response modalities
             config = call_args.kwargs["config"]
@@ -307,7 +310,7 @@ class TestImageGenGeminiGenerateImage:
             
             with patch("app.services.image.image_gen.image_gen_gemini.genai.Client", return_value=mock_gemini_client):
                 service = ImageGenGemini(api_key="test-api-key")
-                response = service.generate_image("Generate an image")
+                response = service.generate_image(GenImageRequest(prompt="Generate an image"))
                 
                 assert response.mimetype == expected_extension
                 assert response.message == ""
@@ -318,7 +321,7 @@ class TestImageGenGeminiGenerateImage:
         
         with patch("app.services.image.image_gen.image_gen_gemini.genai.Client", return_value=mock_gemini_client):
             service = ImageGenGemini(api_key="test-api-key")
-            response = service.generate_image("Generate an image")
+            response = service.generate_image(GenImageRequest(prompt="Generate an image"))
             
             assert isinstance(response, GenImageResponse)
             assert response.image_data is None

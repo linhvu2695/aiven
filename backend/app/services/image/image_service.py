@@ -44,6 +44,7 @@ from app.utils.string.string_utils import (
 )
 from app.utils.image.image_utils import generate_storage_path
 from app.services.image.image_gen.image_gen_gemini import ImageGenGemini
+from app.services.image.image_gen.image_gen_openai import ImageGenOpenAI
 from app.services.image.image_gen.image_gen_providers import ImageGenProvider
 
 IMAGE_COLLECTION_NAME = "images"
@@ -485,6 +486,9 @@ class ImageService:
         gen_provider = None
         if request.provider == ImageGenProvider.GEMINI:
             gen_provider = ImageGenGemini()
+        elif request.provider == ImageGenProvider.OPENAI:
+            gen_provider = ImageGenOpenAI()
+        
         if not gen_provider:
             return ImageGenerateResponse(
                 success=False, 
@@ -520,7 +524,7 @@ class ImageService:
                 image_type=ImageType.GENERAL,
                 source_type=ImageSourceType.AI_GENERATE,
                 file_data=genimage_response.image_data,
-                description=f"Generated image for prompt: {request.prompt}",
+                description=f"Generated image for prompt: {request.prompt}. Provider: {request.provider}",
             ))
 
         if not create_image_response.success:
