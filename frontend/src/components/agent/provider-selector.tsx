@@ -19,13 +19,13 @@ export const LLM_PROVIDERS = [
     { value: "nvidia", title: "NVIDIA", icon: Nvidia.Color },
 ];
 
-export interface ModelSelectorProps {
+export interface ProviderSelectorProps {
     mode?: "view" | "edit";
 }
 
-export const ModelSelector = ({
+export const ProviderSelector = ({
     mode = "edit",
-}: ModelSelectorProps) => {
+}: ProviderSelectorProps) => {
     const { agentDraft, updateAgentDraft } = useAgent();
     const [provider, setProvider] = useState("openai");
     const [providerOptions, setProviderOptions] = useState<
@@ -144,3 +144,4 @@ export const ModelSelector = ({
         </VStack>
     );
 };
+

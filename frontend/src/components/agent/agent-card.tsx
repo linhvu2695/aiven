@@ -18,7 +18,7 @@ import {
     Dialog,
     Portal,
 } from "@chakra-ui/react";
-import { ModelSelector } from "./model-selector";
+import { ProviderSelector } from "./provider-selector";
 import { ToolSelectionGrid } from "./tool-selection-grid";
 import { useAgent, type Tool } from "@/context/agent-ctx";
 import { useState, useRef, useEffect } from "react";
@@ -380,7 +380,7 @@ export const AgentCard = ({
                         </Card.Description>
                     )}
 
-                    <ModelSelector
+                    <ProviderSelector
                         mode={isEditing ? "edit" : "view"}
                     />
 
