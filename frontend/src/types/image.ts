@@ -47,12 +47,3 @@ export const ASPECT_RATIO_OPTIONS: AspectRatioOption[] = [
     { label: "Ultra-wide (21:9)", value: "21:9" },
 ];
 
-export interface ProviderOption {
-    label: string;
-    value: string;
-}
-
-export const PROVIDER_OPTIONS: ProviderOption[] = [
-    { label: "Gemini", value: "gemini" },
-    { label: "OpenAI", value: "openai" },
-];

@@ -18,7 +18,7 @@ import {
     Dialog,
     Portal,
 } from "@chakra-ui/react";
-import { ProviderSelector } from "./provider-selector";
+import { LLMProviderSelector } from "./llm-provider-selector";
 import { ToolSelectionGrid } from "./tool-selection-grid";
 import { useAgent, type Tool } from "@/context/agent-ctx";
 import { useState, useRef, useEffect } from "react";
@@ -380,8 +380,7 @@ export const AgentCard = ({
                         </Card.Description>
                     )}
 
-                    <ProviderSelector
-                        type="llm"
+                    <LLMProviderSelector
                         mode={isEditing ? "edit" : "view"}
                     />
 

@@ -7,11 +7,12 @@ import {
     Button,
 } from "@chakra-ui/react";
 import { FaPaperPlane } from "react-icons/fa";
-import { useState } from "react";
 import { BASE_URL } from "@/App";
 import { toaster } from "../ui/toaster";
 import { Dropdown } from "@/components/ui/dropdown";
-import { ASPECT_RATIO_OPTIONS, PROVIDER_OPTIONS } from "@/types/image";
+import { ASPECT_RATIO_OPTIONS } from "@/types/image";
+import { ImageGenProviderSelector } from "./image-gen-provider-selector";
+import { ImageGenProvider, useImageGen } from "@/context/image-gen-ctx";
 
 interface ImageGenDialogProps {
     isOpen: boolean;
@@ -19,11 +20,17 @@ interface ImageGenDialogProps {
     onSuccess?: () => void;
 }
 
-export const ImageGenDialog = ({ isOpen, onClose, onSuccess }: ImageGenDialogProps) => {
-    const [prompt, setPrompt] = useState("");
-    const [aspectRatio, setAspectRatio] = useState(ASPECT_RATIO_OPTIONS[0].value);
-    const [provider, setProvider] = useState(PROVIDER_OPTIONS[0].value);
-    const [isGenerating, setIsGenerating] = useState(false);
+const ImageGenDialogContent = ({ isOpen, onClose, onSuccess }: ImageGenDialogProps) => {
+    const {
+        prompt,
+        setPrompt,
+        aspectRatio,
+        setAspectRatio,
+        model,
+        isGenerating,
+        setIsGenerating,
+        resetState,
+    } = useImageGen();
 
     const handleGenerateImage = async () => {
         if (!prompt.trim()) {
@@ -37,7 +44,7 @@ export const ImageGenDialog = ({ isOpen, onClose, onSuccess }: ImageGenDialogPro
         try {
             setIsGenerating(true);
             
-            const response = await fetch(`${BASE_URL}/api/image/generate?prompt=${encodeURIComponent(prompt)}&aspect_ratio=${encodeURIComponent(aspectRatio)}&provider=${encodeURIComponent(provider)}`, 
+            const response = await fetch(`${BASE_URL}/api/image/generate?prompt=${encodeURIComponent(prompt)}&aspect_ratio=${encodeURIComponent(aspectRatio)}&model=${encodeURIComponent(model)}`, 
                 {
                     method: "POST",
                     headers: {
@@ -85,9 +92,7 @@ export const ImageGenDialog = ({ isOpen, onClose, onSuccess }: ImageGenDialogPro
 
     const handleClose = () => {
         if (!isGenerating) {
-            setPrompt("");
-            setAspectRatio(ASPECT_RATIO_OPTIONS[0].value);
-            setProvider(PROVIDER_OPTIONS[0].value);
+            resetState();
             onClose();
         }
     };
@@ -172,19 +177,9 @@ export const ImageGenDialog = ({ isOpen, onClose, onSuccess }: ImageGenDialogPro
                                         borderColor: "gray.600",
                                     }}
                                 >
-                                    {/* Provider Selector */}
+                                    {/* Provider and Model Selector */}
                                     <Box flex={1}>
-                                        <Dropdown
-                                            title="Provider"
-                                            value={provider}
-                                            onValueChange={setProvider}
-                                            options={PROVIDER_OPTIONS}
-                                            placeholder="Select provider"
-                                            disabled={isGenerating}
-                                            fontSize="sm"
-                                            fontWeight="medium"
-                                            mb={0}
-                                        />
+                                        <ImageGenProviderSelector />
                                     </Box>
 
                                     {/* Aspect Ratio Selector */}
@@ -215,5 +210,13 @@ export const ImageGenDialog = ({ isOpen, onClose, onSuccess }: ImageGenDialogPro
     );
 };
 
-export default ImageGenDialog;
+// Wrapper component that provides the context
+export const ImageGenDialog = (props: ImageGenDialogProps) => {
+    return (
+        <ImageGenProvider>
+            <ImageGenDialogContent {...props} />
+        </ImageGenProvider>
+    );
+};
 
+export default ImageGenDialog;

@@ -3,10 +3,10 @@ import { useAgent } from "@/context/agent-ctx";
 import {
     RadioCard,
     Wrap,
-    WrapItem,
     VStack,
 } from "@chakra-ui/react";
 import { Dropdown } from "@/components/ui";
+import { ProviderWrapItem } from "@/components/ui/provider-wrap-item";
 import { Claude, Gemini, Mistral, Nvidia, OpenAI, XAI } from "@lobehub/icons";
 import { useState, useEffect } from "react";
 
@@ -19,20 +19,13 @@ export const LLM_PROVIDERS = [
     { value: "nvidia", title: "NVIDIA", icon: Nvidia.Color },
 ];
 
-export const IMAGE_GEN_PROVIDERS = [
-    { value: "google_genai", title: "Gemini", icon: Gemini.Color },
-    { value: "openai", title: "OpenAI", icon: OpenAI },
-];
-
-export interface ProviderSelectorProps {
-    type: "llm" | "image_gen";
+export interface LLMProviderSelectorProps {
     mode?: "view" | "edit";
 }
 
-export const ProviderSelector = ({
-    type = "llm",
+export const LLMProviderSelector = ({
     mode = "edit",
-}: ProviderSelectorProps) => {
+}: LLMProviderSelectorProps) => {
     const { agentDraft, updateAgentDraft } = useAgent();
     const [provider, setProvider] = useState("openai");
     const [providerOptions, setProviderOptions] = useState<
@@ -44,17 +37,7 @@ export const ProviderSelector = ({
     useEffect(() => {
         const fetchOptions = async () => {
             setLoading(true);
-            let url: string;
-            
-            switch (type) {
-                case "image_gen":
-                    url = BASE_URL + "/api/image/models";
-                    break;
-                case "llm":
-                default:
-                    url = BASE_URL + "/api/chat/models";
-                    break;
-            }
+            const url = BASE_URL + "/api/chat/models";
 
             try {
                 const response = await fetch(url, {
@@ -116,28 +99,12 @@ export const ProviderSelector = ({
             >
                 <Wrap align="stretch">
                     {LLM_PROVIDERS.map((item) => (
-                        <WrapItem key={item.value}>
-                            <RadioCard.Item value={item.value}>
-                                <RadioCard.ItemHiddenInput />
-                                <RadioCard.ItemControl>
-                                    <RadioCard.ItemText fontSize={14}>
-                                        {item.icon && (
-                                            <span
-                                                style={{
-                                                    marginRight: 6,
-                                                    display: "inline-flex",
-                                                    alignSelf: "center",
-                                                }}
-                                            >
-                                                {<item.icon size={13} />}
-                                            </span>
-                                        )}
-                                        {item.title}
-                                    </RadioCard.ItemText>
-                                    <RadioCard.ItemIndicator />
-                                </RadioCard.ItemControl>
-                            </RadioCard.Item>
-                        </WrapItem>
+                        <ProviderWrapItem
+                            key={item.value}
+                            value={item.value}
+                            title={item.title}
+                            icon={item.icon}
+                        />
                     ))}
                 </Wrap>
             </RadioCard.Root>

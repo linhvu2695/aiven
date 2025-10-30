@@ -3,13 +3,17 @@ from typing import Optional
 from fastapi import APIRouter, HTTPException
 from app.services.image.image_service import ImageService
 from app.classes.image import DeleteImageResponse, ImageGenerateRequest, ImageGenerateResponse, ImageListRequest, ImageListResponse
-from app.services.image.image_gen.image_gen_providers import ImageGenProvider
 from app.services.image.image_gen.image_gen_aspect_ratio import ImageGenAspectRatio
 from app.services.image.image_constants import ImageGenModel
 
 MAX_IMAGES_LIMIT = 50
 
 router = APIRouter()
+
+@router.get("/models")
+async def get_models():
+    """Get available image generation models grouped by provider"""
+    return await ImageService().get_models()
 
 @router.get("/{image_id}")
 async def get_image(image_id: str):
@@ -102,8 +106,4 @@ async def generate_image(
     if not response.success:
         raise HTTPException(status_code=400, detail=response.message)
     return response
-
-@router.get("/models")
-async def get_models():
-    return await ImageService().get_models()
     
