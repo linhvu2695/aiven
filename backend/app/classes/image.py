@@ -197,6 +197,7 @@ class ImageGenerateResponse(BaseModel):
 class GenImageRequest(BaseModel):
     """Request model for generating an image"""
     prompt: str
+    model: ImageGenModel
     image_data: Optional[bytes] = None
     aspect_ratio: Optional[ImageGenAspectRatio] = ImageGenAspectRatio.RATIO_1_1
 

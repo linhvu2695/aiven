@@ -18,7 +18,6 @@ class ImageGenOpenAI(ImageGenInterface):
     """Service for generating images using OpenAI gpt-image-1"""
 
     _instance = None
-    _model = ImageGenModel.GPT_IMAGE_1
 
     def __new__(cls, *args, **kwargs):
         if not hasattr(cls, "_instance") or cls._instance is None:
@@ -75,7 +74,7 @@ class ImageGenOpenAI(ImageGenInterface):
         try:
             # Generate image using OpenAI gpt-image-1
             response = self.client.images.generate(
-                model=self._model,
+                model=request.model.value,
                 prompt=request.prompt,
                 size=size,
                 quality="medium",  # Options: "low", "medium", "high" for gpt-image-1

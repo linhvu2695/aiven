@@ -1,3 +1,4 @@
+import logging
 import mimetypes
 from google import genai
 from google.genai import types
@@ -7,13 +8,11 @@ from app.core.config import settings
 from app.utils.string.string_utils import is_empty_string
 from app.services.image.image_gen.image_gen_aspect_ratio import ImageGenAspectRatio
 from app.services.image.image_gen.image_gen_providers import ImageGenInterface
-from app.services.image.image_constants import ImageGenModel
 
 class ImageGenGemini(ImageGenInterface):
     """Service for generating images using Google Gemini"""
 
     _instance = None
-    _model = ImageGenModel.GEMINI_2_5_FLASH_IMAGE
 
     def __new__(cls, *args, **kwargs):
         if not hasattr(cls, "_instance") or cls._instance is None:
@@ -51,7 +50,7 @@ class ImageGenGemini(ImageGenInterface):
 
         try:
             for chunk in self.client.models.generate_content_stream(
-                model=self._model,
+                model=request.model.value,
                 contents=[
                     types.Content(
                         role="user",
@@ -85,6 +84,7 @@ class ImageGenGemini(ImageGenInterface):
                 else:
                     text_data = text_data + str(chunk.text)
         except Exception as e:
+            logging.getLogger("uvicorn.error").error(f"Failed to generate image with Gemini: {str(e)}")
             return GenImageResponse(
                 success=False,
                 message=str(e),

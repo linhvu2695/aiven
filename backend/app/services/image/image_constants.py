@@ -10,9 +10,11 @@ class ImageGenModel(str, Enum):
 
     # https://platform.openai.com/docs/guides/images-vision
     GPT_IMAGE_1 = "gpt-image-1"
+    GPT_IMAGE_1_MINI = "gpt-image-1-mini"
 
 OPENAI_MODELS = {
     ImageGenModel.GPT_IMAGE_1,
+    ImageGenModel.GPT_IMAGE_1_MINI,
 }
 
 GEMINI_MODELS = {

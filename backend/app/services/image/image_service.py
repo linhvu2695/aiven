@@ -508,6 +508,7 @@ class ImageService:
         genimage_response = gen_provider.generate_image(GenImageRequest(
             prompt=request.prompt, 
             image_data=image_data,
+            model=request.model,
             aspect_ratio=request.aspect_ratio
             ))
 
