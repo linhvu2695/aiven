@@ -1,13 +1,11 @@
 import pytest
-import base64
 from unittest.mock import patch, AsyncMock, MagicMock
-from fastapi import UploadFile
 
 from app.services.chat.chat_service import ChatService
 from app.services.agent.agent_service import AgentService
 from app.classes.chat import ChatMessage, ChatRequest, ChatResponse, ChatFileContent, ChatStreamChunk
 from app.classes.agent import AgentInfo
-from app.core.constants import LLMModel
+from app.services.chat.chat_constants import LLMModel
 
 # Test constants
 TEST_SESSION_ID = "507f1f77bcf86cd799439011"  # Valid 24-character hex MongoDB ObjectId

@@ -18,7 +18,7 @@ from app.classes.chat import (
 from app.classes.agent import AgentInfo
 from app.core.config import settings
 from app.utils.chat import chat_utils
-from app.core.constants import (
+from app.services.chat.chat_constants import (
     LLMModel,
     OPENAI_MODELS,
     GEMINI_MODELS,

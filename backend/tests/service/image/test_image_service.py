@@ -29,7 +29,7 @@ from app.classes.image import (
     ImageGenerateResponse,
     GenImageResponse,
 )
-from app.services.image.image_gen.image_gen_providers import ImageGenProvider
+from app.services.image.image_constants import ImageGenModel
 
 
 @pytest.fixture
@@ -856,12 +856,10 @@ class TestImageServiceGenerateImage:
     @pytest.mark.asyncio
     async def test_generate_image_success_gemini(self, image_service: ImageService, sample_image_bytes):
         """Test successful image generation with Gemini provider"""
-        from app.services.image.image_gen.image_gen_providers import ImageGenProvider
-        
         # Create request
         request = ImageGenerateRequest(
             prompt="A beautiful sunset over mountains",
-            provider=ImageGenProvider.GEMINI
+            model=ImageGenModel.GEMINI_2_5_FLASH_IMAGE
         )
         
         # Mock the GenImageResponse
@@ -901,12 +899,10 @@ class TestImageServiceGenerateImage:
     
     @pytest.mark.asyncio
     async def test_generate_image_generation_failure(self, image_service: ImageService):
-        """Test image generation when provider fails to generate image"""
-        from app.services.image.image_gen.image_gen_providers import ImageGenProvider
-        
+        """Test image generation when provider fails to generate image"""        
         request = ImageGenerateRequest(
             prompt="A beautiful sunset",
-            provider=ImageGenProvider.GEMINI
+            model=ImageGenModel.GEMINI_2_5_FLASH_IMAGE
         )
         
         # Mock the GenImageResponse with no image data (failure)
@@ -932,12 +928,10 @@ class TestImageServiceGenerateImage:
     
     @pytest.mark.asyncio
     async def test_generate_image_create_image_failure(self, image_service: ImageService, sample_image_bytes):
-        """Test image generation when create_image fails"""
-        from app.services.image.image_gen.image_gen_providers import ImageGenProvider
-        
+        """Test image generation when create_image fails"""        
         request = ImageGenerateRequest(
             prompt="A beautiful sunset",
-            provider=ImageGenProvider.GEMINI
+            model=ImageGenModel.GEMINI_2_5_FLASH_IMAGE
         )
         
         # Mock successful generation but failed storage
@@ -971,12 +965,10 @@ class TestImageServiceGenerateImage:
     
     @pytest.mark.asyncio
     async def test_generate_image_with_text_data_only(self, image_service: ImageService):
-        """Test image generation when only text data is returned"""
-        from app.services.image.image_gen.image_gen_providers import ImageGenProvider
-        
+        """Test image generation when only text data is returned"""        
         request = ImageGenerateRequest(
             prompt="A beautiful sunset",
-            provider=ImageGenProvider.GEMINI
+            model=ImageGenModel.GEMINI_2_5_FLASH_IMAGE
         )
         
         # Mock response with text but no image
@@ -1002,12 +994,10 @@ class TestImageServiceGenerateImage:
     
     @pytest.mark.asyncio
     async def test_generate_image_creates_proper_request(self, image_service: ImageService, sample_image_bytes):
-        """Test that generate_image creates proper CreateImageRequest"""
-        from app.services.image.image_gen.image_gen_providers import ImageGenProvider
-        
+        """Test that generate_image creates proper CreateImageRequest"""        
         request = ImageGenerateRequest(
             prompt="test prompt",
-            provider=ImageGenProvider.GEMINI
+            model=ImageGenModel.GEMINI_2_5_FLASH_IMAGE
         )
         
         mock_gen_response = GenImageResponse(
@@ -1042,7 +1032,7 @@ class TestImageServiceGenerateImage:
                 mock_create.assert_called_once()
                 create_request = mock_create.call_args[0][0]
                 
-                assert create_request.filename == "image_gemini_20241011_120000.png"
+                assert create_request.filename == "image_gemini-2.5-flash-image_20241011_120000.png"
                 assert create_request.image_type == ImageType.GENERAL
                 assert create_request.source_type == ImageSourceType.AI_GENERATE
                 assert create_request.file_data == sample_image_bytes

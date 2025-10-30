@@ -2,7 +2,7 @@ import pytest
 from unittest.mock import patch, MagicMock, AsyncMock
 from app.services.agent.agent_service import AgentService
 from app.classes.agent import AgentInfo, SearchAgentsResponse, CreateOrUpdateAgentRequest, CreateOrUpdateAgentResponse, DeleteAgentResponse, UpdateAgentAvatarResponse
-from app.core.constants import LLMModel
+from app.services.chat.chat_constants import LLMModel
 
 
 @pytest.fixture

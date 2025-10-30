@@ -19,11 +19,18 @@ export const LLM_PROVIDERS = [
     { value: "nvidia", title: "NVIDIA", icon: Nvidia.Color },
 ];
 
+export const IMAGE_GEN_PROVIDERS = [
+    { value: "google_genai", title: "Gemini", icon: Gemini.Color },
+    { value: "openai", title: "OpenAI", icon: OpenAI },
+];
+
 export interface ProviderSelectorProps {
+    type: "llm" | "image_gen";
     mode?: "view" | "edit";
 }
 
 export const ProviderSelector = ({
+    type = "llm",
     mode = "edit",
 }: ProviderSelectorProps) => {
     const { agentDraft, updateAgentDraft } = useAgent();
@@ -37,8 +44,20 @@ export const ProviderSelector = ({
     useEffect(() => {
         const fetchOptions = async () => {
             setLoading(true);
+            let url: string;
+            
+            switch (type) {
+                case "image_gen":
+                    url = BASE_URL + "/api/image/models";
+                    break;
+                case "llm":
+                default:
+                    url = BASE_URL + "/api/chat/models";
+                    break;
+            }
+
             try {
-                const response = await fetch(BASE_URL + "/api/chat/models", {
+                const response = await fetch(url, {
                     method: "GET",
                     headers: {
                         "Content-Type": "application/json",

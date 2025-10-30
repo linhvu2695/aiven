@@ -32,7 +32,7 @@ from app.core.database import (
 from app.services.image.image_service import ImageService
 from app.utils.string.string_utils import is_empty_string
 from app.utils.request.request_utils import build_update_data
-from app.core.constants import LLMModel
+from app.services.chat.chat_constants import LLMModel
 from app.services.chat.chat_service import ChatService
 from app.classes.chat import ChatFileContent
 

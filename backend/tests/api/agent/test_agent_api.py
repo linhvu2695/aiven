@@ -4,7 +4,7 @@ from fastapi import FastAPI
 from unittest.mock import patch, AsyncMock, MagicMock
 from app.api.agent_api import router
 from app.classes.agent import SearchAgentsResponse, AgentInfo, CreateOrUpdateAgentRequest, CreateOrUpdateAgentResponse, DeleteAgentResponse, UpdateAgentAvatarResponse
-from app.core.constants import LLMModel
+from app.services.chat.chat_constants import LLMModel
 import io
 
 app = FastAPI()

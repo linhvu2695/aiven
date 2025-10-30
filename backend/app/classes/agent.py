@@ -1,6 +1,6 @@
 from typing import Optional
 from pydantic import BaseModel
-from app.core.constants import LLMModel
+from app.services.chat.chat_constants import LLMModel
 from app.classes.image import ImageInfo, ImageType
 
 class AgentAvatarInfo(ImageInfo):#     

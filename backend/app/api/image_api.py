@@ -5,6 +5,7 @@ from app.services.image.image_service import ImageService
 from app.classes.image import DeleteImageResponse, ImageGenerateRequest, ImageGenerateResponse, ImageListRequest, ImageListResponse
 from app.services.image.image_gen.image_gen_providers import ImageGenProvider
 from app.services.image.image_gen.image_gen_aspect_ratio import ImageGenAspectRatio
+from app.services.image.image_constants import ImageGenModel
 
 MAX_IMAGES_LIMIT = 50
 
@@ -82,14 +83,18 @@ async def serve_images(image_ids: str):
 @router.post("/generate", response_model=ImageGenerateResponse)
 async def generate_image(
     prompt: str, 
+    model: str,
     image_id: Optional[str] = None, 
-    provider: ImageGenProvider = ImageGenProvider.GEMINI,
     aspect_ratio: Optional[ImageGenAspectRatio] = ImageGenAspectRatio.RATIO_1_1
     ):
     """Generate an image using the specified provider"""
+    image_gen_model = ImageGenModel(model)
+    if not image_gen_model:
+        raise HTTPException(status_code=400, detail=f"Invalid model: {model}")
+
     response = await ImageService().generate_image(ImageGenerateRequest(
         prompt=prompt, 
-        provider=provider, 
+        model=image_gen_model,
         image_id=image_id,
         aspect_ratio=aspect_ratio
         ))
@@ -97,4 +102,8 @@ async def generate_image(
     if not response.success:
         raise HTTPException(status_code=400, detail=response.message)
     return response
+
+@router.get("/models")
+async def get_models():
+    return await ImageService().get_models()
     

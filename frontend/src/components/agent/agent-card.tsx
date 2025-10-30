@@ -381,6 +381,7 @@ export const AgentCard = ({
                     )}
 
                     <ProviderSelector
+                        type="llm"
                         mode={isEditing ? "edit" : "view"}
                     />
 

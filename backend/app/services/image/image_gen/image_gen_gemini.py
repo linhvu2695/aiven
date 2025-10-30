@@ -7,12 +7,13 @@ from app.core.config import settings
 from app.utils.string.string_utils import is_empty_string
 from app.services.image.image_gen.image_gen_aspect_ratio import ImageGenAspectRatio
 from app.services.image.image_gen.image_gen_providers import ImageGenInterface
+from app.services.image.image_constants import ImageGenModel
 
 class ImageGenGemini(ImageGenInterface):
     """Service for generating images using Google Gemini"""
 
     _instance = None
-    _model = "gemini-2.5-flash-image"
+    _model = ImageGenModel.GEMINI_2_5_FLASH_IMAGE
 
     def __new__(cls, *args, **kwargs):
         if not hasattr(cls, "_instance") or cls._instance is None:

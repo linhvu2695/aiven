@@ -11,6 +11,7 @@ from app.classes.image import (
     ImageGenerateResponse, ImageGenerateRequest
 )
 from app.services.image.image_gen.image_gen_providers import ImageGenProvider
+from app.services.image.image_constants import ImageGenModel
 
 app = FastAPI()
 app.include_router(router, prefix="/images")
@@ -433,14 +434,14 @@ class TestImageApiGenerateImage:
         with patch("app.services.image.image_service.ImageService.generate_image", new=mock_service):
             transport = ASGITransport(app=app)
             async with AsyncClient(transport=transport, base_url="http://test") as ac:
-                response = await ac.post("/images/generate?prompt=A beautiful sunset")
+                response = await ac.post("/images/generate?prompt=A beautiful sunset&model=gemini-2.5-flash-image")
                 
                 # Verify the service was called with correct parameters
                 mock_service.assert_called_once()
                 call_args = mock_service.call_args[0][0]
                 assert isinstance(call_args, ImageGenerateRequest)
                 assert call_args.prompt == "A beautiful sunset"
-                assert call_args.provider == ImageGenProvider.GEMINI  # Default provider
+                assert call_args.model == ImageGenModel.GEMINI_2_5_FLASH_IMAGE  # Default provider
                 
                 # Verify the response
                 assert response.status_code == 200
@@ -464,14 +465,14 @@ class TestImageApiGenerateImage:
         with patch("app.services.image.image_service.ImageService.generate_image", new=mock_service):
             transport = ASGITransport(app=app)
             async with AsyncClient(transport=transport, base_url="http://test") as ac:
-                response = await ac.post("/images/generate?prompt=A beautiful sunset&provider=gemini")
+                response = await ac.post("/images/generate?prompt=A beautiful sunset&model=gemini-2.5-flash-image")
                 
                 # Verify the service was called with correct parameters
                 mock_service.assert_called_once()
                 call_args = mock_service.call_args[0][0]
                 assert isinstance(call_args, ImageGenerateRequest)
                 assert call_args.prompt == "A beautiful sunset"
-                assert call_args.provider == ImageGenProvider.GEMINI
+                assert call_args.model == ImageGenModel.GEMINI_2_5_FLASH_IMAGE
                 
                 # Verify the response
                 assert response.status_code == 200
@@ -493,7 +494,7 @@ class TestImageApiGenerateImage:
         with patch("app.services.image.image_service.ImageService.generate_image", new=AsyncMock(return_value=mock_response)):
             transport = ASGITransport(app=app)
             async with AsyncClient(transport=transport, base_url="http://test") as ac:
-                response = await ac.post("/images/generate?prompt=Invalid prompt")
+                response = await ac.post("/images/generate?prompt=Invalid prompt&model=gemini-2.5-flash-image")
                 assert response.status_code == 400
                 data = response.json()
                 assert "detail" in data

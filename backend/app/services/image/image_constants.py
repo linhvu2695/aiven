@@ -1,0 +1,20 @@
+from enum import Enum
+
+IMAGE_COLLECTION_NAME = "images"
+IMAGE_STORAGE_FOLDER = "images"
+IMAGE_PRESIGNED_URL_EXPIRATION = 60 * 60  # 1 hour
+
+class ImageGenModel(str, Enum):
+    # https://ai.google.dev/gemini-api/docs/imagen
+    GEMINI_2_5_FLASH_IMAGE = "gemini-2.5-flash-image"
+
+    # https://platform.openai.com/docs/guides/images-vision
+    GPT_IMAGE_1 = "gpt-image-1"
+
+OPENAI_MODELS = {
+    ImageGenModel.GPT_IMAGE_1,
+}
+
+GEMINI_MODELS = {
+    ImageGenModel.GEMINI_2_5_FLASH_IMAGE,
+}

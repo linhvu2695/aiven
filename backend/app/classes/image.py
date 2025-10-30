@@ -5,6 +5,7 @@ from enum import Enum
 
 from app.services.image.image_gen.image_gen_aspect_ratio import ImageGenAspectRatio
 from app.services.image.image_gen.image_gen_providers import ImageGenProvider
+from app.services.image.image_constants import ImageGenModel
 
 class ImageType(str, Enum):
     """Types of images in the platform"""
@@ -182,7 +183,7 @@ class ImageUrlsResponse(BaseModel):
 class ImageGenerateRequest(BaseModel):
     """Request model for generating an image with a provider"""
     prompt: str
-    provider: ImageGenProvider
+    model: ImageGenModel
     image_id: Optional[str] = None
     aspect_ratio: Optional[ImageGenAspectRatio] = ImageGenAspectRatio.RATIO_1_1
 
