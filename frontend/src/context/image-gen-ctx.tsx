@@ -4,6 +4,8 @@ import { ASPECT_RATIO_OPTIONS } from "@/types/image";
 interface ImageGenContextType {
     prompt: string;
     setPrompt: (prompt: string) => void;
+    imageId: string | null;
+    setImageId: (id: string | null) => void;
     aspectRatio: string;
     setAspectRatio: (ratio: string) => void;
     provider: string;
@@ -31,6 +33,7 @@ interface ImageGenProviderProps {
 
 export const ImageGenProvider = ({ children }: ImageGenProviderProps) => {
     const [prompt, setPrompt] = useState("");
+    const [imageId, setImageId] = useState<string | null>(null);
     const [aspectRatio, setAspectRatio] = useState(ASPECT_RATIO_OPTIONS[0].value);
     const [provider, setProvider] = useState("google_genai");
     const [model, setModel] = useState("");
@@ -38,6 +41,7 @@ export const ImageGenProvider = ({ children }: ImageGenProviderProps) => {
 
     const resetState = () => {
         setPrompt("");
+        setImageId(null);
         setAspectRatio(ASPECT_RATIO_OPTIONS[0].value);
         setProvider("google_genai");
         setModel("");
@@ -49,6 +53,8 @@ export const ImageGenProvider = ({ children }: ImageGenProviderProps) => {
             value={{
                 prompt,
                 setPrompt,
+                imageId,
+                setImageId,
                 aspectRatio,
                 setAspectRatio,
                 provider,

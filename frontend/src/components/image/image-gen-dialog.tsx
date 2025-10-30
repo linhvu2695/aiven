@@ -13,6 +13,8 @@ import { Dropdown } from "@/components/ui/dropdown";
 import { ASPECT_RATIO_OPTIONS } from "@/types/image";
 import { ImageGenProviderSelector } from "./image-gen-provider-selector";
 import { ImageGenProvider, useImageGen } from "@/context/image-gen-ctx";
+import { useImage } from "@/context/image-ctx";
+import { useEffect } from "react";
 
 interface ImageGenDialogProps {
     isOpen: boolean;
@@ -21,9 +23,12 @@ interface ImageGenDialogProps {
 }
 
 const ImageGenDialogContent = ({ isOpen, onClose, onSuccess }: ImageGenDialogProps) => {
+    const { selectedImage } = useImage();
     const {
         prompt,
         setPrompt,
+        imageId,
+        setImageId,
         aspectRatio,
         setAspectRatio,
         model,
@@ -32,19 +37,40 @@ const ImageGenDialogContent = ({ isOpen, onClose, onSuccess }: ImageGenDialogPro
         resetState,
     } = useImageGen();
 
-    const handleGenerateImage = async () => {
-        if (!prompt.trim()) {
+    // Set imageId from selectedImage when dialog opens
+    useEffect(() => {
+        if (isOpen && selectedImage?.id) {
+            setImageId(selectedImage.id);
+        }
+    }, [isOpen, selectedImage?.id, setImageId]);
+
+    const validateRequiredFields = (fieldName: string, fieldValue: string) => {
+        if (!fieldValue.trim()) {
             toaster.create({
-                description: "Please enter a prompt",
+                description: `Missing ${fieldName}`,
                 type: "warning",
             });
+            return false;
+        }
+        return true;
+    }
+
+    const handleGenerateImage = async () => {
+        if (!validateRequiredFields("prompt", prompt) 
+            || !validateRequiredFields("model", model) 
+            || !validateRequiredFields("aspect ratio", aspectRatio)) {
             return;
         }
 
         try {
             setIsGenerating(true);
+
+            let url = `${BASE_URL}/api/image/generate?prompt=${encodeURIComponent(prompt)}&aspect_ratio=${encodeURIComponent(aspectRatio)}&model=${encodeURIComponent(model)}`;
+            if (imageId) {
+                url += `&image_id=${encodeURIComponent(imageId)}`;
+            }
             
-            const response = await fetch(`${BASE_URL}/api/image/generate?prompt=${encodeURIComponent(prompt)}&aspect_ratio=${encodeURIComponent(aspectRatio)}&model=${encodeURIComponent(model)}`, 
+            const response = await fetch(url, 
                 {
                     method: "POST",
                     headers: {
@@ -116,7 +142,7 @@ const ImageGenDialogContent = ({ isOpen, onClose, onSuccess }: ImageGenDialogPro
                         backdropFilter="blur(8px)"
                     >
                         <Dialog.Header>
-                            <Dialog.Title>Generate Image</Dialog.Title>
+                            <Dialog.Title>{selectedImage?.id ? "Edit Image" : "Generate Image"}</Dialog.Title>
                         </Dialog.Header>
 
                         <Dialog.Body>
@@ -138,7 +164,9 @@ const ImageGenDialogContent = ({ isOpen, onClose, onSuccess }: ImageGenDialogPro
                                     <Textarea
                                         outline="none"
                                         border="none"
-                                        placeholder="Describe the image you want to generate"
+                                        placeholder={selectedImage?.id 
+                                            ? "Describe the changes you want to make to the image" 
+                                            : "Describe the image you want to generate"}
                                         value={prompt}
                                         onChange={(e) => {
                                             setPrompt(e.target.value);
