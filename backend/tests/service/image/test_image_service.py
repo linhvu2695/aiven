@@ -895,7 +895,11 @@ class TestImageServiceGenerateImage:
                 assert response.message == ""
                 
                 # Verify ImageGenGemini was called correctly
-                mock_gemini_instance.generate_image.assert_called_once_with(GenImageRequest(prompt="A beautiful sunset over mountains"))
+                mock_gemini_instance.generate_image.assert_called_once_with(
+                    GenImageRequest(
+                        prompt="A beautiful sunset over mountains", 
+                        model=ImageGenModel.GEMINI_2_5_FLASH_IMAGE,)
+                        )
     
     @pytest.mark.asyncio
     async def test_generate_image_generation_failure(self, image_service: ImageService):
@@ -997,7 +1001,7 @@ class TestImageServiceGenerateImage:
         """Test that generate_image creates proper CreateImageRequest"""        
         request = ImageGenerateRequest(
             prompt="test prompt",
-            model=ImageGenModel.GEMINI_2_5_FLASH_IMAGE
+            model=ImageGenModel.GPT_IMAGE_1_MINI
         )
         
         mock_gen_response = GenImageResponse(
@@ -1015,15 +1019,15 @@ class TestImageServiceGenerateImage:
             message="success"
         )
         
-        with patch("app.services.image.image_service.ImageGenGemini") as mock_gemini_class, \
+        with patch("app.services.image.image_service.ImageGenOpenAI") as mock_openai_class, \
              patch("app.services.image.image_service.datetime") as mock_datetime:
             
             # Mock datetime to have predictable filename
             mock_datetime.now.return_value.strftime.return_value = "20241011_120000"
             
-            mock_gemini_instance = MagicMock()
-            mock_gemini_instance.generate_image.return_value = mock_gen_response
-            mock_gemini_class.return_value = mock_gemini_instance
+            mock_openai_instance = MagicMock()
+            mock_openai_instance.generate_image.return_value = mock_gen_response
+            mock_openai_class.return_value = mock_openai_instance
             
             with patch.object(image_service, "create_image", return_value=mock_create_response) as mock_create:
                 await image_service.generate_image(request)
@@ -1032,7 +1036,7 @@ class TestImageServiceGenerateImage:
                 mock_create.assert_called_once()
                 create_request = mock_create.call_args[0][0]
                 
-                assert create_request.filename == "image_gemini-2.5-flash-image_20241011_120000.png"
+                assert create_request.filename == "image_gpt-image-1-mini_20241011_120000.png"
                 assert create_request.image_type == ImageType.GENERAL
                 assert create_request.source_type == ImageSourceType.AI_GENERATE
                 assert create_request.file_data == sample_image_bytes

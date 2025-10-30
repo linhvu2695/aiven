@@ -5,6 +5,7 @@ from unittest.mock import patch, MagicMock
 from app.services.image.image_gen.image_gen_openai import ImageGenOpenAI
 from app.services.image.image_gen.image_gen_aspect_ratio import ImageGenAspectRatio
 from app.classes.image import GenImageRequest, GenImageResponse
+from app.services.image.image_constants import ImageGenModel
 
 
 @pytest.fixture(autouse=True)
@@ -121,7 +122,10 @@ class TestImageGenOpenAIGenerateImage:
         
         with patch("app.services.image.image_gen.image_gen_openai.OpenAI", return_value=mock_openai_client):
             service = ImageGenOpenAI(api_key="test-api-key")
-            request = GenImageRequest(prompt="Generate a beautiful landscape")
+            request = GenImageRequest(
+                prompt="Generate a beautiful landscape", 
+                model=ImageGenModel.GPT_IMAGE_1
+                )
             response = service.generate_image(request)
             
             assert response.success is True
@@ -133,7 +137,10 @@ class TestImageGenOpenAIGenerateImage:
         """Test image generation with empty prompt returns error"""
         with patch("app.services.image.image_gen.image_gen_openai.OpenAI", return_value=mock_openai_client):
             service = ImageGenOpenAI(api_key="test-api-key")
-            request = GenImageRequest(prompt="")
+            request = GenImageRequest(
+                prompt="", 
+                model=ImageGenModel.GPT_IMAGE_1
+                )
             response = service.generate_image(request)
             
             assert response.success is False
@@ -150,7 +157,8 @@ class TestImageGenOpenAIGenerateImage:
             service = ImageGenOpenAI(api_key="test-api-key")
             request = GenImageRequest(
                 prompt="Generate a landscape",
-                aspect_ratio=ImageGenAspectRatio.RATIO_16_9
+                aspect_ratio=ImageGenAspectRatio.RATIO_16_9,
+                model=ImageGenModel.GPT_IMAGE_1
             )
             response = service.generate_image(request)
             
@@ -167,7 +175,8 @@ class TestImageGenOpenAIGenerateImage:
             service = ImageGenOpenAI(api_key="test-api-key")
             request = GenImageRequest(
                 prompt="Generate a landscape",
-                image_data=sample_image_data
+                image_data=sample_image_data,
+                model=ImageGenModel.GPT_IMAGE_1
             )
             
             with patch.object(service.logger, 'warning') as mock_warning:
@@ -189,7 +198,10 @@ class TestImageGenOpenAIGenerateImage:
         
         with patch("app.services.image.image_gen.image_gen_openai.OpenAI", return_value=mock_openai_client):
             service = ImageGenOpenAI(api_key="test-api-key")
-            request = GenImageRequest(prompt="Generate a landscape")
+            request = GenImageRequest(
+                prompt="Generate a landscape", 
+                model=ImageGenModel.GPT_IMAGE_1
+                )
             response = service.generate_image(request)
             
             assert response.success is True
@@ -204,7 +216,10 @@ class TestImageGenOpenAIGenerateImage:
         
         with patch("app.services.image.image_gen.image_gen_openai.OpenAI", return_value=mock_openai_client):
             service = ImageGenOpenAI(api_key="test-api-key")
-            request = GenImageRequest(prompt="Generate a landscape")
+            request = GenImageRequest(
+                prompt="Generate a landscape", 
+                model=ImageGenModel.GPT_IMAGE_1
+                )
             response = service.generate_image(request)
             
             assert response.success is False
@@ -222,7 +237,10 @@ class TestImageGenOpenAIGenerateImage:
         
         with patch("app.services.image.image_gen.image_gen_openai.OpenAI", return_value=mock_openai_client):
             service = ImageGenOpenAI(api_key="test-api-key")
-            request = GenImageRequest(prompt="Generate a landscape")
+            request = GenImageRequest(
+                prompt="Generate a landscape", 
+                model=ImageGenModel.GPT_IMAGE_1
+                )
             response = service.generate_image(request)
             
             assert response.success is False
@@ -237,7 +255,8 @@ class TestImageGenOpenAIGenerateImage:
             service = ImageGenOpenAI(api_key="test-api-key")
             request = GenImageRequest(
                 prompt="test prompt",
-                aspect_ratio=ImageGenAspectRatio.RATIO_1_1
+                aspect_ratio=ImageGenAspectRatio.RATIO_1_1,
+                model=ImageGenModel.GPT_IMAGE_1
             )
             service.generate_image(request)
             
@@ -257,7 +276,10 @@ class TestImageGenOpenAIGenerateImage:
         
         with patch("app.services.image.image_gen.image_gen_openai.OpenAI", return_value=mock_openai_client):
             service = ImageGenOpenAI(api_key="test-api-key")
-            request = GenImageRequest(prompt="Generate an image")
+            request = GenImageRequest(
+                prompt="Generate an image", 
+                model=ImageGenModel.GPT_IMAGE_1
+                )
             response = service.generate_image(request)
             
             assert response.success is False
@@ -272,7 +294,10 @@ class TestImageGenOpenAIGenerateImage:
         
         with patch("app.services.image.image_gen.image_gen_openai.OpenAI", return_value=mock_openai_client):
             service = ImageGenOpenAI(api_key="test-api-key")
-            request = GenImageRequest(prompt="Generate a landscape")
+            request = GenImageRequest(
+                prompt="Generate a landscape", 
+                model=ImageGenModel.GPT_IMAGE_1
+                )
             service.generate_image(request)
             
             # Verify the API was called with default size
