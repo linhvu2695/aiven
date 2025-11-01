@@ -23,7 +23,6 @@ from app.classes.image import (
     DeleteImageResponse,
     ImageMetadata,
     ImageFormat,
-    ImageProcessingStatus,
     ImageType,
     ImageSourceType,
     ImageUrlInfo,
@@ -45,8 +44,9 @@ from app.utils.string.string_utils import (
 from app.utils.image.image_utils import generate_storage_path
 from app.services.image.image_gen.image_gen_gemini import ImageGenGemini
 from app.services.image.image_gen.image_gen_openai import ImageGenOpenAI
-from app.services.image.image_gen.image_gen_providers import ImageGenProvider, ImageGenInterface
+from app.services.image.image_gen.image_gen_providers import ImageGenInterface
 from app.services.image.image_constants import *
+from app.classes.media import MediaProcessingStatus
 
 
 class ImageService:
@@ -169,7 +169,7 @@ class ImageService:
                 "entity_id": request.entity_id,
                 "entity_type": request.entity_type,
                 "metadata": metadata.model_dump(),
-                "processing_status": ImageProcessingStatus.COMPLETED.value,
+                "processing_status": MediaProcessingStatus.COMPLETED.value,
                 "uploaded_at": now,
                 "updated_at": now,
                 "processed_at": now,
@@ -222,8 +222,8 @@ class ImageService:
                 entity_id=data.get("entity_id"),
                 entity_type=data.get("entity_type"),
                 metadata=ImageMetadata(**data.get("metadata", {})),
-                processing_status=ImageProcessingStatus(
-                    data.get("processing_status", ImageProcessingStatus.PENDING.value)
+                processing_status=MediaProcessingStatus(
+                    data.get("processing_status", MediaProcessingStatus.PENDING.value)
                 ),
                 uploaded_at=data.get("uploaded_at") or datetime.now(timezone.utc),
                 updated_at=data.get("updated_at") or datetime.now(timezone.utc),
@@ -328,9 +328,9 @@ class ImageService:
                     entity_id=doc.get("entity_id"),
                     entity_type=doc.get("entity_type"),
                     metadata=ImageMetadata(**doc.get("metadata", {})),
-                    processing_status=ImageProcessingStatus(
+                    processing_status=MediaProcessingStatus(
                         doc.get(
-                            "processing_status", ImageProcessingStatus.PENDING.value
+                            "processing_status", MediaProcessingStatus.PENDING.value
                         )
                     ),
                     uploaded_at=doc.get("uploaded_at") or datetime.now(timezone.utc),

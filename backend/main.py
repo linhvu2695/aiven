@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from app.api import chat_api, agent_api, storage_api, article_api, health_api, tool_api, plant_api, image_api, user_api
+from app.api import chat_api, agent_api, storage_api, article_api, health_api, tool_api, plant_api, image_api, user_api, video_api
 from app.core.database import check_mongodb_health
 from contextlib import asynccontextmanager
 from app.core.config import settings
@@ -40,6 +40,7 @@ app.include_router(storage_api.router, prefix="/api/storage", tags=["Storage"])
 app.include_router(tool_api.router, prefix="/api/tool", tags=["Tool"])
 app.include_router(plant_api.router, prefix="/api/plant", tags=["Plant"])
 app.include_router(image_api.router, prefix="/api/image", tags=["Image"])
+app.include_router(video_api.router, prefix="/api/video", tags=["Video"])
 
 # Configure LangSmith tracing
 if settings.langsmith_tracing == "true":

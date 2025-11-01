@@ -22,7 +22,6 @@ from app.classes.image import (
     DeleteImageResponse,
     ImageMetadata,
     ImageFormat,
-    ImageProcessingStatus,
     ImageType,
     ImageSourceType,
     ImageGenerateRequest,

@@ -1,8 +1,6 @@
 import base64
-import io
 import logging
 from datetime import datetime, timezone
-from PIL import Image as PILImage
 from langgraph.prebuilt import create_react_agent
 from langchain_core.runnables import RunnableConfig
 from langchain_core.messages import HumanMessage
@@ -21,13 +19,12 @@ from app.classes.plant import (
     PlantHealthStatus,
     PlantSpecies,
 )
-from app.classes.image import ImageType, ImageSourceType, CreateImageRequest
+from app.classes.image import ImageType, CreateImageRequest
 from app.core.database import (
     insert_document,
     get_document,
     update_document,
     list_documents,
-    delete_document,
 )
 from app.services.image.image_service import ImageService
 from app.utils.string.string_utils import is_empty_string
@@ -35,6 +32,7 @@ from app.utils.request.request_utils import build_update_data
 from app.services.chat.chat_constants import LLMModel
 from app.services.chat.chat_service import ChatService
 from app.classes.chat import ChatFileContent
+from app.utils.image.image_utils import detect_image_mime_type
 
 PLANT_COLLECTION_NAME = "plants"
 
@@ -62,25 +60,6 @@ class PlantService:
         if not request.id or request.id.strip() == "":
             return False, "Plant ID is required"
         return True, ""
-
-    def _detect_image_mime_type(self, image_bytes: bytes) -> str:
-        """Detect MIME type from image bytes using PIL"""
-        try:
-            with PILImage.open(io.BytesIO(image_bytes)) as img:
-                format_to_mime = {
-                    "JPEG": "image/jpeg",
-                    "PNG": "image/png",
-                    "GIF": "image/gif",
-                    "BMP": "image/bmp",
-                    "WEBP": "image/webp",
-                    "TIFF": "image/tiff",
-                }
-                return format_to_mime.get(img.format or "JPEG", "image/jpeg")
-        except Exception as e:
-            logging.getLogger("uvicorn.warning").warning(
-                f"Failed to detect image format: {e}, defaulting to image/jpeg"
-            )
-            return "image/jpeg"
         
     async def create_or_update_plant(
         self, request: CreateOrUpdatePlantRequest
@@ -266,7 +245,7 @@ class PlantService:
         model = LLMModel.GPT_4O
         try:
             # Detect the actual MIME type of the image
-            detected_mime_type = self._detect_image_mime_type(image_bytes)
+            detected_mime_type = detect_image_mime_type(image_bytes)
 
             graph = create_react_agent(
                 model=ChatService().get_chat_model(model),

@@ -6,11 +6,10 @@ from datetime import datetime
 from app.api.image_api import router
 from app.classes.image import (
     ImageListRequest, ImageListResponse, ImageInfo, ImageType, ImageSourceType,
-    ImageProcessingStatus, ImageMetadata, ImageFormat, ImageResponse,
-    DeleteImageResponse, ImageUrlResponse, ImageUrlsResponse, ImageUrlInfo,
+    MediaProcessingStatus, ImageMetadata, ImageFormat, ImageResponse,
+    DeleteImageResponse, ImageUrlInfo,
     ImageGenerateResponse, ImageGenerateRequest
 )
-from app.services.image.image_gen.image_gen_providers import ImageGenProvider
 from app.services.image.image_constants import ImageGenModel
 
 app = FastAPI()
@@ -33,7 +32,7 @@ _TEST_IMAGE_1 = ImageInfo(
     image_type=ImageType.PLANT_PHOTO,
     source_type=ImageSourceType.UPLOAD,
     metadata=ImageMetadata(width=1920, height=1080, format=ImageFormat.JPEG),
-    processing_status=ImageProcessingStatus.COMPLETED,
+    processing_status=MediaProcessingStatus.COMPLETED,
     uploaded_at=datetime(2024, 1, 1, 12, 0, 0),
     updated_at=datetime(2024, 1, 1, 12, 0, 0),
     tags=["nature", "plant"],
@@ -51,7 +50,7 @@ _TEST_IMAGE_2 = ImageInfo(
     image_type=ImageType.AGENT_AVATAR,
     source_type=ImageSourceType.AI_GENERATE,
     metadata=ImageMetadata(width=512, height=512, format=ImageFormat.PNG),
-    processing_status=ImageProcessingStatus.COMPLETED,
+    processing_status=MediaProcessingStatus.COMPLETED,
     uploaded_at=datetime(2024, 1, 2, 12, 0, 0),
     updated_at=datetime(2024, 1, 2, 12, 0, 0),
     tags=["avatar"],
@@ -106,7 +105,7 @@ class TestImageApiListImages:
                 assert data["images"][0]["title"] == "Test Image 1"
                 assert data["images"][0]["image_type"] == ImageType.PLANT_PHOTO
                 assert data["images"][0]["source_type"] == ImageSourceType.UPLOAD
-                assert data["images"][0]["processing_status"] == ImageProcessingStatus.COMPLETED
+                assert data["images"][0]["processing_status"] == MediaProcessingStatus.COMPLETED
                 assert data["images"][0]["tags"] == ["nature", "plant"]
                 
                 # Verify second image
@@ -131,7 +130,7 @@ class TestImageApiListImages:
             entity_id=TEST_ENTITY_ID,
             entity_type="plant",
             metadata=ImageMetadata(),
-            processing_status=ImageProcessingStatus.COMPLETED,
+            processing_status=MediaProcessingStatus.COMPLETED,
             uploaded_at=datetime(2024, 1, 1, 12, 0, 0),
             updated_at=datetime(2024, 1, 1, 12, 0, 0),
             is_deleted=False
@@ -190,7 +189,7 @@ class TestImageApiListImages:
                 image_type=ImageType.GENERAL,
                 source_type=ImageSourceType.UPLOAD,
                 metadata=ImageMetadata(),
-                processing_status=ImageProcessingStatus.COMPLETED,
+                processing_status=MediaProcessingStatus.COMPLETED,
                 uploaded_at=datetime(2024, 1, i, 12, 0, 0),
                 updated_at=datetime(2024, 1, i, 12, 0, 0),
                 is_deleted=False
@@ -269,7 +268,7 @@ class TestImageApiListImages:
                 image_type=ImageType.GENERAL,
                 source_type=ImageSourceType.UPLOAD,
                 metadata=ImageMetadata(),
-                processing_status=ImageProcessingStatus.COMPLETED,
+                processing_status=MediaProcessingStatus.COMPLETED,
                 uploaded_at=datetime(2024, 1, 1, 12, 0, 0),
                 updated_at=datetime(2024, 1, 1, 12, 0, 0),
                 is_deleted=True

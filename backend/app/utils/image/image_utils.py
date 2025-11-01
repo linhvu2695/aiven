@@ -1,4 +1,7 @@
 from typing import Optional
+from PIL import Image as PILImage
+import io
+import logging
 from datetime import datetime, timezone
 from app.classes.image import ImageType
 
@@ -28,3 +31,22 @@ def get_image_folder_by_type(image_type: ImageType) -> str:
         ImageType.GENERAL: "general"
     }
     return folder_map.get(image_type, "general")
+
+def detect_image_mime_type(image_bytes: bytes) -> str:
+    """Detect MIME type from image bytes using PIL"""
+    try:
+        with PILImage.open(io.BytesIO(image_bytes)) as img:
+            format_to_mime = {
+                "JPEG": "image/jpeg",
+                "PNG": "image/png",
+                "GIF": "image/gif",
+                "BMP": "image/bmp",
+                "WEBP": "image/webp",
+                "TIFF": "image/tiff",
+            }
+            return format_to_mime.get(img.format or "JPEG", "image/jpeg")
+    except Exception as e:
+        logging.getLogger("uvicorn.warning").warning(
+            f"Failed to detect image format: {e}, defaulting to image/jpeg"
+        )
+        return "image/jpeg"

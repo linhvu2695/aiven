@@ -6,6 +6,7 @@ from enum import Enum
 from app.services.image.image_gen.image_gen_aspect_ratio import ImageGenAspectRatio
 from app.services.image.image_gen.image_gen_providers import ImageGenProvider
 from app.services.image.image_constants import ImageGenModel
+from app.classes.media import MediaProcessingStatus
 
 class ImageType(str, Enum):
     """Types of images in the platform"""
@@ -33,13 +34,6 @@ class ImageSourceType(str, Enum):
     URL = "url"
     CAMERA = "camera"
     AI_GENERATE = "ai_generate"
-
-class ImageProcessingStatus(str, Enum):
-    """Status of image processing"""
-    PENDING = "pending"
-    PROCESSING = "processing"
-    COMPLETED = "completed"
-    FAILED = "failed"
 
 class ImageMetadata(BaseModel):
     """Metadata extracted from image"""
@@ -75,7 +69,7 @@ class ImageInfo(BaseModel):
     
     # Metadata
     metadata: ImageMetadata = Field(default_factory=ImageMetadata)
-    processing_status: ImageProcessingStatus = ImageProcessingStatus.PENDING
+    processing_status: MediaProcessingStatus = MediaProcessingStatus.PENDING
     
     # Timestamps
     uploaded_at: datetime
@@ -85,11 +79,6 @@ class ImageInfo(BaseModel):
     # Tags and categorization
     tags: list[str] = Field(default_factory=list)
     is_deleted: bool = False
-    
-    class Config:
-        json_encoders = {
-            datetime: lambda v: v.isoformat()
-        }
 
 class CreateImageRequest(BaseModel):
     """Request model for creating/uploading an image"""
