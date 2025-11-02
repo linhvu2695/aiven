@@ -14,6 +14,8 @@ from app.classes.video import (
     VideoSourceType,
     VideoMetadata,
     VideoFormat,
+    VideoListRequest,
+    VideoListResponse,
 )
 from app.classes.media import MediaProcessingStatus
 
@@ -506,3 +508,620 @@ class TestVideoApiGetVideo:
                 data = response.json()
                 assert data["video"]["is_deleted"] is True
 
+
+class TestVideoApiListVideos:
+    """Test cases for the list videos endpoint"""
+
+    @pytest.mark.asyncio
+    async def test_list_videos_success_default_params(self):
+        """Test successfully listing videos with default parameters"""
+        video_info_1 = VideoInfo(
+            id=TEST_VIDEO_ID,
+            filename="video1.mp4",
+            storage_path="videos/video1.mp4",
+            video_type=VideoType.GENERAL,
+            source_type=VideoSourceType.UPLOAD,
+            metadata=VideoMetadata(),
+            processing_status=MediaProcessingStatus.COMPLETED,
+            uploaded_at=datetime(2024, 1, 1, 12, 0, 0),
+            updated_at=datetime(2024, 1, 1, 12, 0, 0),
+            is_deleted=False,
+        )
+        
+        video_info_2 = VideoInfo(
+            id=TEST_VIDEO_ID_2,
+            filename="video2.mp4",
+            storage_path="videos/video2.mp4",
+            video_type=VideoType.GENERAL,
+            source_type=VideoSourceType.UPLOAD,
+            metadata=VideoMetadata(),
+            processing_status=MediaProcessingStatus.COMPLETED,
+            uploaded_at=datetime(2024, 1, 2, 12, 0, 0),
+            updated_at=datetime(2024, 1, 2, 12, 0, 0),
+            is_deleted=False,
+        )
+
+        mock_response = VideoListResponse(
+            videos=[video_info_1, video_info_2],
+            total=2,
+            page=1,
+            page_size=10,
+        )
+
+        mock_service = AsyncMock(return_value=mock_response)
+        with patch(
+            "app.services.video.video_service.VideoService.list_videos",
+            new=mock_service,
+        ):
+            transport = ASGITransport(app=app)
+            async with AsyncClient(transport=transport, base_url="http://test") as ac:
+                request_data = {"page": 1, "page_size": 10}
+                response = await ac.post("/videos/list", json=request_data)
+
+                # Verify the service was called
+                mock_service.assert_called_once()
+                call_args = mock_service.call_args[0][0]
+                assert isinstance(call_args, VideoListRequest)
+                assert call_args.page == 1
+                assert call_args.page_size == 10
+                assert call_args.video_type is None
+                assert call_args.entity_id is None
+                assert call_args.entity_type is None
+                assert call_args.include_deleted is False
+
+                # Verify the response
+                assert response.status_code == 200
+                data = response.json()
+                assert len(data["videos"]) == 2
+                assert data["total"] == 2
+                assert data["page"] == 1
+                assert data["page_size"] == 10
+                assert data["videos"][0]["id"] == TEST_VIDEO_ID
+                assert data["videos"][1]["id"] == TEST_VIDEO_ID_2
+
+    @pytest.mark.asyncio
+    async def test_list_videos_empty_result(self):
+        """Test listing videos when no videos exist"""
+        mock_response = VideoListResponse(
+            videos=[],
+            total=0,
+            page=1,
+            page_size=10,
+        )
+
+        with patch(
+            "app.services.video.video_service.VideoService.list_videos",
+            new=AsyncMock(return_value=mock_response),
+        ):
+            transport = ASGITransport(app=app)
+            async with AsyncClient(transport=transport, base_url="http://test") as ac:
+                request_data = {"page": 1, "page_size": 10}
+                response = await ac.post("/videos/list", json=request_data)
+
+                assert response.status_code == 200
+                data = response.json()
+                assert len(data["videos"]) == 0
+                assert data["total"] == 0
+                assert data["page"] == 1
+                assert data["page_size"] == 10
+
+    @pytest.mark.asyncio
+    async def test_list_videos_with_pagination(self):
+        """Test listing videos with custom pagination parameters"""
+        mock_videos = [
+            VideoInfo(
+                id=f"507f1f77bcf86cd79943901{i}",
+                filename=f"video{i}.mp4",
+                storage_path=f"videos/video{i}.mp4",
+                video_type=VideoType.GENERAL,
+                source_type=VideoSourceType.UPLOAD,
+                metadata=VideoMetadata(),
+                processing_status=MediaProcessingStatus.COMPLETED,
+                uploaded_at=datetime(2024, 1, i, 12, 0, 0),
+                updated_at=datetime(2024, 1, i, 12, 0, 0),
+                is_deleted=False,
+            )
+            for i in range(1, 6)  # 5 videos
+        ]
+
+        mock_response = VideoListResponse(
+            videos=mock_videos,
+            total=25,  # Total of 25 videos in the system
+            page=2,
+            page_size=5,
+        )
+
+        mock_service = AsyncMock(return_value=mock_response)
+        with patch(
+            "app.services.video.video_service.VideoService.list_videos",
+            new=mock_service,
+        ):
+            transport = ASGITransport(app=app)
+            async with AsyncClient(transport=transport, base_url="http://test") as ac:
+                request_data = {"page": 2, "page_size": 5}
+                response = await ac.post("/videos/list", json=request_data)
+
+                # Verify the service was called with correct pagination
+                mock_service.assert_called_once()
+                call_args = mock_service.call_args[0][0]
+                assert call_args.page == 2
+                assert call_args.page_size == 5
+
+                assert response.status_code == 200
+                data = response.json()
+                assert len(data["videos"]) == 5
+                assert data["total"] == 25
+                assert data["page"] == 2
+                assert data["page_size"] == 5
+
+    @pytest.mark.asyncio
+    async def test_list_videos_filter_by_video_type(self):
+        """Test listing videos filtered by video_type"""
+        mock_videos = [
+            VideoInfo(
+                id=TEST_VIDEO_ID,
+                filename="tutorial.mp4",
+                storage_path="videos/tutorial.mp4",
+                video_type=VideoType.GENERAL,
+                source_type=VideoSourceType.UPLOAD,
+                metadata=VideoMetadata(),
+                processing_status=MediaProcessingStatus.COMPLETED,
+                uploaded_at=datetime(2024, 1, 1, 12, 0, 0),
+                updated_at=datetime(2024, 1, 1, 12, 0, 0),
+                is_deleted=False,
+            ),
+        ]
+
+        mock_response = VideoListResponse(
+            videos=mock_videos,
+            total=1,
+            page=1,
+            page_size=10,
+        )
+
+        mock_service = AsyncMock(return_value=mock_response)
+        with patch(
+            "app.services.video.video_service.VideoService.list_videos",
+            new=mock_service,
+        ):
+            transport = ASGITransport(app=app)
+            async with AsyncClient(transport=transport, base_url="http://test") as ac:
+                request_data = {
+                    "page": 1,
+                    "page_size": 10,
+                    "video_type": VideoType.GENERAL,
+                }
+                response = await ac.post("/videos/list", json=request_data)
+
+                # Verify the service was called with video_type filter
+                mock_service.assert_called_once()
+                call_args = mock_service.call_args[0][0]
+                assert call_args.video_type == VideoType.GENERAL
+
+                assert response.status_code == 200
+                data = response.json()
+                assert len(data["videos"]) == 1
+                assert data["videos"][0]["video_type"] == VideoType.GENERAL
+
+    @pytest.mark.asyncio
+    async def test_list_videos_filter_by_entity(self):
+        """Test listing videos filtered by entity_id and entity_type"""
+        test_plant_id = "65a1b2c3d4e5f6a7b8c9d0e1"
+        
+        mock_videos = [
+            VideoInfo(
+                id=TEST_VIDEO_ID,
+                filename="plant_video.mp4",
+                storage_path="videos/plants/plant_video.mp4",
+                video_type=VideoType.GENERAL,
+                source_type=VideoSourceType.UPLOAD,
+                entity_id=test_plant_id,
+                entity_type="plant",
+                metadata=VideoMetadata(),
+                processing_status=MediaProcessingStatus.COMPLETED,
+                uploaded_at=datetime(2024, 1, 1, 12, 0, 0),
+                updated_at=datetime(2024, 1, 1, 12, 0, 0),
+                is_deleted=False,
+            ),
+        ]
+
+        mock_response = VideoListResponse(
+            videos=mock_videos,
+            total=1,
+            page=1,
+            page_size=10,
+        )
+
+        mock_service = AsyncMock(return_value=mock_response)
+        with patch(
+            "app.services.video.video_service.VideoService.list_videos",
+            new=mock_service,
+        ):
+            transport = ASGITransport(app=app)
+            async with AsyncClient(transport=transport, base_url="http://test") as ac:
+                request_data = {
+                    "page": 1,
+                    "page_size": 10,
+                    "entity_id": test_plant_id,
+                    "entity_type": "plant",
+                }
+                response = await ac.post("/videos/list", json=request_data)
+
+                # Verify the service was called with entity filters
+                mock_service.assert_called_once()
+                call_args = mock_service.call_args[0][0]
+                assert call_args.entity_id == test_plant_id
+                assert call_args.entity_type == "plant"
+
+                assert response.status_code == 200
+                data = response.json()
+                assert len(data["videos"]) == 1
+                assert data["videos"][0]["entity_id"] == test_plant_id
+                assert data["videos"][0]["entity_type"] == "plant"
+
+    @pytest.mark.asyncio
+    async def test_list_videos_include_deleted(self):
+        """Test listing videos including soft-deleted videos"""
+        mock_videos = [
+            VideoInfo(
+                id=TEST_VIDEO_ID,
+                filename="active.mp4",
+                storage_path="videos/active.mp4",
+                video_type=VideoType.GENERAL,
+                source_type=VideoSourceType.UPLOAD,
+                metadata=VideoMetadata(),
+                processing_status=MediaProcessingStatus.COMPLETED,
+                uploaded_at=datetime(2024, 1, 1, 12, 0, 0),
+                updated_at=datetime(2024, 1, 1, 12, 0, 0),
+                is_deleted=False,
+            ),
+            VideoInfo(
+                id=TEST_VIDEO_ID_2,
+                filename="deleted.mp4",
+                storage_path="videos/deleted.mp4",
+                video_type=VideoType.GENERAL,
+                source_type=VideoSourceType.UPLOAD,
+                metadata=VideoMetadata(),
+                processing_status=MediaProcessingStatus.COMPLETED,
+                uploaded_at=datetime(2024, 1, 2, 12, 0, 0),
+                updated_at=datetime(2024, 1, 2, 12, 0, 0),
+                is_deleted=True,
+            ),
+        ]
+
+        mock_response = VideoListResponse(
+            videos=mock_videos,
+            total=2,
+            page=1,
+            page_size=10,
+        )
+
+        mock_service = AsyncMock(return_value=mock_response)
+        with patch(
+            "app.services.video.video_service.VideoService.list_videos",
+            new=mock_service,
+        ):
+            transport = ASGITransport(app=app)
+            async with AsyncClient(transport=transport, base_url="http://test") as ac:
+                request_data = {
+                    "page": 1,
+                    "page_size": 10,
+                    "include_deleted": True,
+                }
+                response = await ac.post("/videos/list", json=request_data)
+
+                # Verify the service was called with include_deleted flag
+                mock_service.assert_called_once()
+                call_args = mock_service.call_args[0][0]
+                assert call_args.include_deleted is True
+
+                assert response.status_code == 200
+                data = response.json()
+                assert len(data["videos"]) == 2
+                assert data["videos"][0]["is_deleted"] is False
+                assert data["videos"][1]["is_deleted"] is True
+
+    @pytest.mark.asyncio
+    async def test_list_videos_multiple_filters(self):
+        """Test listing videos with multiple filters applied"""
+        test_plant_id = "65a1b2c3d4e5f6a7b8c9d0e1"
+        
+        mock_videos = [
+            VideoInfo(
+                id=TEST_VIDEO_ID,
+                filename="plant_general.mp4",
+                storage_path="videos/plants/plant_general.mp4",
+                video_type=VideoType.GENERAL,
+                source_type=VideoSourceType.UPLOAD,
+                entity_id=test_plant_id,
+                entity_type="plant",
+                metadata=VideoMetadata(),
+                processing_status=MediaProcessingStatus.COMPLETED,
+                uploaded_at=datetime(2024, 1, 1, 12, 0, 0),
+                updated_at=datetime(2024, 1, 1, 12, 0, 0),
+                is_deleted=False,
+            ),
+        ]
+
+        mock_response = VideoListResponse(
+            videos=mock_videos,
+            total=1,
+            page=1,
+            page_size=10,
+        )
+
+        mock_service = AsyncMock(return_value=mock_response)
+        with patch(
+            "app.services.video.video_service.VideoService.list_videos",
+            new=mock_service,
+        ):
+            transport = ASGITransport(app=app)
+            async with AsyncClient(transport=transport, base_url="http://test") as ac:
+                request_data = {
+                    "page": 1,
+                    "page_size": 10,
+                    "video_type": VideoType.GENERAL,
+                    "entity_id": test_plant_id,
+                    "entity_type": "plant",
+                    "include_deleted": False,
+                }
+                response = await ac.post("/videos/list", json=request_data)
+
+                # Verify all filters were passed
+                mock_service.assert_called_once()
+                call_args = mock_service.call_args[0][0]
+                assert call_args.video_type == VideoType.GENERAL
+                assert call_args.entity_id == test_plant_id
+                assert call_args.entity_type == "plant"
+                assert call_args.include_deleted is False
+
+                assert response.status_code == 200
+                data = response.json()
+                assert len(data["videos"]) == 1
+
+    @pytest.mark.asyncio
+    async def test_list_videos_service_exception(self):
+        """Test list videos when service raises an exception"""
+        with patch(
+            "app.services.video.video_service.VideoService.list_videos",
+            new=AsyncMock(side_effect=Exception("Database connection error")),
+        ):
+            transport = ASGITransport(app=app)
+            async with AsyncClient(transport=transport, base_url="http://test") as ac:
+                request_data = {"page": 1, "page_size": 10}
+                response = await ac.post("/videos/list", json=request_data)
+
+                # Should return 400 error with detail message
+                assert response.status_code == 400
+                data = response.json()
+                assert "detail" in data
+                assert "Error listing videos" in data["detail"]
+                assert "Database connection error" in data["detail"]
+
+    @pytest.mark.asyncio
+    async def test_list_videos_with_complete_metadata(self):
+        """Test listing videos that include complete metadata"""
+        video_with_full_metadata = VideoInfo(
+            id=TEST_VIDEO_ID,
+            filename="full_metadata.mp4",
+            original_filename="original_full.mp4",
+            title="Video with Full Metadata",
+            description="This video has all metadata fields",
+            alt_text="Full metadata video",
+            storage_path=TEST_STORAGE_PATH,
+            storage_url=TEST_STORAGE_URL,
+            video_type=VideoType.GENERAL,
+            source_type=VideoSourceType.UPLOAD,
+            metadata=_TEST_VIDEO_METADATA,
+            processing_status=MediaProcessingStatus.COMPLETED,
+            uploaded_at=datetime(2024, 1, 1, 12, 0, 0),
+            updated_at=datetime(2024, 1, 1, 12, 0, 0),
+            processed_at=datetime(2024, 1, 1, 12, 5, 0),
+            tags=["test", "metadata", "complete"],
+            is_deleted=False,
+        )
+
+        mock_response = VideoListResponse(
+            videos=[video_with_full_metadata],
+            total=1,
+            page=1,
+            page_size=10,
+        )
+
+        with patch(
+            "app.services.video.video_service.VideoService.list_videos",
+            new=AsyncMock(return_value=mock_response),
+        ):
+            transport = ASGITransport(app=app)
+            async with AsyncClient(transport=transport, base_url="http://test") as ac:
+                request_data = {"page": 1, "page_size": 10}
+                response = await ac.post("/videos/list", json=request_data)
+
+                assert response.status_code == 200
+                data = response.json()
+                assert len(data["videos"]) == 1
+                video = data["videos"][0]
+                assert video["title"] == "Video with Full Metadata"
+                assert video["description"] == "This video has all metadata fields"
+                assert video["alt_text"] == "Full metadata video"
+                assert video["metadata"]["width"] == 1920
+                assert video["metadata"]["height"] == 1080
+                assert video["metadata"]["duration"] == 60.5
+                assert video["metadata"]["fps"] == 30.0
+                assert video["tags"] == ["test", "metadata", "complete"]
+
+    @pytest.mark.asyncio
+    async def test_list_videos_different_processing_statuses(self):
+        """Test listing videos with various processing statuses"""
+        mock_videos = [
+            VideoInfo(
+                id=f"507f1f77bcf86cd79943901{i}",
+                filename=f"video_{status}.mp4",
+                storage_path=f"videos/video_{status}.mp4",
+                video_type=VideoType.GENERAL,
+                source_type=VideoSourceType.UPLOAD,
+                metadata=VideoMetadata(),
+                processing_status=status,
+                uploaded_at=datetime(2024, 1, i, 12, 0, 0),
+                updated_at=datetime(2024, 1, i, 12, 0, 0),
+                is_deleted=False,
+            )
+            for i, status in enumerate([
+                MediaProcessingStatus.PENDING,
+                MediaProcessingStatus.PROCESSING,
+                MediaProcessingStatus.COMPLETED,
+                MediaProcessingStatus.FAILED,
+            ], start=1)
+        ]
+
+        mock_response = VideoListResponse(
+            videos=mock_videos,
+            total=4,
+            page=1,
+            page_size=10,
+        )
+
+        with patch(
+            "app.services.video.video_service.VideoService.list_videos",
+            new=AsyncMock(return_value=mock_response),
+        ):
+            transport = ASGITransport(app=app)
+            async with AsyncClient(transport=transport, base_url="http://test") as ac:
+                request_data = {"page": 1, "page_size": 10}
+                response = await ac.post("/videos/list", json=request_data)
+
+                assert response.status_code == 200
+                data = response.json()
+                assert len(data["videos"]) == 4
+                assert data["videos"][0]["processing_status"] == MediaProcessingStatus.PENDING
+                assert data["videos"][1]["processing_status"] == MediaProcessingStatus.PROCESSING
+                assert data["videos"][2]["processing_status"] == MediaProcessingStatus.COMPLETED
+                assert data["videos"][3]["processing_status"] == MediaProcessingStatus.FAILED
+
+    @pytest.mark.asyncio
+    async def test_list_videos_page_zero(self):
+        """Test listing videos with page number 0 (edge case)"""
+        mock_response = VideoListResponse(
+            videos=[],
+            total=10,
+            page=0,
+            page_size=10,
+        )
+
+        mock_service = AsyncMock(return_value=mock_response)
+        with patch(
+            "app.services.video.video_service.VideoService.list_videos",
+            new=mock_service,
+        ):
+            transport = ASGITransport(app=app)
+            async with AsyncClient(transport=transport, base_url="http://test") as ac:
+                request_data = {"page": 0, "page_size": 10}
+                response = await ac.post("/videos/list", json=request_data)
+
+                # Verify the service was called with page 0
+                mock_service.assert_called_once()
+                call_args = mock_service.call_args[0][0]
+                assert call_args.page == 0
+
+                assert response.status_code == 200
+                data = response.json()
+                assert data["page"] == 0
+                assert data["total"] == 10
+
+    @pytest.mark.asyncio
+    async def test_list_videos_negative_page_number(self):
+        """Test listing videos with negative page number (edge case)"""
+        mock_response = VideoListResponse(
+            videos=[],
+            total=10,
+            page=-1,
+            page_size=10,
+        )
+
+        mock_service = AsyncMock(return_value=mock_response)
+        with patch(
+            "app.services.video.video_service.VideoService.list_videos",
+            new=mock_service,
+        ):
+            transport = ASGITransport(app=app)
+            async with AsyncClient(transport=transport, base_url="http://test") as ac:
+                request_data = {"page": -1, "page_size": 10}
+                response = await ac.post("/videos/list", json=request_data)
+
+                # Verify the service was called with negative page
+                mock_service.assert_called_once()
+                call_args = mock_service.call_args[0][0]
+                assert call_args.page == -1
+
+                assert response.status_code == 200
+                data = response.json()
+                assert data["page"] == -1
+                assert data["total"] == 10
+
+    @pytest.mark.asyncio
+    async def test_list_videos_page_exceeds_total_pages(self):
+        """Test listing videos when requested page exceeds total available pages"""
+        # Total of 15 videos, page_size 10 = 2 pages
+        # Request page 5 which is beyond available pages
+        mock_response = VideoListResponse(
+            videos=[],  # No videos on this page
+            total=15,
+            page=5,
+            page_size=10,
+        )
+
+        mock_service = AsyncMock(return_value=mock_response)
+        with patch(
+            "app.services.video.video_service.VideoService.list_videos",
+            new=mock_service,
+        ):
+            transport = ASGITransport(app=app)
+            async with AsyncClient(transport=transport, base_url="http://test") as ac:
+                request_data = {"page": 5, "page_size": 10}
+                response = await ac.post("/videos/list", json=request_data)
+
+                # Verify the service was called
+                mock_service.assert_called_once()
+                call_args = mock_service.call_args[0][0]
+                assert call_args.page == 5
+                assert call_args.page_size == 10
+
+                # Should return 200 with empty list but correct metadata
+                assert response.status_code == 200
+                data = response.json()
+                assert len(data["videos"]) == 0
+                assert data["total"] == 15  # Total count is still accurate
+                assert data["page"] == 5
+                assert data["page_size"] == 10
+
+    @pytest.mark.asyncio
+    async def test_list_videos_very_large_page_number(self):
+        """Test listing videos with extremely large page number"""
+        mock_response = VideoListResponse(
+            videos=[],
+            total=10,
+            page=999999,
+            page_size=10,
+        )
+
+        mock_service = AsyncMock(return_value=mock_response)
+        with patch(
+            "app.services.video.video_service.VideoService.list_videos",
+            new=mock_service,
+        ):
+            transport = ASGITransport(app=app)
+            async with AsyncClient(transport=transport, base_url="http://test") as ac:
+                request_data = {"page": 999999, "page_size": 10}
+                response = await ac.post("/videos/list", json=request_data)
+
+                # Verify the service was called
+                mock_service.assert_called_once()
+                call_args = mock_service.call_args[0][0]
+                assert call_args.page == 999999
+
+                # Should return 200 with empty list
+                assert response.status_code == 200
+                data = response.json()
+                assert len(data["videos"]) == 0
+                assert data["page"] == 999999
+                assert data["total"] == 10
