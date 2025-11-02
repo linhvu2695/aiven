@@ -14,10 +14,13 @@ from app.classes.video import (
     VideoSourceType,
     VideoFormat,
     VideoMetadata,
+    VideoUrlsResponse,
 )
 from app.classes.media import MediaProcessingStatus
 
 TEST_VIDEO_ID = "67206999f3949388f3a80900"
+TEST_VIDEO_ID_2 = "67206999f3949388f3a80901"
+TEST_VIDEO_ID_3 = "67206999f3949388f3a80902"
 
 @pytest.fixture
 def video_service():
@@ -617,3 +620,302 @@ class TestVideoServiceGetVideo:
         assert response.success is False
         assert response.video is None
         assert "Invalid document ID format" in response.message
+
+
+class TestVideoServicePresignedUrl:
+
+    @pytest.mark.asyncio
+    async def test_get_video_presigned_url_success(self, video_service: VideoService, mock_video_document: dict):
+        """Test successful generation of presigned URL for a single video"""
+        mock_storage = MagicMock()
+        mock_storage.get_presigned_url = AsyncMock(return_value="https://presigned.url/video.mp4")
+        
+        with patch("app.services.video.video_service.get_document", return_value=mock_video_document), \
+             patch("app.services.video.video_service.FirebaseStorageRepository", return_value=mock_storage):
+            
+            from app.classes.video import VideoUrlResponse
+            response = await video_service.get_video_presigned_url(TEST_VIDEO_ID)
+            
+            assert isinstance(response, VideoUrlResponse)
+            assert response.success is True
+            assert response.url == "https://presigned.url/video.mp4"
+            assert response.expires_at is not None
+            assert response.message == ""
+            
+            # Verify storage repo was called with correct parameters
+            mock_storage.get_presigned_url.assert_called_once_with(
+                mock_video_document["storage_path"],
+                60 * 60  # VIDEO_PRESIGNED_URL_EXPIRATION
+            )
+
+    @pytest.mark.asyncio
+    async def test_get_video_presigned_url_video_not_found(self, video_service: VideoService):
+        """Test presigned URL generation when video is not found"""
+        with patch("app.services.video.video_service.get_document", return_value=None):
+            from app.classes.video import VideoUrlResponse
+            response = await video_service.get_video_presigned_url(TEST_VIDEO_ID)
+            
+            assert isinstance(response, VideoUrlResponse)
+            assert response.success is False
+            assert response.url == ""
+            assert response.expires_at is None
+            assert "Failed to get video for presigned URL" in response.message
+
+    @pytest.mark.asyncio
+    async def test_get_video_presigned_url_invalid_id(self, video_service: VideoService):
+        """Test presigned URL generation with invalid video ID"""
+        from app.classes.video import VideoUrlResponse
+        response = await video_service.get_video_presigned_url("invalid_id")
+        
+        assert isinstance(response, VideoUrlResponse)
+        assert response.success is False
+        assert response.url == ""
+        assert response.expires_at is None
+        assert "Failed to get video for presigned URL" in response.message
+
+    @pytest.mark.asyncio
+    async def test_get_video_presigned_url_storage_failure(self, video_service: VideoService, mock_video_document: dict):
+        """Test presigned URL generation when storage operation fails"""
+        mock_storage = MagicMock()
+        mock_storage.get_presigned_url = AsyncMock(side_effect=Exception("Storage error"))
+        
+        with patch("app.services.video.video_service.get_document", return_value=mock_video_document), \
+             patch("app.services.video.video_service.FirebaseStorageRepository", return_value=mock_storage):
+            
+            from app.classes.video import VideoUrlResponse
+            response = await video_service.get_video_presigned_url(TEST_VIDEO_ID)
+            
+            assert isinstance(response, VideoUrlResponse)
+            assert response.success is False
+            assert response.url == ""
+            assert response.expires_at is None
+            assert "Failed to get video presigned URL: Storage error" in response.message
+
+    @pytest.mark.asyncio
+    async def test_get_video_presigned_url_empty_id(self, video_service: VideoService):
+        """Test presigned URL generation with empty video ID"""
+        from app.classes.video import VideoUrlResponse
+        response = await video_service.get_video_presigned_url("")
+        
+        assert isinstance(response, VideoUrlResponse)
+        assert response.success is False
+        assert response.url == ""
+        assert response.expires_at is None
+        assert "Failed to get video for presigned URL" in response.message
+
+
+class TestVideoServicePresignedUrls:
+
+    @pytest.mark.asyncio
+    async def test_get_videos_presigned_urls_success(self, video_service: VideoService, mock_video_document: dict):
+        """Test successful generation of presigned URLs for multiple videos"""        
+        mock_doc_2 = mock_video_document.copy()
+        mock_doc_2["_id"] = ObjectId(TEST_VIDEO_ID_2)
+        mock_doc_2["storage_path"] = "test/path2"
+        
+        mock_doc_3 = mock_video_document.copy()
+        mock_doc_3["_id"] = ObjectId(TEST_VIDEO_ID_3)
+        mock_doc_3["storage_path"] = "test/path3"
+        
+        def mock_get_document(collection: str, video_id: str):
+            if video_id == TEST_VIDEO_ID:
+                return mock_video_document
+            elif video_id == TEST_VIDEO_ID_2:
+                return mock_doc_2
+            elif video_id == TEST_VIDEO_ID_3:
+                return mock_doc_3
+            return None
+        
+        mock_storage = MagicMock()
+        mock_storage.get_presigned_url = AsyncMock(side_effect=lambda path, exp: f"https://presigned.url/{path}")
+        
+        with patch("app.services.video.video_service.get_document", side_effect=mock_get_document), \
+             patch("app.services.video.video_service.FirebaseStorageRepository", return_value=mock_storage):
+            
+            from app.classes.video import VideoUrlsResponse
+            response = await video_service.get_videos_presigned_urls([TEST_VIDEO_ID, TEST_VIDEO_ID_2, TEST_VIDEO_ID_3])
+            
+            assert isinstance(response, VideoUrlsResponse)
+            assert response.success is True
+            assert len(response.results) == 3
+            assert response.message == "Generated presigned URLs for 3/3 videos"
+            
+            # Verify first result
+            assert response.results[0].video_id == TEST_VIDEO_ID
+            assert response.results[0].url == "https://presigned.url/test/path"
+            assert response.results[0].success is True
+            assert response.results[0].expires_at is not None
+            
+            # Verify second result
+            assert response.results[1].video_id == TEST_VIDEO_ID_2
+            assert response.results[1].url == "https://presigned.url/test/path2"
+            assert response.results[1].success is True
+            assert response.results[1].expires_at is not None
+            
+            # Verify third result
+            assert response.results[2].video_id == TEST_VIDEO_ID_3
+            assert response.results[2].url == "https://presigned.url/test/path3"
+            assert response.results[2].success is True
+            assert response.results[2].expires_at is not None
+
+    @pytest.mark.asyncio
+    async def test_get_videos_presigned_urls_partial_success(self, video_service: VideoService, mock_video_document: dict):
+        """Test presigned URLs generation with some videos failing"""        
+        mock_doc_3 = mock_video_document.copy()
+        mock_doc_3["_id"] = ObjectId(TEST_VIDEO_ID_3)
+        mock_doc_3["storage_path"] = "test/path3"
+        
+        def mock_get_document(collection: str, video_id: str):
+            if video_id == TEST_VIDEO_ID:
+                return mock_video_document
+            elif video_id == TEST_VIDEO_ID_3:
+                return mock_doc_3
+            return None
+        
+        mock_storage = MagicMock()
+        mock_storage.get_presigned_url = AsyncMock(side_effect=lambda path, exp: f"https://presigned.url/{path}")
+        
+        with patch("app.services.video.video_service.get_document", side_effect=mock_get_document), \
+             patch("app.services.video.video_service.FirebaseStorageRepository", return_value=mock_storage):
+            
+            from app.classes.video import VideoUrlsResponse
+            response = await video_service.get_videos_presigned_urls([TEST_VIDEO_ID, TEST_VIDEO_ID_2, TEST_VIDEO_ID_3])
+            
+            assert isinstance(response, VideoUrlsResponse)
+            assert response.success is False  # Overall success is False because one failed
+            assert len(response.results) == 3
+            assert "Generated presigned URLs for 2/3 videos (some requests failed)" in response.message
+            
+            # Verify first result (success)
+            assert response.results[0].video_id == TEST_VIDEO_ID
+            assert response.results[0].url == "https://presigned.url/test/path"
+            assert response.results[0].success is True
+            
+            # Verify second result (failure - invalid ID)
+            assert response.results[1].video_id == TEST_VIDEO_ID_2
+            assert response.results[1].url == ""
+            assert response.results[1].success is False
+            assert "Failed to get video for presigned URL" in response.results[1].message
+            
+            # Verify third result (success)
+            assert response.results[2].video_id == TEST_VIDEO_ID_3
+            assert response.results[2].url == "https://presigned.url/test/path3"
+            assert response.results[2].success is True
+
+    @pytest.mark.asyncio
+    async def test_get_videos_presigned_urls_all_failures(self, video_service: VideoService):
+        """Test presigned URLs generation when all videos fail"""
+        with patch("app.services.video.video_service.get_document", return_value=None):
+            from app.classes.video import VideoUrlsResponse
+            response = await video_service.get_videos_presigned_urls([TEST_VIDEO_ID_2, TEST_VIDEO_ID_3])
+            
+            assert isinstance(response, VideoUrlsResponse)
+            assert response.success is False
+            assert len(response.results) == 2
+            assert "Generated presigned URLs for 0/2 videos (some requests failed)" in response.message
+            
+            # All results should be failures
+            for result in response.results:
+                assert result.success is False
+                assert result.url == ""
+                assert result.expires_at is None
+
+    @pytest.mark.asyncio
+    async def test_get_videos_presigned_urls_empty_list(self, video_service: VideoService):
+        """Test presigned URLs generation with empty video ID list"""
+        from app.classes.video import VideoUrlsResponse
+        response = await video_service.get_videos_presigned_urls([])
+        
+        assert isinstance(response, VideoUrlsResponse)
+        assert response.success is True  # No videos to process, so success
+        assert len(response.results) == 0
+        assert response.message == "Generated presigned URLs for 0/0 videos"
+
+    @pytest.mark.asyncio
+    async def test_get_videos_presigned_urls_single_video(self, video_service: VideoService, mock_video_document: dict):
+        """Test presigned URLs generation with a single video"""
+        mock_storage = MagicMock()
+        mock_storage.get_presigned_url = AsyncMock(return_value="https://presigned.url/video.mp4")
+        
+        with patch("app.services.video.video_service.get_document", return_value=mock_video_document), \
+             patch("app.services.video.video_service.FirebaseStorageRepository", return_value=mock_storage):
+            
+            from app.classes.video import VideoUrlsResponse
+            response = await video_service.get_videos_presigned_urls([TEST_VIDEO_ID])
+            
+            assert isinstance(response, VideoUrlsResponse)
+            assert response.success is True
+            assert len(response.results) == 1
+            assert response.message == "Generated presigned URLs for 1/1 videos"
+            
+            assert response.results[0].video_id == TEST_VIDEO_ID
+            assert response.results[0].url == "https://presigned.url/video.mp4"
+            assert response.results[0].success is True
+
+    @pytest.mark.asyncio
+    async def test_get_videos_presigned_urls_exception_handling(self, video_service: VideoService):
+        """Test presigned URLs generation handles exceptions gracefully"""
+        # Mock get_document to raise an exception
+        with patch("app.services.video.video_service.get_document", side_effect=Exception("Database connection lost")):
+            from app.classes.video import VideoUrlsResponse
+            response = await video_service.get_videos_presigned_urls([TEST_VIDEO_ID])
+            
+            assert isinstance(response, VideoUrlsResponse)
+            assert response.success is False
+            assert len(response.results) == 1
+            assert response.results[0].video_id == TEST_VIDEO_ID
+            assert response.results[0].success is False
+            assert "Failed to get video for presigned URL" in response.results[0].message
+            assert "Database connection lost" in response.results[0].message
+
+    @pytest.mark.asyncio
+    async def test_get_videos_presigned_urls_maintains_order(self, video_service: VideoService, mock_video_document: dict):
+        """Test that presigned URLs results maintain the same order as input IDs"""
+        mock_docs = {}
+        for i, vid in enumerate([TEST_VIDEO_ID, TEST_VIDEO_ID_2, TEST_VIDEO_ID_3]):
+            doc = mock_video_document.copy()
+            doc["_id"] = ObjectId(vid)
+            doc["storage_path"] = f"test/path{i}"
+            mock_docs[vid] = doc
+        
+        def mock_get_document(collection: str, video_id: str):
+            return mock_docs.get(video_id)
+        
+        mock_storage = MagicMock()
+        mock_storage.get_presigned_url = AsyncMock(side_effect=lambda path, exp: f"https://presigned.url/{path}")
+        
+        with patch("app.services.video.video_service.get_document", side_effect=mock_get_document), \
+             patch("app.services.video.video_service.FirebaseStorageRepository", return_value=mock_storage):
+            # Request in specific order
+            input_ids = [TEST_VIDEO_ID_3, TEST_VIDEO_ID, TEST_VIDEO_ID_2]
+            response = await video_service.get_videos_presigned_urls(input_ids)
+            
+            assert isinstance(response, VideoUrlsResponse)
+            assert response.success is True
+            assert len(response.results) == 3
+            
+            # Verify order is maintained
+            for i, video_id in enumerate([TEST_VIDEO_ID_3, TEST_VIDEO_ID, TEST_VIDEO_ID_2]):
+                assert response.results[i].video_id == video_id
+
+    @pytest.mark.asyncio
+    async def test_get_videos_presigned_urls_duplicate_ids(self, video_service: VideoService, mock_video_document: dict):
+        """Test presigned URLs generation with duplicate video IDs"""
+        mock_storage = MagicMock()
+        mock_storage.get_presigned_url = AsyncMock(return_value="https://presigned.url/video.mp4")
+        
+        with patch("app.services.video.video_service.get_document", return_value=mock_video_document), \
+             patch("app.services.video.video_service.FirebaseStorageRepository", return_value=mock_storage):
+            # Request same ID multiple times
+            response = await video_service.get_videos_presigned_urls([TEST_VIDEO_ID, TEST_VIDEO_ID, TEST_VIDEO_ID])
+            
+            assert isinstance(response, VideoUrlsResponse)
+            assert response.success is True
+            assert len(response.results) == 3
+            assert response.message == "Generated presigned URLs for 3/3 videos"
+            
+            # All should be successful and have same video_id
+            for result in response.results:
+                assert result.video_id == TEST_VIDEO_ID
+                assert result.success is True
+                assert result.url == "https://presigned.url/video.mp4"

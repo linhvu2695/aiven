@@ -116,3 +116,24 @@ class GetVideoResponse(BaseModel):
     success: bool
     video: Optional[VideoInfo] = None
     message: str
+
+class VideoUrlResponse(BaseModel):
+    """Response model for getting a video URL"""
+    success: bool
+    url: str
+    expires_at: Optional[datetime] = None
+    message: str
+
+class VideoUrlInfo(BaseModel):
+    """Information about a single video URL"""
+    video_id: str
+    url: Optional[str] = None
+    expires_at: Optional[datetime] = None
+    success: bool
+    message: str
+
+class VideoUrlsResponse(BaseModel):
+    """Response model for getting multiple video URLs"""
+    success: bool
+    results: list[VideoUrlInfo]
+    message: str

@@ -1,6 +1,7 @@
 import logging
 from typing import Optional
 from fastapi import APIRouter, HTTPException
+from fastapi.responses import JSONResponse
 from app.services.image.image_service import ImageService
 from app.classes.image import DeleteImageResponse, ImageGenerateRequest, ImageGenerateResponse, ImageListRequest, ImageListResponse
 from app.services.image.image_gen.image_gen_aspect_ratio import ImageGenAspectRatio
@@ -76,7 +77,10 @@ async def serve_images(image_ids: str):
         
         # Check if all images failed
         if not response.success and all(not result.success for result in response.results):
-            raise HTTPException(status_code=404, detail=response.message)
+            return JSONResponse(
+                status_code=400,
+                content=response.model_dump()
+            )
         
         return response
         

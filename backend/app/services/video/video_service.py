@@ -1,15 +1,16 @@
+import asyncio
 import base64
 import datetime
 import io
 import logging
 import tempfile
 import os
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from bson import ObjectId
 import cv2
 import requests
 
-from app.classes.video import CreateVideoRequest, CreateVideoResponse, GetVideoResponse, VideoFormat, VideoInfo, VideoMetadata, VideoSourceType, VideoType
+from app.classes.video import CreateVideoRequest, CreateVideoResponse, GetVideoResponse, VideoFormat, VideoInfo, VideoMetadata, VideoSourceType, VideoType, VideoUrlInfo, VideoUrlResponse, VideoUrlsResponse
 from app.utils.string.string_utils import validate_exactly_one_field, validate_required_fields
 from app.utils.video.video_utils import generate_storage_path
 from app.core.storage import FirebaseStorageRepository
@@ -240,3 +241,82 @@ class VideoService:
         except Exception as e:
             logging.getLogger("uvicorn.error").error(f"Failed to get video: {str(e)}")
             return GetVideoResponse(success=False, video=None, message=f"Failed to get video: {str(e)}")
+
+    async def get_video_presigned_url(self, video_id: str) -> VideoUrlResponse:
+        """Get presigned URL for video access"""
+        try:
+            video_response = await self.get_video(video_id)
+            if not video_response.success or not video_response.video:
+                logging.getLogger("uvicorn.error").error(f"Failed to get video for presigned URL: {video_response.message}")
+                return VideoUrlResponse(
+                    success=False, url="", 
+                    expires_at=None, 
+                    message=f"Failed to get video for presigned URL: {video_response.message}"
+                    )
+
+            storage_repo = FirebaseStorageRepository()
+            presigned_url = await storage_repo.get_presigned_url(
+                video_response.video.storage_path, VIDEO_PRESIGNED_URL_EXPIRATION
+            )
+            expires_at = datetime.now(timezone.utc).replace(
+                second=0, microsecond=0
+            ) + timedelta(seconds=VIDEO_PRESIGNED_URL_EXPIRATION)
+            return VideoUrlResponse(
+                success=True, url=presigned_url, 
+                expires_at=expires_at, 
+                message=""
+                )
+        except Exception as e:
+            logging.getLogger("uvicorn.error").error(f"Failed to get video presigned URL: {str(e)}")
+            return VideoUrlResponse(
+                success=False, url="", 
+                expires_at=None, 
+                message=f"Failed to get video presigned URL: {str(e)}"
+                )
+
+    async def get_videos_presigned_urls(self, ids: list[str]) -> VideoUrlsResponse:
+        """Get presigned URLs for multiple videos concurrently"""
+        try:
+            # Process all videos concurrently
+            tasks = [self.get_video_presigned_url(video_id) for video_id in ids]
+            results = await asyncio.gather(*tasks, return_exceptions=True) # same order as requests
+            
+            # Handle any exceptions from gather
+            processed_results : list[VideoUrlInfo] = []
+            for i, result in enumerate(results):
+                if isinstance(result, VideoUrlResponse):
+                    processed_results.append(VideoUrlInfo(
+                        video_id=ids[i],
+                        url=result.url,
+                        expires_at=result.expires_at,
+                        success=result.success,
+                        message=result.message
+                    ))
+                else:
+                    processed_results.append(VideoUrlInfo(
+                        video_id=ids[i],
+                        url=None,
+                        expires_at=None,
+                        success=False,
+                        message=f"Failed to process: {str(result)}"
+                    ))
+            
+            overall_success = all(result.success for result in processed_results)
+            success_count = sum(1 for result in processed_results if result.success)
+            total_count = len(ids)
+            
+            message = f"Generated presigned URLs for {success_count}/{total_count} videos"
+            if not overall_success:
+                message += " (some requests failed)"
+            logging.getLogger("uvicorn.info").info(message)
+
+            return VideoUrlsResponse(
+                success=overall_success,
+                results=processed_results,
+                message=message
+                )
+        except Exception as e:
+            logging.getLogger("uvicorn.error").error(f"Failed to get videos presigned URLs: {str(e)}")
+            return VideoUrlsResponse(
+                success=False, results=[], message=f"Failed to get videos presigned URLs: {str(e)}"
+                )
