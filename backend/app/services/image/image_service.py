@@ -20,7 +20,6 @@ from app.classes.image import (
     ImageCreateResponse,
     ImageResponse,
     ImageListResponse,
-    ImageUrlResponse,
     DeleteImageResponse,
     ImageMetadata,
     ImageFormat,
@@ -354,13 +353,15 @@ class ImageService:
             logging.getLogger("uvicorn.error").error(error_msg)
             return ImageListResponse(images=[], total=0, page=request.page, page_size=request.page_size)
 
-    async def get_image_presigned_url(self, image_id: str) -> ImageUrlResponse:
+    async def get_image_presigned_url(self, image_id: str) -> ImageUrlInfo:
         """Get presigned URL for image access"""
         try:
             image_response = await self.get_image(image_id)
             if not image_response.success or not image_response.image:
-                return ImageUrlResponse(
-                    success=False, url="", message=f"Image not found. Error: {image_response.message}"
+                return ImageUrlInfo(
+                    image_id=image_id,
+                    success=False, url="", 
+                    message=f"Image not found. Error: {image_response.message}"
                 )
 
             presigned_url = await FirebaseStorageRepository().get_presigned_url(
@@ -370,17 +371,24 @@ class ImageService:
                 second=0, microsecond=0
             ) + timedelta(seconds=IMAGE_PRESIGNED_URL_EXPIRATION)
 
-            return ImageUrlResponse(
-                success=True,
+            return ImageUrlInfo(
+                image_id=image_id,
                 url=presigned_url,
                 expires_at=expires_at,
-                message="Presigned URL generated successfully",
+                success=True,
+                message="",
             )
 
         except Exception as e:
-            error_msg = f"Failed to get image URL: {str(e)}"
+            error_msg = f"Failed to get image presigned URL: {str(e)}"
             logging.getLogger("uvicorn.error").error(error_msg)
-            return ImageUrlResponse(success=False, url="", message=error_msg)
+            return ImageUrlInfo(
+                image_id=image_id,
+                url="",
+                expires_at=None,
+                success=False,
+                message=error_msg
+            )
 
     async def delete_image(self, image_id: str, soft_delete: bool = True) -> DeleteImageResponse:
         """Delete image (soft delete by default)"""
@@ -441,22 +449,16 @@ class ImageService:
             # Handle any exceptions from gather
             processed_results : list[ImageUrlInfo] = []
             for i, result in enumerate(results):
-                if isinstance(result, ImageUrlResponse):
-                    processed_results.append(ImageUrlInfo(
-                        image_id=ids[i],
-                        url=result.url,
-                        expires_at=result.expires_at,
-                        success=result.success,
-                        message=result.message
-                    ))
+                if isinstance(result, ImageUrlInfo):
+                    processed_results.append(result)
                 else:
                     processed_results.append(ImageUrlInfo(
                         image_id=ids[i],
-                        url=None,
+                        url="",
                         expires_at=None,
                         success=False,
                         message=f"Failed to process: {str(result)}"
-                    ))
+                        ))
             
             overall_success = all(result.success for result in processed_results)
             success_count = sum(1 for result in processed_results if result.success)

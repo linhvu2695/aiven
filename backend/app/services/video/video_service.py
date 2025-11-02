@@ -11,7 +11,7 @@ from bson import ObjectId
 import cv2
 import requests
 
-from app.classes.video import CreateVideoRequest, CreateVideoResponse, GetVideoResponse, VideoFormat, VideoInfo, VideoMetadata, VideoSourceType, VideoType, VideoUrlInfo, VideoUrlResponse, VideoUrlsResponse, VideoListRequest, VideoListResponse
+from app.classes.video import CreateVideoRequest, CreateVideoResponse, GetVideoResponse, VideoFormat, VideoInfo, VideoMetadata, VideoSourceType, VideoType, VideoUrlInfo, VideoUrlsResponse, VideoListRequest, VideoListResponse
 from app.classes.image import CreateImageRequest, ImageType, ImageSourceType
 from app.utils.string.string_utils import is_empty_string, validate_exactly_one_field, validate_required_fields
 from app.utils.video.video_utils import generate_storage_path
@@ -356,13 +356,14 @@ class VideoService:
             logging.getLogger("uvicorn.error").error(f"Failed to get video: {str(e)}")
             return GetVideoResponse(success=False, video=None, message=f"Failed to get video: {str(e)}")
 
-    async def get_video_presigned_url(self, video_id: str) -> VideoUrlResponse:
+    async def get_video_presigned_url(self, video_id: str) -> VideoUrlInfo:
         """Get presigned URL for video access"""
         try:
             video_response = await self.get_video(video_id)
             if not video_response.success or not video_response.video:
                 logging.getLogger("uvicorn.error").error(f"Failed to get video for presigned URL: {video_response.message}")
-                return VideoUrlResponse(
+                return VideoUrlInfo(
+                    video_id=video_id,
                     success=False, url="", 
                     expires_at=None, 
                     message=f"Failed to get video for presigned URL: {video_response.message}"
@@ -375,16 +376,20 @@ class VideoService:
             expires_at = datetime.now(timezone.utc).replace(
                 second=0, microsecond=0
             ) + timedelta(seconds=VIDEO_PRESIGNED_URL_EXPIRATION)
-            return VideoUrlResponse(
-                success=True, url=presigned_url, 
+            return VideoUrlInfo(
+                video_id=video_id,
+                url=presigned_url, 
                 expires_at=expires_at, 
+                success=True,
                 message=""
                 )
         except Exception as e:
             logging.getLogger("uvicorn.error").error(f"Failed to get video presigned URL: {str(e)}")
-            return VideoUrlResponse(
-                success=False, url="", 
+            return VideoUrlInfo(
+                video_id=video_id,
+                url="", 
                 expires_at=None, 
+                success=False,
                 message=f"Failed to get video presigned URL: {str(e)}"
                 )
 
@@ -398,14 +403,8 @@ class VideoService:
             # Handle any exceptions from gather
             processed_results : list[VideoUrlInfo] = []
             for i, result in enumerate(results):
-                if isinstance(result, VideoUrlResponse):
-                    processed_results.append(VideoUrlInfo(
-                        video_id=ids[i],
-                        url=result.url,
-                        expires_at=result.expires_at,
-                        success=result.success,
-                        message=result.message
-                    ))
+                if isinstance(result, VideoUrlInfo):
+                    processed_results.append(result)
                 else:
                     processed_results.append(VideoUrlInfo(
                         video_id=ids[i],

@@ -14,6 +14,7 @@ from app.classes.video import (
     VideoSourceType,
     VideoFormat,
     VideoMetadata,
+    VideoUrlInfo,
     VideoUrlsResponse,
 )
 from app.classes.media import MediaProcessingStatus
@@ -963,11 +964,10 @@ class TestVideoServicePresignedUrl:
         
         with patch("app.services.video.video_service.get_document", return_value=mock_video_document), \
              patch("app.services.video.video_service.FirebaseStorageRepository", return_value=mock_storage):
-            
-            from app.classes.video import VideoUrlResponse
             response = await video_service.get_video_presigned_url(TEST_VIDEO_ID)
             
-            assert isinstance(response, VideoUrlResponse)
+            assert isinstance(response, VideoUrlInfo)
+            assert response.video_id == TEST_VIDEO_ID
             assert response.success is True
             assert response.url == "https://presigned.url/video.mp4"
             assert response.expires_at is not None
@@ -983,24 +983,24 @@ class TestVideoServicePresignedUrl:
     async def test_get_video_presigned_url_video_not_found(self, video_service: VideoService):
         """Test presigned URL generation when video is not found"""
         with patch("app.services.video.video_service.get_document", return_value=None):
-            from app.classes.video import VideoUrlResponse
             response = await video_service.get_video_presigned_url(TEST_VIDEO_ID)
             
-            assert isinstance(response, VideoUrlResponse)
+            assert isinstance(response, VideoUrlInfo)
+            assert response.video_id == TEST_VIDEO_ID
             assert response.success is False
-            assert response.url == ""
+            assert response.url is ""
             assert response.expires_at is None
             assert "Failed to get video for presigned URL" in response.message
 
     @pytest.mark.asyncio
     async def test_get_video_presigned_url_invalid_id(self, video_service: VideoService):
         """Test presigned URL generation with invalid video ID"""
-        from app.classes.video import VideoUrlResponse
         response = await video_service.get_video_presigned_url("invalid_id")
         
-        assert isinstance(response, VideoUrlResponse)
+        assert isinstance(response, VideoUrlInfo)
+        assert response.video_id == "invalid_id"
         assert response.success is False
-        assert response.url == ""
+        assert response.url is ""
         assert response.expires_at is None
         assert "Failed to get video for presigned URL" in response.message
 
@@ -1012,25 +1012,24 @@ class TestVideoServicePresignedUrl:
         
         with patch("app.services.video.video_service.get_document", return_value=mock_video_document), \
              patch("app.services.video.video_service.FirebaseStorageRepository", return_value=mock_storage):
-            
-            from app.classes.video import VideoUrlResponse
             response = await video_service.get_video_presigned_url(TEST_VIDEO_ID)
             
-            assert isinstance(response, VideoUrlResponse)
+            assert isinstance(response, VideoUrlInfo)
+            assert response.video_id == TEST_VIDEO_ID
             assert response.success is False
-            assert response.url == ""
+            assert response.url is ""
             assert response.expires_at is None
             assert "Failed to get video presigned URL: Storage error" in response.message
 
     @pytest.mark.asyncio
     async def test_get_video_presigned_url_empty_id(self, video_service: VideoService):
         """Test presigned URL generation with empty video ID"""
-        from app.classes.video import VideoUrlResponse
         response = await video_service.get_video_presigned_url("")
         
-        assert isinstance(response, VideoUrlResponse)
+        assert isinstance(response, VideoUrlInfo)
+        assert response.video_id == ""
         assert response.success is False
-        assert response.url == ""
+        assert response.url is ""
         assert response.expires_at is None
         assert "Failed to get video for presigned URL" in response.message
 

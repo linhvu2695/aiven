@@ -3,6 +3,7 @@ from unittest.mock import patch, MagicMock, AsyncMock
 from app.services.agent.agent_service import AgentService
 from app.classes.agent import AgentInfo, SearchAgentsResponse, CreateOrUpdateAgentRequest, CreateOrUpdateAgentResponse, DeleteAgentResponse, UpdateAgentAvatarResponse
 from app.services.chat.chat_constants import LLMModel
+from app.classes.image import ImageUrlInfo
 
 
 @pytest.fixture
@@ -135,14 +136,14 @@ class TestAgentService:
 
     @pytest.mark.asyncio
     async def test_get_avatar_url_with_avatar(self, agent_service: AgentService):
-        """Test _get_avatar_url with avatar image ID"""
-        from app.classes.image import ImageUrlResponse
-        
+        """Test _get_avatar_url with avatar image ID"""        
         mock_image_service = MagicMock()
-        mock_url_response = ImageUrlResponse(
-            success=True,
+        mock_url_response = ImageUrlInfo(
+            image_id="image_123",
             url="http://presigned.url",
-            message="Success"
+            expires_at=None,
+            success=True,
+            message=""
         )
         mock_image_service.get_image_presigned_url = AsyncMock(return_value=mock_url_response)
         

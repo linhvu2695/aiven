@@ -143,13 +143,6 @@ class ImageListResponse(BaseModel):
     page: int = 1
     page_size: int = 50
 
-class ImageUrlResponse(BaseModel):
-    """Response model for getting image URLs"""
-    success: bool
-    url: str
-    expires_at: Optional[datetime] = None
-    message: str
-
 class DeleteImageResponse(BaseModel):
     """Response model for image deletion"""
     success: bool

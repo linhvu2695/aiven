@@ -117,13 +117,6 @@ class GetVideoResponse(BaseModel):
     video: Optional[VideoInfo] = None
     message: str
 
-class VideoUrlResponse(BaseModel):
-    """Response model for getting a video URL"""
-    success: bool
-    url: str
-    expires_at: Optional[datetime] = None
-    message: str
-
 class VideoUrlInfo(BaseModel):
     """Information about a single video URL"""
     video_id: str

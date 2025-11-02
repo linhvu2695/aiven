@@ -10,14 +10,12 @@ from PIL import Image as PILImage
 from app.services.image.image_service import ImageService
 from app.classes.image import (
     GenImageRequest,
-    ImageInfo,
     CreateImageRequest,
     ImageListRequest,
     UpdateImageRequest,
     ImageCreateResponse,
     ImageResponse,
     ImageListResponse,
-    ImageUrlResponse,
     ImageUrlsResponse,
     ImageUrlInfo,
     DeleteImageResponse,
@@ -530,11 +528,11 @@ class TestImageServicePresignedUrl:
             
             response = await image_service.get_image_presigned_url(TEST_IMAGE_ID)
             
-            assert isinstance(response, ImageUrlResponse)
+            assert isinstance(response, ImageUrlInfo)
+            assert response.image_id == TEST_IMAGE_ID
             assert response.success is True
             assert response.url == "https://presigned.url"
             assert response.expires_at is not None
-            assert response.message == "Presigned URL generated successfully"
 
     @pytest.mark.asyncio
     async def test_get_image_presigned_url_image_not_found(self, image_service: ImageService):
@@ -542,9 +540,10 @@ class TestImageServicePresignedUrl:
         with patch("app.services.image.image_service.get_document", side_effect=ValueError("Not found")):
             response = await image_service.get_image_presigned_url(TEST_IMAGE_ID)
             
-            assert isinstance(response, ImageUrlResponse)
+            assert isinstance(response, ImageUrlInfo)
+            assert response.image_id == TEST_IMAGE_ID
             assert response.success is False
-            assert response.url == ""
+            assert response.url is ""
             assert "Image not found" in response.message
 
     @pytest.mark.asyncio
@@ -558,10 +557,11 @@ class TestImageServicePresignedUrl:
             
             response = await image_service.get_image_presigned_url(TEST_IMAGE_ID)
             
-            assert isinstance(response, ImageUrlResponse)
+            assert isinstance(response, ImageUrlInfo)
+            assert response.image_id == TEST_IMAGE_ID
             assert response.success is False
-            assert response.url == ""
-            assert "Failed to get image URL: Storage error" in response.message
+            assert response.url is ""
+            assert "Failed to get image presigned URL: Storage error" in response.message
 
 class TestImageServiceDeleteImage:
     
@@ -672,7 +672,7 @@ class TestImageServiceBatchPresignedUrls:
                 assert result.url == "https://presigned.url"
                 assert result.success is True
                 assert result.expires_at is not None
-                assert result.message == "Presigned URL generated successfully"
+                assert result.message == ""
             
             assert "Generated presigned URLs for 3/3 images" in response.message
             assert "(some requests failed)" not in response.message
@@ -773,7 +773,7 @@ class TestImageServiceBatchPresignedUrls:
                 assert result.success is False
                 assert result.image_id == image_ids[i]
                 assert result.url == ""
-                assert "Failed to get image URL: Storage error" in result.message
+                assert "Failed to get image presigned URL: Storage error" in result.message
             
             assert "Generated presigned URLs for 0/2 images" in response.message
             assert "(some requests failed)" in response.message
