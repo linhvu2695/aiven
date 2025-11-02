@@ -110,3 +110,9 @@ class CreateVideoResponse(BaseModel):
     storage_url: Optional[str] = None
     presigned_url: Optional[str] = None
     message: str
+
+class GetVideoResponse(BaseModel):
+    """Response model for getting a video"""
+    success: bool
+    video: Optional[VideoInfo] = None
+    message: str

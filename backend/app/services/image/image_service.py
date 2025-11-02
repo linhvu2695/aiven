@@ -5,6 +5,7 @@ from datetime import datetime, timezone, timedelta
 from typing import Dict, Any
 from PIL import Image as PILImage
 from PIL.ExifTags import TAGS
+from bson import ObjectId
 import requests
 import asyncio
 
@@ -189,7 +190,7 @@ class ImageService:
                 storage_path=storage_path,
                 storage_url=storage_url,
                 presigned_url=presigned_url,
-                message="Image uploaded successfully",
+                message="",
             )
 
         except Exception as e:
@@ -201,6 +202,9 @@ class ImageService:
 
     async def get_image(self, image_id: str) -> ImageResponse:
         """Get image by ID"""
+        if not ObjectId.is_valid(image_id):
+            return ImageResponse(success=False, image=None, message="Invalid document ID format")
+            
         try:
             data = await get_document(IMAGE_COLLECTION_NAME, image_id)
 
@@ -233,7 +237,7 @@ class ImageService:
             )
 
             return ImageResponse(
-                success=True, image=image_info, message="Image retrieved successfully"
+                success=True, image=image_info, message=""
             )
 
         except ValueError as e:

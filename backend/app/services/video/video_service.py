@@ -5,15 +5,16 @@ import logging
 import tempfile
 import os
 from datetime import datetime, timezone
+from bson import ObjectId
 import cv2
 import requests
 
-from app.classes.video import CreateVideoRequest, CreateVideoResponse, VideoFormat, VideoMetadata
+from app.classes.video import CreateVideoRequest, CreateVideoResponse, GetVideoResponse, VideoFormat, VideoInfo, VideoMetadata, VideoSourceType, VideoType
 from app.utils.string.string_utils import validate_exactly_one_field, validate_required_fields
 from app.utils.video.video_utils import generate_storage_path
 from app.core.storage import FirebaseStorageRepository
 from app.classes.media import MediaProcessingStatus
-from app.core.database import insert_document
+from app.core.database import get_document, insert_document
 
 VIDEO_COLLECTION_NAME = "videos"
 VIDEO_PRESIGNED_URL_EXPIRATION = 60 * 60  # 1 hour
@@ -193,7 +194,7 @@ class VideoService:
             video_id = await insert_document(VIDEO_COLLECTION_NAME, document)
 
             return CreateVideoResponse(
-                success=True, video_id=video_id, storage_path=storage_path, storage_url=storage_url, presigned_url=presigned_url, message="Video uploaded successfully"
+                success=True, video_id=video_id, storage_path=storage_path, storage_url=storage_url, presigned_url=presigned_url, message=""
             )
         except Exception as e:
             error_msg = f"Failed to create video: {str(e)}"
@@ -201,3 +202,41 @@ class VideoService:
             return CreateVideoResponse(
                 success=False, video_id="", storage_path="", message=error_msg
             )
+
+    async def get_video(self, video_id: str) -> GetVideoResponse:
+        """Get video by ID"""
+        if not ObjectId.is_valid(video_id):
+            return GetVideoResponse(success=False, video=None, message="Invalid document ID format")
+
+        try:
+            data = await get_document(VIDEO_COLLECTION_NAME, video_id)
+            if not data:
+                return GetVideoResponse(success=False, video=None, message="Video not found")
+
+            # Convert document to VideoInfo
+            video_info = VideoInfo(
+                id=str(data.get("_id", "")),
+                filename=data.get("filename", ""),
+                original_filename=data.get("original_filename"),
+                title=data.get("title"),
+                description=data.get("description"),
+                alt_text=data.get("alt_text"),
+                storage_path=data.get("storage_path", ""),
+                storage_url=data.get("storage_url"),
+                video_type=VideoType(data.get("video_type", VideoType.GENERAL.value)),
+                source_type=VideoSourceType(data.get("source_type", VideoSourceType.UPLOAD.value)),
+                entity_id=data.get("entity_id"),
+                entity_type=data.get("entity_type"),
+                metadata=VideoMetadata(**data.get("metadata", {})),
+                processing_status=MediaProcessingStatus(data.get("processing_status", MediaProcessingStatus.PENDING.value)),
+                uploaded_at=data.get("uploaded_at") or datetime.now(timezone.utc),
+                updated_at=data.get("updated_at") or datetime.now(timezone.utc),
+                processed_at=data.get("processed_at"),
+                tags=data.get("tags", []),
+                is_deleted=data.get("is_deleted", False),
+            )
+
+            return GetVideoResponse(success=True, video=video_info, message="")
+        except Exception as e:
+            logging.getLogger("uvicorn.error").error(f"Failed to get video: {str(e)}")
+            return GetVideoResponse(success=False, video=None, message=f"Failed to get video: {str(e)}")

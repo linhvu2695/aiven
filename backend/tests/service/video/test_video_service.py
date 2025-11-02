@@ -1,3 +1,5 @@
+from datetime import datetime, timezone
+from bson import ObjectId
 import pytest
 import base64
 from unittest.mock import patch, MagicMock, AsyncMock
@@ -7,6 +9,7 @@ from app.services.video.video_service import VideoService
 from app.classes.video import (
     CreateVideoRequest,
     CreateVideoResponse,
+    GetVideoResponse,
     VideoType,
     VideoSourceType,
     VideoFormat,
@@ -14,6 +17,7 @@ from app.classes.video import (
 )
 from app.classes.media import MediaProcessingStatus
 
+TEST_VIDEO_ID = "67206999f3949388f3a80900"
 
 @pytest.fixture
 def video_service():
@@ -75,6 +79,42 @@ def create_video_request_url():
         source_type=VideoSourceType.URL,
         source_url="https://example.com/video.mp4"
     )
+
+
+@pytest.fixture
+def mock_video_document():
+    """Mock video document from database"""
+    return {
+        "_id": ObjectId(TEST_VIDEO_ID),
+        "filename": "test_video.mp4",
+        "original_filename": "original_test.mp4",
+        "title": "Test Video",
+        "description": "A test video",
+        "alt_text": "Test alt text",
+        "storage_path": "test/path",
+        "storage_url": "https://storage.url",
+        "video_type": VideoType.GENERAL.value,
+        "source_type": VideoSourceType.UPLOAD.value,
+        "entity_id": "entity_123",
+        "entity_type": "test_entity",
+        "metadata": {
+            "width": 1920,
+            "height": 1080,
+            "file_size": 1024,
+            "format": VideoFormat.MP4.value,
+            "duration": 30.0,
+            "fps": 30.0,
+            "bitrate": 1000000,
+        },
+        "processing_status": MediaProcessingStatus.COMPLETED.value,
+        "uploaded_at": datetime.now(timezone.utc),
+        "updated_at": datetime.now(timezone.utc),
+        "processed_at": datetime.now(timezone.utc),
+        "tags": ["test", "video"],
+        "is_deleted": False,
+        "ai_processed": False,
+        "ai_tags": [],
+    }
 
 
 class TestVideoServiceSingleton:
@@ -338,7 +378,7 @@ class TestVideoServiceCreateVideo:
             assert response.storage_path == "test/path"
             assert response.storage_url == "https://storage.url"
             assert response.presigned_url == "https://presigned.url"
-            assert response.message == "Video uploaded successfully"
+            assert response.message == ""
 
     @pytest.mark.asyncio
     async def test_create_video_validation_failure(self, video_service: VideoService):
@@ -500,3 +540,80 @@ class TestVideoServiceCreateVideo:
             assert document["is_deleted"] is False
             assert document["ai_processed"] is False
 
+
+class TestVideoServiceGetVideo:
+
+    @pytest.mark.asyncio
+    async def test_get_video_success(self, video_service: VideoService, mock_video_document: dict):
+        """Test successful video retrieval"""
+        mock_storage = MagicMock()
+        mock_storage.upload = AsyncMock(return_value="https://storage.url")
+        mock_storage.get_presigned_url = AsyncMock(return_value="https://presigned.url")
+        
+        with patch("app.services.video.video_service.get_document", return_value=mock_video_document):
+            response = await video_service.get_video(TEST_VIDEO_ID)
+            
+            assert isinstance(response, GetVideoResponse)
+            assert response.success is True
+            assert response.video is not None
+            assert response.video.id == TEST_VIDEO_ID
+            assert response.video.filename == mock_video_document["filename"]
+            assert response.video.original_filename == mock_video_document["original_filename"]
+            assert response.video.title == mock_video_document["title"]
+            assert response.video.description == mock_video_document["description"]
+            assert response.video.alt_text == mock_video_document["alt_text"]
+            assert response.video.storage_path == mock_video_document["storage_path"]
+            assert response.video.storage_url == mock_video_document["storage_url"]
+            assert response.video.video_type == VideoType(mock_video_document["video_type"])
+            assert response.video.source_type == VideoSourceType(mock_video_document["source_type"])
+            assert response.video.entity_id == mock_video_document["entity_id"]
+            assert response.video.entity_type == mock_video_document["entity_type"]
+            assert response.video.metadata == VideoMetadata(**mock_video_document["metadata"])
+            assert response.video.processing_status == MediaProcessingStatus(mock_video_document["processing_status"])
+            assert response.video.uploaded_at == mock_video_document["uploaded_at"]
+            assert response.video.updated_at == mock_video_document["updated_at"]
+            assert response.video.processed_at == mock_video_document["processed_at"]
+            assert response.video.tags == mock_video_document["tags"]
+            assert response.video.is_deleted == mock_video_document["is_deleted"]
+
+    @pytest.mark.asyncio
+    async def test_get_video_not_found(self, video_service: VideoService):
+        """Test video retrieval when video is not found"""
+        with patch("app.services.video.video_service.get_document", return_value=None):
+            response = await video_service.get_video(TEST_VIDEO_ID)
+            
+            assert isinstance(response, GetVideoResponse)
+            assert response.success is False
+            assert response.video is None
+            assert response.message == "Video not found"
+
+    @pytest.mark.asyncio
+    async def test_get_video_exception(self, video_service: VideoService):
+        """Test video retrieval with exception"""
+        with patch("app.services.video.video_service.get_document", side_effect=Exception("Database error")):
+            response = await video_service.get_video(TEST_VIDEO_ID)
+            
+            assert isinstance(response, GetVideoResponse)
+            assert response.success is False
+            assert response.video is None
+            assert "Failed to get video: Database error" in response.message
+
+    @pytest.mark.asyncio
+    async def test_get_video_invalid_id(self, video_service: VideoService):
+        """Test video retrieval with invalid ID"""
+        response = await video_service.get_video("invalid_id")
+        
+        assert isinstance(response, GetVideoResponse)
+        assert response.success is False
+        assert response.video is None
+        assert "Invalid document ID format" in response.message
+
+    @pytest.mark.asyncio
+    async def test_get_video_empty_id(self, video_service: VideoService):
+        """Test video retrieval with empty ID"""
+        response = await video_service.get_video("")
+        
+        assert isinstance(response, GetVideoResponse)
+        assert response.success is False
+        assert response.video is None
+        assert "Invalid document ID format" in response.message

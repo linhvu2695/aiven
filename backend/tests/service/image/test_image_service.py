@@ -1,3 +1,4 @@
+from bson import ObjectId
 import pytest
 import io
 import base64
@@ -30,6 +31,10 @@ from app.classes.image import (
 )
 from app.services.image.image_constants import ImageGenModel
 
+
+TEST_IMAGE_ID = "67206999f3949388f3a80900"
+TEST_IMAGE_ID_2 = "67206999f3949388f3a80901"
+TEST_IMAGE_ID_3 = "67206999f3949388f3a80902"
 
 @pytest.fixture
 def image_service():
@@ -112,7 +117,7 @@ def update_image_request():
 def mock_image_document():
     """Mock image document from database"""
     return {
-        "_id": "image_123",
+        "_id": ObjectId(TEST_IMAGE_ID),
         "filename": "test_image.png",
         "original_filename": "original_test.png",
         "title": "Test Image",
@@ -311,7 +316,7 @@ class TestImageServiceCreateImage:
             assert response.storage_path == "test/path"
             assert response.storage_url == "https://storage.url"
             assert response.presigned_url == "https://presigned.url"
-            assert response.message == "Image uploaded successfully"
+            assert response.message == ""
 
     @pytest.mark.asyncio
     async def test_create_image_validation_failure(self, image_service):
@@ -344,24 +349,40 @@ class TestImageServiceCreateImage:
 class TestImageServiceGetImage:
     
     @pytest.mark.asyncio
-    async def test_get_image_success(self, image_service, mock_image_document):
+    async def test_get_image_success(self, image_service: ImageService, mock_image_document: dict):
         """Test successful image retrieval"""
         with patch("app.services.image.image_service.get_document", return_value=mock_image_document):
-            response = await image_service.get_image("image_123")
+            response = await image_service.get_image(TEST_IMAGE_ID)
             
             assert isinstance(response, ImageResponse)
             assert response.success is True
             assert response.image is not None
-            assert response.image.id == "image_123"
-            assert response.image.filename == "test_image.png"
-            assert response.image.title == "Test Image"
-            assert response.message == "Image retrieved successfully"
+            assert response.image.id == TEST_IMAGE_ID
+            assert response.image.filename == mock_image_document["filename"]
+            assert response.image.original_filename == mock_image_document["original_filename"]
+            assert response.image.title == mock_image_document["title"]
+            assert response.image.description == mock_image_document["description"]
+            assert response.image.alt_text == mock_image_document["alt_text"]
+            assert response.image.storage_path == mock_image_document["storage_path"]
+            assert response.image.storage_url == mock_image_document["storage_url"]
+            assert response.image.image_type == mock_image_document["image_type"]
+            assert response.image.source_type == mock_image_document["source_type"]
+            assert response.image.entity_id == mock_image_document["entity_id"]
+            assert response.image.entity_type == mock_image_document["entity_type"]
+            assert response.image.metadata == ImageMetadata(**mock_image_document["metadata"])
+            assert response.image.processing_status == mock_image_document["processing_status"]
+            assert response.image.uploaded_at == mock_image_document["uploaded_at"]
+            assert response.image.updated_at == mock_image_document["updated_at"]
+            assert response.image.processed_at == mock_image_document["processed_at"]
+            assert response.image.tags == mock_image_document["tags"]
+            assert response.image.is_deleted == mock_image_document["is_deleted"]
+            assert response.message == ""
 
     @pytest.mark.asyncio
-    async def test_get_image_not_found(self, image_service):
+    async def test_get_image_not_found(self, image_service: ImageService):
         """Test image retrieval when not found"""
         with patch("app.services.image.image_service.get_document", side_effect=ValueError("Document not found")):
-            response = await image_service.get_image("nonexistent")
+            response = await image_service.get_image(TEST_IMAGE_ID)
             
             assert isinstance(response, ImageResponse)
             assert response.success is False
@@ -369,10 +390,10 @@ class TestImageServiceGetImage:
             assert "Document not found" in response.message
 
     @pytest.mark.asyncio
-    async def test_get_image_exception(self, image_service):
+    async def test_get_image_exception(self, image_service: ImageService):
         """Test image retrieval with exception"""
         with patch("app.services.image.image_service.get_document", side_effect=Exception("Database error")):
-            response = await image_service.get_image("image_123")
+            response = await image_service.get_image(TEST_IMAGE_ID)
             
             assert isinstance(response, ImageResponse)
             assert response.success is False
@@ -382,26 +403,26 @@ class TestImageServiceGetImage:
 class TestImageServiceUpdateImage:
     
     @pytest.mark.asyncio
-    async def test_update_image_success(self, image_service, update_image_request, mock_image_document):
+    async def test_update_image_success(self, image_service: ImageService, update_image_request: UpdateImageRequest, mock_image_document: dict):
         """Test successful image update"""
         with patch("app.services.image.image_service.update_document"), \
              patch("app.services.image.image_service.get_document", return_value=mock_image_document):
             
-            response = await image_service.update_image("image_123", update_image_request)
+            response = await image_service.update_image(TEST_IMAGE_ID, update_image_request)
             
             assert isinstance(response, ImageResponse)
             assert response.success is True
             assert response.image is not None
 
     @pytest.mark.asyncio
-    async def test_update_image_partial_update(self, image_service, mock_image_document):
+    async def test_update_image_partial_update(self, image_service: ImageService, mock_image_document: dict):
         """Test partial image update"""
         partial_request = UpdateImageRequest(title="New Title Only")
         
         with patch("app.services.image.image_service.update_document") as mock_update, \
              patch("app.services.image.image_service.get_document", return_value=mock_image_document):
             
-            await image_service.update_image("image_123", partial_request)
+            await image_service.update_image(TEST_IMAGE_ID, partial_request)
             
             # Verify only title was updated
             mock_update.assert_called_once()
@@ -412,10 +433,10 @@ class TestImageServiceUpdateImage:
             assert "updated_at" in update_doc
 
     @pytest.mark.asyncio
-    async def test_update_image_exception(self, image_service, update_image_request):
+    async def test_update_image_exception(self, image_service: ImageService, update_image_request: UpdateImageRequest):
         """Test image update with exception"""
         with patch("app.services.image.image_service.update_document", side_effect=Exception("Update error")):
-            response = await image_service.update_image("image_123", update_image_request)
+            response = await image_service.update_image(TEST_IMAGE_ID, update_image_request)
             
             assert isinstance(response, ImageResponse)
             assert response.success is False
@@ -499,7 +520,7 @@ class TestImageServiceListImages:
 class TestImageServicePresignedUrl:
     
     @pytest.mark.asyncio
-    async def test_get_image_presigned_url_success(self, image_service, mock_image_document):
+    async def test_get_image_presigned_url_success(self, image_service: ImageService, mock_image_document: dict):
         """Test successful presigned URL generation"""
         mock_storage = MagicMock()
         mock_storage.get_presigned_url = AsyncMock(return_value="https://presigned.url")
@@ -507,7 +528,7 @@ class TestImageServicePresignedUrl:
         with patch("app.services.image.image_service.get_document", return_value=mock_image_document), \
              patch("app.services.image.image_service.FirebaseStorageRepository", return_value=mock_storage):
             
-            response = await image_service.get_image_presigned_url("image_123")
+            response = await image_service.get_image_presigned_url(TEST_IMAGE_ID)
             
             assert isinstance(response, ImageUrlResponse)
             assert response.success is True
@@ -516,10 +537,10 @@ class TestImageServicePresignedUrl:
             assert response.message == "Presigned URL generated successfully"
 
     @pytest.mark.asyncio
-    async def test_get_image_presigned_url_image_not_found(self, image_service):
+    async def test_get_image_presigned_url_image_not_found(self, image_service: ImageService):
         """Test presigned URL generation when image not found"""
         with patch("app.services.image.image_service.get_document", side_effect=ValueError("Not found")):
-            response = await image_service.get_image_presigned_url("nonexistent")
+            response = await image_service.get_image_presigned_url(TEST_IMAGE_ID)
             
             assert isinstance(response, ImageUrlResponse)
             assert response.success is False
@@ -527,7 +548,7 @@ class TestImageServicePresignedUrl:
             assert "Image not found" in response.message
 
     @pytest.mark.asyncio
-    async def test_get_image_presigned_url_exception(self, image_service, mock_image_document):
+    async def test_get_image_presigned_url_exception(self, image_service: ImageService, mock_image_document: dict):
         """Test presigned URL generation with exception"""
         mock_storage = MagicMock()
         mock_storage.get_presigned_url = AsyncMock(side_effect=Exception("Storage error"))
@@ -535,7 +556,7 @@ class TestImageServicePresignedUrl:
         with patch("app.services.image.image_service.get_document", return_value=mock_image_document), \
              patch("app.services.image.image_service.FirebaseStorageRepository", return_value=mock_storage):
             
-            response = await image_service.get_image_presigned_url("image_123")
+            response = await image_service.get_image_presigned_url(TEST_IMAGE_ID)
             
             assert isinstance(response, ImageUrlResponse)
             assert response.success is False
@@ -545,14 +566,14 @@ class TestImageServicePresignedUrl:
 class TestImageServiceDeleteImage:
     
     @pytest.mark.asyncio
-    async def test_delete_image_soft_delete_success(self, image_service):
+    async def test_delete_image_soft_delete_success(self, image_service: ImageService):
         """Test successful soft delete"""
         with patch("app.services.image.image_service.update_document") as mock_update:
-            response = await image_service.delete_image("image_123", soft_delete=True)
+            response = await image_service.delete_image(TEST_IMAGE_ID, soft_delete=True)
             
             assert isinstance(response, DeleteImageResponse)
             assert response.success is True
-            assert response.deleted_image_id == "image_123"
+            assert response.deleted_image_id == TEST_IMAGE_ID
             assert response.message == "Image deleted successfully"
             
             # Verify soft delete update
@@ -562,7 +583,7 @@ class TestImageServiceDeleteImage:
             assert "updated_at" in update_doc
 
     @pytest.mark.asyncio
-    async def test_delete_image_hard_delete_success(self, image_service, mock_image_document):
+    async def test_delete_image_hard_delete_success(self, image_service: ImageService, mock_image_document: dict):
         """Test successful hard delete"""
         mock_storage = MagicMock()
         mock_storage.delete = AsyncMock()
@@ -571,19 +592,19 @@ class TestImageServiceDeleteImage:
              patch("app.services.image.image_service.FirebaseStorageRepository", return_value=mock_storage), \
              patch("app.services.image.image_service.delete_document") as mock_delete:
             
-            response = await image_service.delete_image("image_123", soft_delete=False)
+            response = await image_service.delete_image(TEST_IMAGE_ID, soft_delete=False)
             
             assert isinstance(response, DeleteImageResponse)
             assert response.success is True
-            assert response.deleted_image_id == "image_123"
+            assert response.deleted_image_id == TEST_IMAGE_ID
             assert response.message == "Image deleted successfully"
             
             # Verify storage and database deletion
             mock_storage.delete.assert_called_once_with(mock_image_document["storage_path"])
-            mock_delete.assert_called_once_with("images", "image_123")
+            mock_delete.assert_called_once_with("images", TEST_IMAGE_ID)
 
     @pytest.mark.asyncio
-    async def test_delete_image_hard_delete_storage_failure(self, image_service, mock_image_document):
+    async def test_delete_image_hard_delete_storage_failure(self, image_service: ImageService, mock_image_document: dict):
         """Test hard delete with storage deletion failure"""
         mock_storage = MagicMock()
         mock_storage.delete = AsyncMock(side_effect=Exception("Storage error"))
@@ -592,48 +613,48 @@ class TestImageServiceDeleteImage:
              patch("app.services.image.image_service.FirebaseStorageRepository", return_value=mock_storage), \
              patch("app.services.image.image_service.delete_document"):
             
-            response = await image_service.delete_image("image_123", soft_delete=False)
+            response = await image_service.delete_image(TEST_IMAGE_ID, soft_delete=False)
             
             # Should still succeed even if storage deletion fails
             assert isinstance(response, DeleteImageResponse)
             assert response.success is False
-            assert response.deleted_image_id == "image_123"
+            assert response.deleted_image_id == TEST_IMAGE_ID
             assert "Failed to delete image from storage: Storage error" in response.message
 
     @pytest.mark.asyncio
-    async def test_delete_image_hard_delete_no_storage_path(self, image_service):
+    async def test_delete_image_hard_delete_no_storage_path(self, image_service: ImageService):
         """Test hard delete with no storage path"""
-        mock_document = {"_id": "image_123", "storage_path": ""}
+        mock_document = {"_id": ObjectId(TEST_IMAGE_ID), "storage_path": ""}
         
         with patch("app.services.image.image_service.get_document", return_value=mock_document), \
              patch("app.services.image.image_service.delete_document"):
             
-            response = await image_service.delete_image("image_123", soft_delete=False)
+            response = await image_service.delete_image(TEST_IMAGE_ID, soft_delete=False)
             
             assert isinstance(response, DeleteImageResponse)
             assert response.success is True
-            assert response.deleted_image_id == "image_123"
+            assert response.deleted_image_id == TEST_IMAGE_ID
 
     @pytest.mark.asyncio
-    async def test_delete_image_exception(self, image_service):
+    async def test_delete_image_exception(self, image_service: ImageService):
         """Test image deletion with exception"""
         with patch("app.services.image.image_service.update_document", side_effect=Exception("Delete error")):
-            response = await image_service.delete_image("image_123")
+            response = await image_service.delete_image(TEST_IMAGE_ID)
             
             assert isinstance(response, DeleteImageResponse)
             assert response.success is False
-            assert response.deleted_image_id == "image_123"
+            assert response.deleted_image_id == TEST_IMAGE_ID
             assert "Failed to delete image: Delete error" in response.message
 
 class TestImageServiceBatchPresignedUrls:
     
     @pytest.mark.asyncio
-    async def test_get_images_presigned_urls_success(self, image_service, mock_image_document):
+    async def test_get_images_presigned_urls_success(self, image_service: ImageService, mock_image_document: dict):
         """Test successful batch presigned URL generation"""
         mock_storage = MagicMock()
         mock_storage.get_presigned_url = AsyncMock(return_value="https://presigned.url")
         
-        image_ids = ["image_123", "image_456", "image_789"]
+        image_ids = [TEST_IMAGE_ID, TEST_IMAGE_ID_2, TEST_IMAGE_ID_3]
         
         with patch("app.services.image.image_service.get_document", return_value=mock_image_document), \
              patch("app.services.image.image_service.FirebaseStorageRepository", return_value=mock_storage):
@@ -657,15 +678,15 @@ class TestImageServiceBatchPresignedUrls:
             assert "(some requests failed)" not in response.message
 
     @pytest.mark.asyncio
-    async def test_get_images_presigned_urls_mixed_results(self, image_service, mock_image_document):
+    async def test_get_images_presigned_urls_mixed_results(self, image_service: ImageService, mock_image_document: dict):
         """Test batch presigned URL generation with mixed success/failure"""
         mock_storage = MagicMock()
         mock_storage.get_presigned_url = AsyncMock(return_value="https://presigned.url")
         
-        image_ids = ["image_123", "nonexistent", "image_789"]
+        image_ids = [TEST_IMAGE_ID, TEST_IMAGE_ID_2, TEST_IMAGE_ID_3]
         
         def mock_get_document(collection, doc_id):
-            if doc_id == "nonexistent":
+            if doc_id == TEST_IMAGE_ID_2:
                 raise ValueError("Document not found")
             return mock_image_document
         
@@ -680,27 +701,27 @@ class TestImageServiceBatchPresignedUrls:
             
             # Check successful results
             assert response.results[0].success is True
-            assert response.results[0].image_id == "image_123"
+            assert response.results[0].image_id == TEST_IMAGE_ID
             assert response.results[0].url == "https://presigned.url"
             
             # Check failed result
             assert response.results[1].success is False
-            assert response.results[1].image_id == "nonexistent"
+            assert response.results[1].image_id == TEST_IMAGE_ID_2
             assert response.results[1].url == ""
             assert "Document not found" in response.results[1].message
             
             # Check successful result
             assert response.results[2].success is True
-            assert response.results[2].image_id == "image_789"
+            assert response.results[2].image_id == TEST_IMAGE_ID_3
             assert response.results[2].url == "https://presigned.url"
             
             assert "Generated presigned URLs for 2/3 images" in response.message
             assert "(some requests failed)" in response.message
 
     @pytest.mark.asyncio
-    async def test_get_images_presigned_urls_all_failures(self, image_service):
+    async def test_get_images_presigned_urls_all_failures(self, image_service: ImageService):
         """Test batch presigned URL generation when all requests fail"""
-        image_ids = ["nonexistent1", "nonexistent2"]
+        image_ids = [TEST_IMAGE_ID_2, TEST_IMAGE_ID_3]
         
         with patch("app.services.image.image_service.get_document", side_effect=ValueError("Not found")):
             response = await image_service.get_images_presigned_urls(image_ids)
@@ -720,7 +741,7 @@ class TestImageServiceBatchPresignedUrls:
             assert "(some requests failed)" in response.message
 
     @pytest.mark.asyncio
-    async def test_get_images_presigned_urls_empty_list(self, image_service):
+    async def test_get_images_presigned_urls_empty_list(self, image_service: ImageService):
         """Test batch presigned URL generation with empty image ID list"""
         response = await image_service.get_images_presigned_urls([])
         
@@ -731,12 +752,12 @@ class TestImageServiceBatchPresignedUrls:
         assert "(some requests failed)" not in response.message
 
     @pytest.mark.asyncio
-    async def test_get_images_presigned_urls_with_exceptions(self, image_service, mock_image_document):
+    async def test_get_images_presigned_urls_with_exceptions(self, image_service: ImageService, mock_image_document: dict):
         """Test batch presigned URL generation with exceptions from gather"""
         mock_storage = MagicMock()
         mock_storage.get_presigned_url = AsyncMock(side_effect=Exception("Storage error"))
         
-        image_ids = ["image_123", "image_456"]
+        image_ids = [TEST_IMAGE_ID_2, TEST_IMAGE_ID_3]
         
         with patch("app.services.image.image_service.get_document", return_value=mock_image_document), \
              patch("app.services.image.image_service.FirebaseStorageRepository", return_value=mock_storage):
@@ -758,9 +779,9 @@ class TestImageServiceBatchPresignedUrls:
             assert "(some requests failed)" in response.message
 
     @pytest.mark.asyncio
-    async def test_get_images_presigned_urls_general_exception(self, image_service):
+    async def test_get_images_presigned_urls_general_exception(self, image_service: ImageService):
         """Test batch presigned URL generation with general exception"""
-        image_ids = ["image_123"]
+        image_ids = [TEST_IMAGE_ID]
         
         # Mock asyncio.gather to raise an exception
         with patch("app.services.image.image_service.asyncio.gather", side_effect=Exception("General error")):
@@ -772,18 +793,20 @@ class TestImageServiceBatchPresignedUrls:
             assert "Failed to get multiple image URLs: General error" in response.message
 
     @pytest.mark.asyncio
-    async def test_get_images_presigned_urls_order_preservation(self, image_service, mock_image_document):
+    async def test_get_images_presigned_urls_order_preservation(self, image_service: ImageService, mock_image_document: dict):
         """Test that batch presigned URL generation preserves order"""
         mock_storage = MagicMock()
-        
+
         # Create different URLs for different storage paths to verify order
         def mock_get_presigned_url(path, expiration):
-            if "image_123" in path:
+            if TEST_IMAGE_ID in path:
                 return "https://url1.com"
-            elif "image_456" in path:
+            elif TEST_IMAGE_ID_2 in path:
                 return "https://url2.com"
-            else:
+            elif TEST_IMAGE_ID_3 in path:
                 return "https://url3.com"
+            else:
+                return None
         
         mock_storage.get_presigned_url = AsyncMock(side_effect=mock_get_presigned_url)
         
@@ -793,7 +816,7 @@ class TestImageServiceBatchPresignedUrls:
             doc["storage_path"] = f"path/{doc_id}"
             return doc
         
-        image_ids = ["image_123", "image_456", "image_789"]
+        image_ids = [TEST_IMAGE_ID, TEST_IMAGE_ID_2, TEST_IMAGE_ID_3]
         
         with patch("app.services.image.image_service.get_document", side_effect=mock_get_document), \
              patch("app.services.image.image_service.FirebaseStorageRepository", return_value=mock_storage):
@@ -805,17 +828,17 @@ class TestImageServiceBatchPresignedUrls:
             assert len(response.results) == 3
             
             # Verify order is preserved
-            assert response.results[0].image_id == "image_123"
+            assert response.results[0].image_id == TEST_IMAGE_ID
             assert response.results[0].url == "https://url1.com"
             
-            assert response.results[1].image_id == "image_456"
+            assert response.results[1].image_id == TEST_IMAGE_ID_2
             assert response.results[1].url == "https://url2.com"
             
-            assert response.results[2].image_id == "image_789"
+            assert response.results[2].image_id == TEST_IMAGE_ID_3
             assert response.results[2].url == "https://url3.com"
 
     @pytest.mark.asyncio
-    async def test_get_images_presigned_urls_concurrent_execution(self, image_service, mock_image_document):
+    async def test_get_images_presigned_urls_concurrent_execution(self, image_service: ImageService, mock_image_document: dict):
         """Test that batch presigned URL generation runs concurrently"""
         mock_storage = MagicMock()
         
@@ -830,7 +853,7 @@ class TestImageServiceBatchPresignedUrls:
         
         mock_storage.get_presigned_url = mock_get_presigned_url
         
-        image_ids = ["image_123", "image_456"]
+        image_ids = [TEST_IMAGE_ID_2, TEST_IMAGE_ID_3]
         
         with patch("app.services.image.image_service.get_document", return_value=mock_image_document), \
              patch("app.services.image.image_service.FirebaseStorageRepository", return_value=mock_storage):
@@ -853,7 +876,7 @@ class TestImageServiceBatchPresignedUrls:
 class TestImageServiceGenerateImage:
     
     @pytest.mark.asyncio
-    async def test_generate_image_success_gemini(self, image_service: ImageService, sample_image_bytes):
+    async def test_generate_image_success_gemini(self, image_service: ImageService, sample_image_bytes: bytes):
         """Test successful image generation with Gemini provider"""
         # Create request
         request = ImageGenerateRequest(
@@ -901,7 +924,7 @@ class TestImageServiceGenerateImage:
                         )
     
     @pytest.mark.asyncio
-    async def test_generate_image_generation_failure(self, image_service: ImageService):
+    async def test_generate_image_generation_failure(self, image_service: ImageService, sample_image_bytes: bytes):
         """Test image generation when provider fails to generate image"""        
         request = ImageGenerateRequest(
             prompt="A beautiful sunset",
@@ -930,7 +953,7 @@ class TestImageServiceGenerateImage:
             assert response.message == "Failed to generate image: API error"
     
     @pytest.mark.asyncio
-    async def test_generate_image_create_image_failure(self, image_service: ImageService, sample_image_bytes):
+    async def test_generate_image_create_image_failure(self, image_service: ImageService, sample_image_bytes: bytes):
         """Test image generation when create_image fails"""        
         request = ImageGenerateRequest(
             prompt="A beautiful sunset",
@@ -967,7 +990,7 @@ class TestImageServiceGenerateImage:
                 assert response.message == "Failed to upload to storage"
     
     @pytest.mark.asyncio
-    async def test_generate_image_with_text_data_only(self, image_service: ImageService):
+    async def test_generate_image_with_text_data_only(self, image_service: ImageService, sample_image_bytes: bytes):
         """Test image generation when only text data is returned"""        
         request = ImageGenerateRequest(
             prompt="A beautiful sunset",
@@ -996,7 +1019,7 @@ class TestImageServiceGenerateImage:
             assert response.message == ""
     
     @pytest.mark.asyncio
-    async def test_generate_image_creates_proper_request(self, image_service: ImageService, sample_image_bytes):
+    async def test_generate_image_creates_proper_request(self, image_service: ImageService, sample_image_bytes: bytes):
         """Test that generate_image creates proper CreateImageRequest"""        
         request = ImageGenerateRequest(
             prompt="test prompt",
