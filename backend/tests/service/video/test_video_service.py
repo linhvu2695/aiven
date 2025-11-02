@@ -17,10 +17,12 @@ from app.classes.video import (
     VideoUrlsResponse,
 )
 from app.classes.media import MediaProcessingStatus
+from app.classes.image import ImageType, ImageSourceType
 
 TEST_VIDEO_ID = "67206999f3949388f3a80900"
 TEST_VIDEO_ID_2 = "67206999f3949388f3a80901"
 TEST_VIDEO_ID_3 = "67206999f3949388f3a80902"
+TEST_THUMBNAIL_ID = "67206999f3949388f3a80903"
 
 @pytest.fixture
 def video_service():
@@ -325,7 +327,7 @@ class TestVideoServiceThumbnail:
         # Mock image service response
         mock_image_response = MagicMock()
         mock_image_response.success = True
-        mock_image_response.image_id = "thumbnail_image_123"
+        mock_image_response.image_id = TEST_THUMBNAIL_ID
         
         with patch("app.services.video.video_service.cv2.VideoCapture", return_value=mock_cap), \
              patch("app.services.video.video_service.cv2.imencode", return_value=(True, mock_buffer)), \
@@ -344,7 +346,7 @@ class TestVideoServiceThumbnail:
                 video_id=TEST_VIDEO_ID,
             )
             
-            assert thumbnail_id == "thumbnail_image_123"
+            assert thumbnail_id == TEST_THUMBNAIL_ID
             
             # Verify cap.set was called to set frame position
             mock_cap.set.assert_called_once_with(cv2.CAP_PROP_POS_FRAMES, 450)  # middle frame
@@ -358,9 +360,15 @@ class TestVideoServiceThumbnail:
             # Verify image service create_image was called
             mock_image_service.create_image.assert_called_once()
             call_args = mock_image_service.create_image.call_args[0][0]
+            assert call_args.filename == f"video_{TEST_VIDEO_ID}_thumbnail.jpg"
+            assert call_args.original_filename == f"video_{TEST_VIDEO_ID}_thumbnail.jpg"
+            assert call_args.title == f"Thumbnail for video {TEST_VIDEO_ID}"
+            assert call_args.description == "Auto-generated thumbnail from video"
+            assert call_args.image_type == ImageType.REPRESENTATIVE
+            assert call_args.source_type == ImageSourceType.BASE64
             assert call_args.entity_id == TEST_VIDEO_ID
             assert call_args.entity_type == "video"
-            assert "thumbnail" in call_args.filename.lower()
+            assert call_args.file_data == b"fake_jpeg_thumbnail_data"
 
     @pytest.mark.asyncio
     async def test_extract_video_thumbnail_empty_video_id(self, video_service: VideoService, sample_video_bytes: bytes):
@@ -529,7 +537,7 @@ class TestVideoServiceThumbnail:
         
         mock_image_response = MagicMock()
         mock_image_response.success = True
-        mock_image_response.image_id = "thumbnail_image_123"
+        mock_image_response.image_id = TEST_THUMBNAIL_ID
         
         with patch("app.services.video.video_service.cv2.VideoCapture", return_value=mock_cap), \
              patch("app.services.video.video_service.cv2.imencode", return_value=(True, mock_buffer)), \
@@ -547,7 +555,7 @@ class TestVideoServiceThumbnail:
                 video_id=TEST_VIDEO_ID,
             )
             
-            assert thumbnail_id == "thumbnail_image_123"
+            assert thumbnail_id == TEST_THUMBNAIL_ID
             
             # Verify middle frame (5000) was selected
             mock_cap.set.assert_called_once_with(cv2.CAP_PROP_POS_FRAMES, 5000)
@@ -793,6 +801,78 @@ class TestVideoServiceCreateVideo:
             assert document["processing_status"] == MediaProcessingStatus.COMPLETED.value
             assert document["is_deleted"] is False
             assert document["ai_processed"] is False
+
+    @pytest.mark.asyncio
+    async def test_create_video_calls_thumbnail_extraction(self, video_service: VideoService, create_video_request_file_data: CreateVideoRequest):
+        """Test that create_video calls thumbnail extraction"""
+        mock_storage = MagicMock()
+        mock_storage.upload = AsyncMock(return_value="https://storage.url")
+        mock_storage.get_presigned_url = AsyncMock(return_value="https://presigned.url")
+        
+        mock_metadata = VideoMetadata(file_size=len(create_video_request_file_data.file_data or b""))
+        
+        with patch("app.services.video.video_service.generate_storage_path", return_value="test/path"), \
+             patch("app.services.video.video_service.FirebaseStorageRepository", return_value=mock_storage), \
+             patch("app.services.video.video_service.insert_document", return_value=TEST_VIDEO_ID), \
+             patch.object(video_service, "_extract_video_metadata", return_value=mock_metadata), \
+             patch.object(video_service, "_extract_video_thumbnail", return_value=TEST_THUMBNAIL_ID) as mock_extract_thumbnail:
+            
+            response = await video_service.create_video(create_video_request_file_data)
+            
+            assert response.success is True
+            assert response.video_id == TEST_VIDEO_ID
+            
+            # Verify thumbnail extraction was called with correct parameters
+            mock_extract_thumbnail.assert_called_once_with(
+                video_data=create_video_request_file_data.file_data,
+                video_id=TEST_VIDEO_ID
+            )
+
+    @pytest.mark.asyncio
+    async def test_create_video_thumbnail_extraction_failure_does_not_fail_creation(self, video_service: VideoService, create_video_request_file_data: CreateVideoRequest):
+        """Test that video creation succeeds even if thumbnail extraction fails"""
+        mock_storage = MagicMock()
+        mock_storage.upload = AsyncMock(return_value="https://storage.url")
+        mock_storage.get_presigned_url = AsyncMock(return_value="https://presigned.url")
+        
+        mock_metadata = VideoMetadata(file_size=len(create_video_request_file_data.file_data or b""))
+        
+        with patch("app.services.video.video_service.generate_storage_path", return_value="test/path"), \
+             patch("app.services.video.video_service.FirebaseStorageRepository", return_value=mock_storage), \
+             patch("app.services.video.video_service.insert_document", return_value=TEST_VIDEO_ID), \
+             patch.object(video_service, "_extract_video_metadata", return_value=mock_metadata), \
+             patch.object(video_service, "_extract_video_thumbnail", side_effect=Exception("Thumbnail extraction failed")):
+            
+            response = await video_service.create_video(create_video_request_file_data)
+            
+            # Video creation should still succeed
+            assert response.success is True
+            assert response.video_id == TEST_VIDEO_ID
+            assert response.storage_path == "test/path"
+
+    @pytest.mark.asyncio
+    async def test_create_video_thumbnail_extraction_returns_none(self, video_service: VideoService, create_video_request_file_data: CreateVideoRequest):
+        """Test that video creation succeeds when thumbnail extraction returns None"""
+        mock_storage = MagicMock()
+        mock_storage.upload = AsyncMock(return_value="https://storage.url")
+        mock_storage.get_presigned_url = AsyncMock(return_value="https://presigned.url")
+        
+        mock_metadata = VideoMetadata(file_size=len(create_video_request_file_data.file_data or b""))
+        
+        with patch("app.services.video.video_service.generate_storage_path", return_value="test/path"), \
+             patch("app.services.video.video_service.FirebaseStorageRepository", return_value=mock_storage), \
+             patch("app.services.video.video_service.insert_document", return_value=TEST_VIDEO_ID), \
+             patch.object(video_service, "_extract_video_metadata", return_value=mock_metadata), \
+             patch.object(video_service, "_extract_video_thumbnail", return_value=None) as mock_extract_thumbnail:
+            
+            response = await video_service.create_video(create_video_request_file_data)
+            
+            # Video creation should still succeed
+            assert response.success is True
+            assert response.video_id == TEST_VIDEO_ID
+            
+            # Verify thumbnail extraction was called
+            mock_extract_thumbnail.assert_called_once()
 
 
 class TestVideoServiceGetVideo:
