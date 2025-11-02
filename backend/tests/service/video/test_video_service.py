@@ -919,3 +919,408 @@ class TestVideoServicePresignedUrls:
                 assert result.video_id == TEST_VIDEO_ID
                 assert result.success is True
                 assert result.url == "https://presigned.url/video.mp4"
+
+
+class TestVideoServiceListVideos:
+
+    @pytest.mark.asyncio
+    async def test_list_videos_default_params(self, video_service: VideoService, mock_video_document: dict):
+        """Test listing videos with default parameters"""
+        from app.classes.video import VideoListRequest, VideoListResponse
+        
+        mock_docs = [mock_video_document]
+        
+        with patch("app.services.video.video_service.count_documents_with_filters", return_value=1), \
+             patch("app.services.video.video_service.find_documents_with_filters", return_value=mock_docs):
+            
+            request = VideoListRequest()
+            response = await video_service.list_videos(request)
+            
+            assert isinstance(response, VideoListResponse)
+            assert len(response.videos) == 1
+            assert response.total == 1
+            assert response.page == 1
+            assert response.page_size == 10
+            
+            # Verify first video
+            video = response.videos[0]
+            assert video.id == TEST_VIDEO_ID
+            assert video.filename == mock_video_document["filename"]
+            assert video.title == mock_video_document["title"]
+
+    @pytest.mark.asyncio
+    async def test_list_videos_with_pagination(self, video_service: VideoService, mock_video_document: dict):
+        """Test listing videos with custom pagination"""
+        from app.classes.video import VideoListRequest, VideoListResponse
+        
+        # Create multiple mock documents
+        mock_docs = []
+        for i in range(5):
+            doc = mock_video_document.copy()
+            doc["_id"] = ObjectId(f"67206999f3949388f3a8090{i}")
+            doc["filename"] = f"video_{i}.mp4"
+            mock_docs.append(doc)
+        
+        with patch("app.services.video.video_service.count_documents_with_filters", return_value=25), \
+             patch("app.services.video.video_service.find_documents_with_filters", return_value=mock_docs):
+            
+            request = VideoListRequest(page=2, page_size=5)
+            response = await video_service.list_videos(request)
+            
+            assert isinstance(response, VideoListResponse)
+            assert len(response.videos) == 5
+            assert response.total == 25
+            assert response.page == 2
+            assert response.page_size == 5
+
+    @pytest.mark.asyncio
+    async def test_list_videos_filter_by_video_type(self, video_service: VideoService, mock_video_document: dict):
+        """Test listing videos filtered by video type"""
+        from app.classes.video import VideoListRequest, VideoListResponse
+        
+        mock_docs = [mock_video_document]
+        
+        with patch("app.services.video.video_service.count_documents_with_filters", return_value=1) as mock_count, \
+             patch("app.services.video.video_service.find_documents_with_filters", return_value=mock_docs) as mock_find:
+            
+            request = VideoListRequest(video_type=VideoType.GENERAL)
+            response = await video_service.list_videos(request)
+            
+            assert isinstance(response, VideoListResponse)
+            assert len(response.videos) == 1
+            assert response.videos[0].video_type == VideoType.GENERAL
+            
+            # Verify filters were passed correctly
+            filters = mock_count.call_args[0][1]
+            assert filters["video_type"] == VideoType.GENERAL.value
+            assert filters["is_deleted"] is False
+
+    @pytest.mark.asyncio
+    async def test_list_videos_filter_by_entity_id(self, video_service: VideoService, mock_video_document: dict):
+        """Test listing videos filtered by entity ID"""
+        from app.classes.video import VideoListRequest, VideoListResponse
+        
+        mock_docs = [mock_video_document]
+        
+        with patch("app.services.video.video_service.count_documents_with_filters", return_value=1) as mock_count, \
+             patch("app.services.video.video_service.find_documents_with_filters", return_value=mock_docs):
+            
+            request = VideoListRequest(entity_id="entity_123")
+            response = await video_service.list_videos(request)
+            
+            assert isinstance(response, VideoListResponse)
+            assert len(response.videos) == 1
+            assert response.videos[0].entity_id == "entity_123"
+            
+            # Verify filters were passed correctly
+            filters = mock_count.call_args[0][1]
+            assert filters["entity_id"] == "entity_123"
+            assert filters["is_deleted"] is False
+
+    @pytest.mark.asyncio
+    async def test_list_videos_filter_by_entity_type(self, video_service: VideoService, mock_video_document: dict):
+        """Test listing videos filtered by entity type"""
+        from app.classes.video import VideoListRequest, VideoListResponse
+        
+        mock_docs = [mock_video_document]
+        
+        with patch("app.services.video.video_service.count_documents_with_filters", return_value=1) as mock_count, \
+             patch("app.services.video.video_service.find_documents_with_filters", return_value=mock_docs):
+            
+            request = VideoListRequest(entity_type="test_entity")
+            response = await video_service.list_videos(request)
+            
+            assert isinstance(response, VideoListResponse)
+            assert len(response.videos) == 1
+            assert response.videos[0].entity_type == "test_entity"
+            
+            # Verify filters were passed correctly
+            filters = mock_count.call_args[0][1]
+            assert filters["entity_type"] == "test_entity"
+            assert filters["is_deleted"] is False
+
+    @pytest.mark.asyncio
+    async def test_list_videos_filter_multiple_criteria(self, video_service: VideoService, mock_video_document: dict):
+        """Test listing videos with multiple filter criteria"""
+        from app.classes.video import VideoListRequest, VideoListResponse
+        
+        mock_docs = [mock_video_document]
+        
+        with patch("app.services.video.video_service.count_documents_with_filters", return_value=1) as mock_count, \
+             patch("app.services.video.video_service.find_documents_with_filters", return_value=mock_docs):
+            
+            request = VideoListRequest(
+                video_type=VideoType.GENERAL,
+                entity_id="entity_123",
+                entity_type="test_entity"
+            )
+            response = await video_service.list_videos(request)
+            
+            assert isinstance(response, VideoListResponse)
+            assert len(response.videos) == 1
+            
+            # Verify all filters were passed correctly
+            filters = mock_count.call_args[0][1]
+            assert filters["video_type"] == VideoType.GENERAL.value
+            assert filters["entity_id"] == "entity_123"
+            assert filters["entity_type"] == "test_entity"
+            assert filters["is_deleted"] is False
+
+    @pytest.mark.asyncio
+    async def test_list_videos_include_deleted(self, video_service: VideoService, mock_video_document: dict):
+        """Test listing videos including deleted ones"""
+        from app.classes.video import VideoListRequest, VideoListResponse
+        
+        # Create both deleted and non-deleted videos
+        mock_doc_deleted = mock_video_document.copy()
+        mock_doc_deleted["_id"] = ObjectId(TEST_VIDEO_ID_2)
+        mock_doc_deleted["is_deleted"] = True
+        mock_docs = [mock_video_document, mock_doc_deleted]
+        
+        with patch("app.services.video.video_service.count_documents_with_filters", return_value=2) as mock_count, \
+             patch("app.services.video.video_service.find_documents_with_filters", return_value=mock_docs):
+            
+            request = VideoListRequest(include_deleted=True)
+            response = await video_service.list_videos(request)
+            
+            assert isinstance(response, VideoListResponse)
+            assert len(response.videos) == 2
+            assert response.total == 2
+            
+            # Verify is_deleted filter was not applied
+            filters = mock_count.call_args[0][1]
+            assert "is_deleted" not in filters
+
+    @pytest.mark.asyncio
+    async def test_list_videos_exclude_deleted(self, video_service: VideoService, mock_video_document: dict):
+        """Test listing videos excluding deleted ones (default behavior)"""
+        from app.classes.video import VideoListRequest, VideoListResponse
+        
+        mock_docs = [mock_video_document]
+        
+        with patch("app.services.video.video_service.count_documents_with_filters", return_value=1) as mock_count, \
+             patch("app.services.video.video_service.find_documents_with_filters", return_value=mock_docs):
+            
+            request = VideoListRequest(include_deleted=False)
+            response = await video_service.list_videos(request)
+            
+            assert isinstance(response, VideoListResponse)
+            assert len(response.videos) == 1
+            assert response.videos[0].is_deleted is False
+            
+            # Verify is_deleted filter was applied
+            filters = mock_count.call_args[0][1]
+            assert filters["is_deleted"] is False
+
+    @pytest.mark.asyncio
+    async def test_list_videos_empty_results(self, video_service: VideoService):
+        """Test listing videos when no videos exist"""
+        from app.classes.video import VideoListRequest, VideoListResponse
+        
+        with patch("app.services.video.video_service.count_documents_with_filters", return_value=0), \
+             patch("app.services.video.video_service.find_documents_with_filters", return_value=[]):
+            
+            request = VideoListRequest()
+            response = await video_service.list_videos(request)
+            
+            assert isinstance(response, VideoListResponse)
+            assert len(response.videos) == 0
+            assert response.total == 0
+            assert response.page == 1
+            assert response.page_size == 10
+
+    @pytest.mark.asyncio
+    async def test_list_videos_large_page_size(self, video_service: VideoService, mock_video_document: dict):
+        """Test listing videos with large page size"""
+        from app.classes.video import VideoListRequest, VideoListResponse
+        
+        # Create 100 mock documents
+        mock_docs = []
+        for i in range(100):
+            doc = mock_video_document.copy()
+            doc["_id"] = ObjectId(f"67206999f3949388f3a80{i:03d}")
+            mock_docs.append(doc)
+        
+        with patch("app.services.video.video_service.count_documents_with_filters", return_value=100), \
+             patch("app.services.video.video_service.find_documents_with_filters", return_value=mock_docs):
+            
+            request = VideoListRequest(page=1, page_size=100)
+            response = await video_service.list_videos(request)
+            
+            assert isinstance(response, VideoListResponse)
+            assert len(response.videos) == 100
+            assert response.total == 100
+            assert response.page == 1
+            assert response.page_size == 100
+
+    @pytest.mark.asyncio
+    async def test_list_videos_pagination_skip_calculation(self, video_service: VideoService, mock_video_document: dict):
+        """Test that pagination skip is calculated correctly"""
+        from app.classes.video import VideoListRequest, VideoListResponse
+        
+        mock_docs = [mock_video_document]
+        
+        with patch("app.services.video.video_service.count_documents_with_filters", return_value=50), \
+             patch("app.services.video.video_service.find_documents_with_filters", return_value=mock_docs) as mock_find:
+            
+            # Request page 3 with page_size 10
+            request = VideoListRequest(page=3, page_size=10)
+            response = await video_service.list_videos(request)
+            
+            assert isinstance(response, VideoListResponse)
+            
+            # Verify skip was calculated correctly (page 3 means skip first 20 items)
+            call_kwargs = mock_find.call_args[1]
+            assert call_kwargs["skip"] == 20
+            assert call_kwargs["limit"] == 10
+
+    @pytest.mark.asyncio
+    async def test_list_videos_sort_by_updated_at_desc(self, video_service: VideoService, mock_video_document: dict):
+        """Test that videos are sorted by updated_at in descending order (most recent first)"""
+        from app.classes.video import VideoListRequest, VideoListResponse
+        
+        mock_docs = [mock_video_document]
+        
+        with patch("app.services.video.video_service.count_documents_with_filters", return_value=1), \
+             patch("app.services.video.video_service.find_documents_with_filters", return_value=mock_docs) as mock_find:
+            
+            request = VideoListRequest()
+            response = await video_service.list_videos(request)
+            
+            assert isinstance(response, VideoListResponse)
+            
+            # Verify sort parameters
+            call_kwargs = mock_find.call_args[1]
+            assert call_kwargs["sort_by"] == "updated_at"
+            assert call_kwargs["asc"] is False  # Descending order
+
+    @pytest.mark.asyncio
+    async def test_list_videos_exception_handling(self, video_service: VideoService):
+        """Test that exceptions are handled gracefully"""
+        from app.classes.video import VideoListRequest, VideoListResponse
+        
+        with patch("app.services.video.video_service.count_documents_with_filters", side_effect=Exception("Database error")):
+            
+            request = VideoListRequest()
+            response = await video_service.list_videos(request)
+            
+            assert isinstance(response, VideoListResponse)
+            assert len(response.videos) == 0
+            assert response.total == 0
+            assert response.page == 1
+            assert response.page_size == 10
+
+    @pytest.mark.asyncio
+    async def test_list_videos_minimal_document_fields(self, video_service: VideoService):
+        """Test listing videos with minimal document fields"""
+        from app.classes.video import VideoListRequest, VideoListResponse
+        
+        # Create a minimal mock document
+        minimal_doc = {
+            "_id": ObjectId(TEST_VIDEO_ID),
+            "filename": "minimal_video.mp4",
+            "video_type": VideoType.GENERAL.value,
+            "source_type": VideoSourceType.UPLOAD.value,
+            "storage_path": "test/path",
+            "processing_status": MediaProcessingStatus.COMPLETED.value,
+        }
+        
+        with patch("app.services.video.video_service.count_documents_with_filters", return_value=1), \
+             patch("app.services.video.video_service.find_documents_with_filters", return_value=[minimal_doc]):
+            
+            request = VideoListRequest()
+            response = await video_service.list_videos(request)
+            
+            assert isinstance(response, VideoListResponse)
+            assert len(response.videos) == 1
+            
+            # Verify minimal fields are handled correctly
+            video = response.videos[0]
+            assert video.id == TEST_VIDEO_ID
+            assert video.filename == "minimal_video.mp4"
+            assert video.title is None
+            assert video.description is None
+            assert video.tags == []
+
+    @pytest.mark.asyncio
+    async def test_list_videos_complete_video_info_mapping(self, video_service: VideoService, mock_video_document: dict):
+        """Test that all VideoInfo fields are correctly mapped from document"""
+        from app.classes.video import VideoListRequest, VideoListResponse
+        
+        with patch("app.services.video.video_service.count_documents_with_filters", return_value=1), \
+             patch("app.services.video.video_service.find_documents_with_filters", return_value=[mock_video_document]):
+            
+            request = VideoListRequest()
+            response = await video_service.list_videos(request)
+            
+            assert isinstance(response, VideoListResponse)
+            assert len(response.videos) == 1
+            
+            video = response.videos[0]
+            # Verify all fields are correctly mapped
+            assert video.id == str(mock_video_document["_id"])
+            assert video.filename == mock_video_document["filename"]
+            assert video.original_filename == mock_video_document["original_filename"]
+            assert video.title == mock_video_document["title"]
+            assert video.description == mock_video_document["description"]
+            assert video.alt_text == mock_video_document["alt_text"]
+            assert video.storage_path == mock_video_document["storage_path"]
+            assert video.storage_url == mock_video_document["storage_url"]
+            assert video.video_type == VideoType(mock_video_document["video_type"])
+            assert video.source_type == VideoSourceType(mock_video_document["source_type"])
+            assert video.entity_id == mock_video_document["entity_id"]
+            assert video.entity_type == mock_video_document["entity_type"]
+            assert video.metadata.width == mock_video_document["metadata"]["width"]
+            assert video.metadata.height == mock_video_document["metadata"]["height"]
+            assert video.processing_status == MediaProcessingStatus(mock_video_document["processing_status"])
+            assert video.uploaded_at == mock_video_document["uploaded_at"]
+            assert video.updated_at == mock_video_document["updated_at"]
+            assert video.processed_at == mock_video_document["processed_at"]
+            assert video.tags == mock_video_document["tags"]
+            assert video.is_deleted == mock_video_document["is_deleted"]
+
+    @pytest.mark.asyncio
+    async def test_list_videos_first_page(self, video_service: VideoService, mock_video_document: dict):
+        """Test listing first page of videos"""
+        from app.classes.video import VideoListRequest, VideoListResponse
+        
+        mock_docs = [mock_video_document]
+        
+        with patch("app.services.video.video_service.count_documents_with_filters", return_value=30), \
+             patch("app.services.video.video_service.find_documents_with_filters", return_value=mock_docs) as mock_find:
+            
+            request = VideoListRequest(page=1, page_size=10)
+            response = await video_service.list_videos(request)
+            
+            assert isinstance(response, VideoListResponse)
+            assert response.page == 1
+            assert response.total == 30
+            
+            # Verify skip is 0 for first page
+            call_kwargs = mock_find.call_args[1]
+            assert call_kwargs["skip"] == 0
+
+    @pytest.mark.asyncio
+    async def test_list_videos_last_page_partial_results(self, video_service: VideoService, mock_video_document: dict):
+        """Test listing last page when it has fewer items than page_size"""
+        from app.classes.video import VideoListRequest, VideoListResponse
+        
+        # Only 3 videos on the last page
+        mock_docs = []
+        for i in range(3):
+            doc = mock_video_document.copy()
+            doc["_id"] = ObjectId(f"67206999f3949388f3a8090{i}")
+            mock_docs.append(doc)
+        
+        with patch("app.services.video.video_service.count_documents_with_filters", return_value=23), \
+             patch("app.services.video.video_service.find_documents_with_filters", return_value=mock_docs):
+            
+            # Request page 3 with page_size 10 (would skip 20, expecting 3 results)
+            request = VideoListRequest(page=3, page_size=10)
+            response = await video_service.list_videos(request)
+            
+            assert isinstance(response, VideoListResponse)
+            assert len(response.videos) == 3
+            assert response.total == 23
+            assert response.page == 3
+            assert response.page_size == 10
