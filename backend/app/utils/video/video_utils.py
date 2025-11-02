@@ -1,5 +1,3 @@
-from app.classes.video import VideoType
-from typing import Optional
 from datetime import datetime, timezone
 
 VIDEO_BASE_FOLDER = "videos"

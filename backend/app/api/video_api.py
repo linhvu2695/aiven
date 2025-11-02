@@ -1,8 +1,10 @@
 import logging
 from fastapi import APIRouter, HTTPException, UploadFile, File
+from fastapi.responses import JSONResponse
 from app.classes.video import (
     CreateVideoRequest,
     CreateVideoResponse,
+    GetVideoResponse,
     VideoType,
     VideoSourceType,
 )
@@ -35,10 +37,21 @@ async def upload_video(
         
         response = await VideoService().create_video(request)
         if not response.success:
-            raise HTTPException(status_code=400, detail=response.message)
+            return JSONResponse(
+                status_code=400,
+                content=response.model_dump()
+            )
         return response
         
     except Exception as e:
         logging.getLogger("uvicorn.error").error(f"Failed to upload video: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Failed to upload video: {str(e)}")
 
+
+@router.get("/{video_id}", response_model=GetVideoResponse)
+async def get_video(video_id: str):
+    """Get a video by ID"""
+    response = await VideoService().get_video(video_id)
+    if not response.success:
+        raise HTTPException(status_code=404, detail=response.message)
+    return response
