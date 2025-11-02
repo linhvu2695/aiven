@@ -117,11 +117,18 @@ class GetVideoResponse(BaseModel):
     video: Optional[VideoInfo] = None
     message: str
 
+class VideoUrlsRequest(BaseModel):
+    """Request model for getting multiple video URLs"""
+    video_ids: list[str]
+    retrieve_thumbnail: bool = True
+
 class VideoUrlInfo(BaseModel):
     """Information about a single video URL"""
     video_id: str
     url: Optional[str] = None
     expires_at: Optional[datetime] = None
+    thumbnail_url: Optional[str] = None
+    thumbnail_expires_at: Optional[datetime] = None
     success: bool
     message: str
 

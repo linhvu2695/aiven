@@ -9,6 +9,7 @@ from app.classes.video import (
     VideoSourceType,
     VideoListRequest,
     VideoListResponse,
+    VideoUrlsRequest,
 )
 from app.services.video.video_service import VideoService
 
@@ -90,7 +91,7 @@ async def serve_videos(video_ids: str):
         if len(ids) > MAX_VIDEOS_LIMIT:
             raise HTTPException(status_code=400, detail=f"Too many video IDs (max {MAX_VIDEOS_LIMIT})")
         
-        response = await VideoService().get_videos_presigned_urls(ids)
+        response = await VideoService().get_videos_presigned_urls(VideoUrlsRequest(video_ids=ids))
         if not response.success and all(not result.success for result in response.results):
             return JSONResponse(
                 status_code=400,

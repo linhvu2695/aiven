@@ -15,6 +15,7 @@ from app.classes.video import (
     VideoFormat,
     VideoMetadata,
     VideoUrlInfo,
+    VideoUrlsRequest,
     VideoUrlsResponse,
 )
 from app.classes.media import MediaProcessingStatus
@@ -1063,12 +1064,14 @@ class TestVideoServicePresignedUrls:
              patch("app.services.video.video_service.FirebaseStorageRepository", return_value=mock_storage):
             
             from app.classes.video import VideoUrlsResponse
-            response = await video_service.get_videos_presigned_urls([TEST_VIDEO_ID, TEST_VIDEO_ID_2, TEST_VIDEO_ID_3])
+            response = await video_service.get_videos_presigned_urls(
+                VideoUrlsRequest(video_ids=[TEST_VIDEO_ID, TEST_VIDEO_ID_2, TEST_VIDEO_ID_3])
+                )
             
             assert isinstance(response, VideoUrlsResponse)
             assert response.success is True
             assert len(response.results) == 3
-            assert response.message == "Generated presigned URLs for 3/3 videos"
+            assert "Generated presigned URLs for 3/3 videos" in response.message
             
             # Verify first result
             assert response.results[0].video_id == TEST_VIDEO_ID
@@ -1109,12 +1112,15 @@ class TestVideoServicePresignedUrls:
              patch("app.services.video.video_service.FirebaseStorageRepository", return_value=mock_storage):
             
             from app.classes.video import VideoUrlsResponse
-            response = await video_service.get_videos_presigned_urls([TEST_VIDEO_ID, TEST_VIDEO_ID_2, TEST_VIDEO_ID_3])
+            response = await video_service.get_videos_presigned_urls(
+                VideoUrlsRequest(video_ids=[TEST_VIDEO_ID, TEST_VIDEO_ID_2, TEST_VIDEO_ID_3])
+                )
             
             assert isinstance(response, VideoUrlsResponse)
             assert response.success is False  # Overall success is False because one failed
             assert len(response.results) == 3
-            assert "Generated presigned URLs for 2/3 videos (some requests failed)" in response.message
+            assert "Generated presigned URLs for 2/3 videos" in response.message
+            assert "(some requests failed)" in response.message
             
             # Verify first result (success)
             assert response.results[0].video_id == TEST_VIDEO_ID
@@ -1137,12 +1143,15 @@ class TestVideoServicePresignedUrls:
         """Test presigned URLs generation when all videos fail"""
         with patch("app.services.video.video_service.get_document", return_value=None):
             from app.classes.video import VideoUrlsResponse
-            response = await video_service.get_videos_presigned_urls([TEST_VIDEO_ID_2, TEST_VIDEO_ID_3])
+            response = await video_service.get_videos_presigned_urls(
+                VideoUrlsRequest(video_ids=[TEST_VIDEO_ID_2, TEST_VIDEO_ID_3])
+                )
             
             assert isinstance(response, VideoUrlsResponse)
             assert response.success is False
             assert len(response.results) == 2
-            assert "Generated presigned URLs for 0/2 videos (some requests failed)" in response.message
+            assert "Generated presigned URLs for 0/2 videos" in response.message
+            assert "(some requests failed)" in response.message
             
             # All results should be failures
             for result in response.results:
@@ -1154,12 +1163,14 @@ class TestVideoServicePresignedUrls:
     async def test_get_videos_presigned_urls_empty_list(self, video_service: VideoService):
         """Test presigned URLs generation with empty video ID list"""
         from app.classes.video import VideoUrlsResponse
-        response = await video_service.get_videos_presigned_urls([])
+        response = await video_service.get_videos_presigned_urls(
+            VideoUrlsRequest(video_ids=[])
+            )
         
         assert isinstance(response, VideoUrlsResponse)
         assert response.success is True  # No videos to process, so success
         assert len(response.results) == 0
-        assert response.message == "Generated presigned URLs for 0/0 videos"
+        assert "No video IDs provided" in response.message
 
     @pytest.mark.asyncio
     async def test_get_videos_presigned_urls_single_video(self, video_service: VideoService, mock_video_document: dict):
@@ -1171,12 +1182,14 @@ class TestVideoServicePresignedUrls:
              patch("app.services.video.video_service.FirebaseStorageRepository", return_value=mock_storage):
             
             from app.classes.video import VideoUrlsResponse
-            response = await video_service.get_videos_presigned_urls([TEST_VIDEO_ID])
+            response = await video_service.get_videos_presigned_urls(
+                VideoUrlsRequest(video_ids=[TEST_VIDEO_ID])
+                )
             
             assert isinstance(response, VideoUrlsResponse)
             assert response.success is True
             assert len(response.results) == 1
-            assert response.message == "Generated presigned URLs for 1/1 videos"
+            assert "Generated presigned URLs for 1/1 videos" in response.message
             
             assert response.results[0].video_id == TEST_VIDEO_ID
             assert response.results[0].url == "https://presigned.url/video.mp4"
@@ -1188,7 +1201,9 @@ class TestVideoServicePresignedUrls:
         # Mock get_document to raise an exception
         with patch("app.services.video.video_service.get_document", side_effect=Exception("Database connection lost")):
             from app.classes.video import VideoUrlsResponse
-            response = await video_service.get_videos_presigned_urls([TEST_VIDEO_ID])
+            response = await video_service.get_videos_presigned_urls(
+                VideoUrlsRequest(video_ids=[TEST_VIDEO_ID])
+                )
             
             assert isinstance(response, VideoUrlsResponse)
             assert response.success is False
@@ -1218,7 +1233,9 @@ class TestVideoServicePresignedUrls:
              patch("app.services.video.video_service.FirebaseStorageRepository", return_value=mock_storage):
             # Request in specific order
             input_ids = [TEST_VIDEO_ID_3, TEST_VIDEO_ID, TEST_VIDEO_ID_2]
-            response = await video_service.get_videos_presigned_urls(input_ids)
+            response = await video_service.get_videos_presigned_urls(
+                VideoUrlsRequest(video_ids=input_ids)
+                )
             
             assert isinstance(response, VideoUrlsResponse)
             assert response.success is True
@@ -1237,12 +1254,14 @@ class TestVideoServicePresignedUrls:
         with patch("app.services.video.video_service.get_document", return_value=mock_video_document), \
              patch("app.services.video.video_service.FirebaseStorageRepository", return_value=mock_storage):
             # Request same ID multiple times
-            response = await video_service.get_videos_presigned_urls([TEST_VIDEO_ID, TEST_VIDEO_ID, TEST_VIDEO_ID])
+            response = await video_service.get_videos_presigned_urls(
+                VideoUrlsRequest(video_ids=[TEST_VIDEO_ID, TEST_VIDEO_ID, TEST_VIDEO_ID])
+                )
             
             assert isinstance(response, VideoUrlsResponse)
             assert response.success is True
             assert len(response.results) == 3
-            assert response.message == "Generated presigned URLs for 3/3 videos"
+            assert "Generated presigned URLs for 3/3 videos" in response.message
             
             # All should be successful and have same video_id
             for result in response.results:

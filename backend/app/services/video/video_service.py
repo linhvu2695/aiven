@@ -11,7 +11,7 @@ from bson import ObjectId
 import cv2
 import requests
 
-from app.classes.video import CreateVideoRequest, CreateVideoResponse, GetVideoResponse, VideoFormat, VideoInfo, VideoMetadata, VideoSourceType, VideoType, VideoUrlInfo, VideoUrlsResponse, VideoListRequest, VideoListResponse
+from app.classes.video import CreateVideoRequest, CreateVideoResponse, GetVideoResponse, VideoFormat, VideoInfo, VideoMetadata, VideoSourceType, VideoType, VideoUrlInfo, VideoUrlsRequest, VideoUrlsResponse, VideoListRequest, VideoListResponse
 from app.classes.image import CreateImageRequest, ImageType, ImageSourceType
 from app.utils.string.string_utils import is_empty_string, validate_exactly_one_field, validate_required_fields
 from app.utils.video.video_utils import generate_storage_path
@@ -225,6 +225,81 @@ class VideoService:
             )
             return None
 
+    async def _fetch_thumbnail_urls(self, video_ids: list[str], results: list[VideoUrlInfo]) -> None:
+        """
+        Fetch thumbnail presigned URLs for videos and update the results in place.
+        
+        Args:
+            video_ids: List of video IDs to fetch thumbnails for
+            results: List of VideoUrlInfo objects to update with thumbnail URLs (modified in place)
+        """
+        if not video_ids or len(video_ids) == 0:
+            logging.getLogger("uvicorn.warning").warning("No video IDs provided")
+            return
+        
+        if not results or len(results) == 0:
+            logging.getLogger("uvicorn.warning").warning("No results provided")
+            return
+        
+        try:            
+            filters = {
+                "entity_id": {"$in": video_ids},
+                "entity_type": "video",
+                "image_type": ImageType.REPRESENTATIVE.value,
+                "is_deleted": False
+            }
+            
+            # Fetch all matching thumbnail images from the database
+            IMAGE_COLLECTION_NAME = "images"
+            thumbnail_docs = await find_documents_with_filters(
+                IMAGE_COLLECTION_NAME,
+                filters,
+                skip=0,
+                sort_by="uploaded_at",
+                asc=False  # Get most recent thumbnails first
+            )
+            
+            if not thumbnail_docs or len(thumbnail_docs) == 0:
+                logging.getLogger("uvicorn.info").info("No thumbnails found for any videos")
+                return
+            
+            # Build mapping of video_id -> thumbnail_image_id
+            video_to_thumbnail_map: Dict[str, str] = {}
+            for doc in thumbnail_docs:
+                entity_id = doc.get("entity_id")
+                image_id = str(doc.get("_id"))
+                if (not is_empty_string(entity_id) 
+                    and not is_empty_string(image_id) 
+                    and ObjectId.is_valid(image_id) 
+                    and entity_id not in video_to_thumbnail_map
+                    ):
+                    video_to_thumbnail_map[str(entity_id)] = str(image_id)
+            
+            # Fetch presigned URLs for all thumbnails using ImageService
+            thumbnail_image_ids = list(video_to_thumbnail_map.values())
+            image_service = ImageService()
+            image_urls_response = await image_service.get_images_presigned_urls(thumbnail_image_ids)
+            
+            # Build mapping of image_id -> (url, expires_at) from the response
+            thumbnail_url_map: Dict[str, tuple[Optional[str], Optional[datetime]]] = {}
+            for image_url_info in image_urls_response.results:
+                if image_url_info.success:
+                    thumbnail_url_map[image_url_info.image_id] = (image_url_info.url, image_url_info.expires_at)
+                else:
+                    thumbnail_url_map[image_url_info.image_id] = (None, None)
+            
+            # Update results with thumbnail URLs
+            for result in results:
+                thumbnail_image_id = video_to_thumbnail_map.get(result.video_id)
+                if  not is_empty_string(thumbnail_image_id) and thumbnail_image_id in thumbnail_url_map:
+                    thumbnail_url, thumbnail_expires_at = thumbnail_url_map[thumbnail_image_id]
+                    result.thumbnail_url = thumbnail_url
+                    result.thumbnail_expires_at = thumbnail_expires_at
+                    
+        except Exception as e:
+            # Don't fail the whole operation if thumbnail fetching fails
+            logging.getLogger("uvicorn.error").error(f"Failed to fetch thumbnail URLs: {str(e)}")
+
     async def _get_video_data_from_request(self, request: CreateVideoRequest) -> bytes:
         """Get video data from the request based on source type"""
         if request.file_data:
@@ -393,11 +468,16 @@ class VideoService:
                 message=f"Failed to get video presigned URL: {str(e)}"
                 )
 
-    async def get_videos_presigned_urls(self, ids: list[str]) -> VideoUrlsResponse:
+    async def get_videos_presigned_urls(self, request: VideoUrlsRequest) -> VideoUrlsResponse:
         """Get presigned URLs for multiple videos concurrently"""
+        if not request.video_ids or len(request.video_ids) == 0:
+            return VideoUrlsResponse(
+                success=True, results=[], message="No video IDs provided"
+            )
+        
         try:
             # Process all videos concurrently
-            tasks = [self.get_video_presigned_url(video_id) for video_id in ids]
+            tasks = [self.get_video_presigned_url(video_id) for video_id in request.video_ids]
             results = await asyncio.gather(*tasks, return_exceptions=True) # same order as requests
             
             # Handle any exceptions from gather
@@ -407,7 +487,7 @@ class VideoService:
                     processed_results.append(result)
                 else:
                     processed_results.append(VideoUrlInfo(
-                        video_id=ids[i],
+                        video_id=request.video_ids[i],
                         url=None,
                         expires_at=None,
                         success=False,
@@ -416,12 +496,22 @@ class VideoService:
             
             overall_success = all(result.success for result in processed_results)
             success_count = sum(1 for result in processed_results if result.success)
-            total_count = len(ids)
+            total_count = len(request.video_ids)
             
             message = f"Generated presigned URLs for {success_count}/{total_count} videos"
             if not overall_success:
                 message += " (some requests failed)"
             logging.getLogger("uvicorn.info").info(message)
+
+            # Fetch thumbnail presigned URLs if requested
+            if request.retrieve_thumbnail:
+                await self._fetch_thumbnail_urls(request.video_ids, processed_results)
+                thumbnail_success_count = sum(
+                    1 for result 
+                    in processed_results 
+                    if not is_empty_string(result.thumbnail_url)
+                    )
+                message += f" and {thumbnail_success_count}/{total_count} thumbnails"
 
             return VideoUrlsResponse(
                 success=overall_success,
