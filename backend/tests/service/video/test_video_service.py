@@ -302,6 +302,257 @@ class TestVideoServiceMetadata:
             assert metadata.fps is None
 
 
+class TestVideoServiceThumbnail:
+    
+    @pytest.mark.asyncio
+    async def test_extract_video_thumbnail_success(self, video_service: VideoService, sample_video_bytes: bytes):
+        """Test successful thumbnail extraction from video"""
+        # Mock cv2.VideoCapture
+        mock_cap = MagicMock()
+        mock_cap.isOpened.return_value = True
+        mock_cap.get.side_effect = lambda prop: {
+            cv2.CAP_PROP_FRAME_COUNT: 900,
+        }.get(prop, 0)
+        
+        # Mock frame reading
+        mock_frame = MagicMock()  # Simulated frame data
+        mock_cap.read.return_value = (True, mock_frame)
+        
+        # Mock cv2.imencode to return success and encoded buffer
+        mock_buffer = MagicMock()
+        mock_buffer.tobytes.return_value = b"fake_jpeg_thumbnail_data"
+        
+        # Mock image service response
+        mock_image_response = MagicMock()
+        mock_image_response.success = True
+        mock_image_response.image_id = "thumbnail_image_123"
+        
+        with patch("app.services.video.video_service.cv2.VideoCapture", return_value=mock_cap), \
+             patch("app.services.video.video_service.cv2.imencode", return_value=(True, mock_buffer)), \
+             patch("app.services.video.video_service.create_temp_local_file", return_value="/tmp/test_video.mp4"), \
+             patch("app.services.video.video_service.os.path.exists", return_value=True), \
+             patch("app.services.video.video_service.os.unlink"), \
+             patch("app.services.video.video_service.ImageService") as mock_image_service_class:
+            
+            # Setup image service mock
+            mock_image_service = MagicMock()
+            mock_image_service.create_image = AsyncMock(return_value=mock_image_response)
+            mock_image_service_class.return_value = mock_image_service
+            
+            thumbnail_id = await video_service._extract_video_thumbnail(
+                video_data=sample_video_bytes,
+                video_id=TEST_VIDEO_ID,
+            )
+            
+            assert thumbnail_id == "thumbnail_image_123"
+            
+            # Verify cap.set was called to set frame position
+            mock_cap.set.assert_called_once_with(cv2.CAP_PROP_POS_FRAMES, 450)  # middle frame
+            
+            # Verify frame was read
+            mock_cap.read.assert_called_once()
+            
+            # Verify imencode was called
+            assert mock_buffer.tobytes.call_count == 1
+            
+            # Verify image service create_image was called
+            mock_image_service.create_image.assert_called_once()
+            call_args = mock_image_service.create_image.call_args[0][0]
+            assert call_args.entity_id == TEST_VIDEO_ID
+            assert call_args.entity_type == "video"
+            assert "thumbnail" in call_args.filename.lower()
+
+    @pytest.mark.asyncio
+    async def test_extract_video_thumbnail_empty_video_id(self, video_service: VideoService, sample_video_bytes: bytes):
+        """Test thumbnail extraction with empty video ID"""
+        thumbnail_id = await video_service._extract_video_thumbnail(
+            video_data=sample_video_bytes,
+            video_id="",
+        )
+        
+        assert thumbnail_id is None
+
+    @pytest.mark.asyncio
+    async def test_extract_video_thumbnail_video_not_opened(self, video_service: VideoService, sample_video_bytes: bytes):
+        """Test thumbnail extraction when video file cannot be opened"""
+        mock_cap = MagicMock()
+        mock_cap.isOpened.return_value = False
+        
+        with patch("app.services.video.video_service.cv2.VideoCapture", return_value=mock_cap), \
+             patch("app.services.video.video_service.create_temp_local_file", return_value="/tmp/test_video.mp4"), \
+             patch("app.services.video.video_service.os.path.exists", return_value=True), \
+             patch("app.services.video.video_service.os.unlink"):
+            
+            thumbnail_id = await video_service._extract_video_thumbnail(
+                video_data=sample_video_bytes,
+                video_id=TEST_VIDEO_ID,
+            )
+            
+            assert thumbnail_id is None
+
+    @pytest.mark.asyncio
+    async def test_extract_video_thumbnail_frame_read_failure(self, video_service: VideoService, sample_video_bytes: bytes):
+        """Test thumbnail extraction when frame reading fails"""
+        mock_cap = MagicMock()
+        mock_cap.isOpened.return_value = True
+        mock_cap.get.side_effect = lambda prop: {
+            cv2.CAP_PROP_FRAME_COUNT: 900,
+        }.get(prop, 0)
+        
+        # Simulate frame read failure
+        mock_cap.read.return_value = (False, None)
+        
+        with patch("app.services.video.video_service.cv2.VideoCapture", return_value=mock_cap), \
+             patch("app.services.video.video_service.create_temp_local_file", return_value="/tmp/test_video.mp4"), \
+             patch("app.services.video.video_service.os.path.exists", return_value=True), \
+             patch("app.services.video.video_service.os.unlink"):
+            
+            thumbnail_id = await video_service._extract_video_thumbnail(
+                video_data=sample_video_bytes,
+                video_id=TEST_VIDEO_ID,
+            )
+            
+            assert thumbnail_id is None
+            mock_cap.release.assert_called_once()
+
+    @pytest.mark.asyncio
+    async def test_extract_video_thumbnail_encode_failure(self, video_service: VideoService, sample_video_bytes: bytes):
+        """Test thumbnail extraction when image encoding fails"""
+        mock_cap = MagicMock()
+        mock_cap.isOpened.return_value = True
+        mock_cap.get.side_effect = lambda prop: {
+            cv2.CAP_PROP_FRAME_COUNT: 900,
+        }.get(prop, 0)
+        
+        mock_frame = MagicMock()
+        mock_cap.read.return_value = (True, mock_frame)
+        
+        # Simulate encode failure
+        with patch("app.services.video.video_service.cv2.VideoCapture", return_value=mock_cap), \
+             patch("app.services.video.video_service.cv2.imencode", return_value=(False, None)), \
+             patch("app.services.video.video_service.create_temp_local_file", return_value="/tmp/test_video.mp4"), \
+             patch("app.services.video.video_service.os.path.exists", return_value=True), \
+             patch("app.services.video.video_service.os.unlink"):
+            
+            thumbnail_id = await video_service._extract_video_thumbnail(
+                video_data=sample_video_bytes,
+                video_id=TEST_VIDEO_ID,
+            )
+            
+            assert thumbnail_id is None
+            mock_cap.release.assert_called_once()
+
+    @pytest.mark.asyncio
+    async def test_extract_video_thumbnail_image_service_failure(self, video_service: VideoService, sample_video_bytes: bytes):
+        """Test thumbnail extraction when image service fails to create image"""
+        mock_cap = MagicMock()
+        mock_cap.isOpened.return_value = True
+        mock_cap.get.side_effect = lambda prop: {
+            cv2.CAP_PROP_FRAME_COUNT: 900,
+        }.get(prop, 0)
+        
+        mock_frame = MagicMock()
+        mock_cap.read.return_value = (True, mock_frame)
+        
+        mock_buffer = MagicMock()
+        mock_buffer.tobytes.return_value = b"fake_jpeg_thumbnail_data"
+        
+        # Mock image service to return failure
+        mock_image_response = MagicMock()
+        mock_image_response.success = False
+        mock_image_response.message = "Image creation failed"
+        
+        with patch("app.services.video.video_service.cv2.VideoCapture", return_value=mock_cap), \
+             patch("app.services.video.video_service.cv2.imencode", return_value=(True, mock_buffer)), \
+             patch("app.services.video.video_service.create_temp_local_file", return_value="/tmp/test_video.mp4"), \
+             patch("app.services.video.video_service.os.path.exists", return_value=True), \
+             patch("app.services.video.video_service.os.unlink"), \
+             patch("app.services.video.video_service.ImageService") as mock_image_service_class:
+            
+            mock_image_service = MagicMock()
+            mock_image_service.create_image = AsyncMock(return_value=mock_image_response)
+            mock_image_service_class.return_value = mock_image_service
+            
+            thumbnail_id = await video_service._extract_video_thumbnail(
+                video_data=sample_video_bytes,
+                video_id=TEST_VIDEO_ID,
+            )
+            
+            assert thumbnail_id is None
+
+    @pytest.mark.asyncio
+    async def test_extract_video_thumbnail_exception_handling(self, video_service: VideoService, sample_video_bytes: bytes):
+        """Test thumbnail extraction handles exceptions gracefully"""
+        with patch("app.services.video.video_service.create_temp_local_file", side_effect=Exception("Temp file error")):
+            thumbnail_id = await video_service._extract_video_thumbnail(
+                video_data=sample_video_bytes,
+                video_id=TEST_VIDEO_ID,
+            )
+            
+            assert thumbnail_id is None
+
+    @pytest.mark.asyncio
+    async def test_extract_video_thumbnail_cleanup_temp_file(self, video_service: VideoService, sample_video_bytes: bytes):
+        """Test that temporary file is cleaned up even on errors"""
+        mock_cap = MagicMock()
+        mock_cap.isOpened.return_value = True
+        mock_cap.get.side_effect = Exception("Unexpected error during get")
+        
+        with patch("app.services.video.video_service.cv2.VideoCapture", return_value=mock_cap), \
+             patch("app.services.video.video_service.create_temp_local_file", return_value="/tmp/test_video.mp4"), \
+             patch("app.services.video.video_service.os.path.exists", return_value=True), \
+             patch("app.services.video.video_service.os.unlink") as mock_unlink:
+            
+            thumbnail_id = await video_service._extract_video_thumbnail(
+                video_data=sample_video_bytes,
+                video_id=TEST_VIDEO_ID,
+            )
+            
+            assert thumbnail_id is None
+            # Verify cleanup was called
+            mock_unlink.assert_called_once_with("/tmp/test_video.mp4")
+
+    @pytest.mark.asyncio
+    async def test_extract_video_thumbnail_middle_frame_selection(self, video_service: VideoService, sample_video_bytes: bytes):
+        """Test thumbnail extraction from video with middle frame selection"""
+        mock_cap = MagicMock()
+        mock_cap.isOpened.return_value = True
+        mock_cap.get.side_effect = lambda prop: {
+            cv2.CAP_PROP_FRAME_COUNT: 10000,  # Large frame count
+        }.get(prop, 0)
+        
+        mock_frame = MagicMock()
+        mock_cap.read.return_value = (True, mock_frame)
+        
+        mock_buffer = MagicMock()
+        mock_buffer.tobytes.return_value = b"fake_jpeg_thumbnail_data"
+        
+        mock_image_response = MagicMock()
+        mock_image_response.success = True
+        mock_image_response.image_id = "thumbnail_image_123"
+        
+        with patch("app.services.video.video_service.cv2.VideoCapture", return_value=mock_cap), \
+             patch("app.services.video.video_service.cv2.imencode", return_value=(True, mock_buffer)), \
+             patch("app.services.video.video_service.create_temp_local_file", return_value="/tmp/test_video.mp4"), \
+             patch("app.services.video.video_service.os.path.exists", return_value=True), \
+             patch("app.services.video.video_service.os.unlink"), \
+             patch("app.services.video.video_service.ImageService") as mock_image_service_class:
+            
+            mock_image_service = MagicMock()
+            mock_image_service.create_image = AsyncMock(return_value=mock_image_response)
+            mock_image_service_class.return_value = mock_image_service
+            
+            thumbnail_id = await video_service._extract_video_thumbnail(
+                video_data=sample_video_bytes,
+                video_id=TEST_VIDEO_ID,
+            )
+            
+            assert thumbnail_id == "thumbnail_image_123"
+            
+            # Verify middle frame (5000) was selected
+            mock_cap.set.assert_called_once_with(cv2.CAP_PROP_POS_FRAMES, 5000)
+
+
 class TestVideoServiceDataRetrieval:
     
     @pytest.mark.asyncio
