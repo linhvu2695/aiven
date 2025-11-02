@@ -1,6 +1,6 @@
 import { Box, Container, Flex, Text, IconButton } from "@chakra-ui/react";
 import { ColorModeButton } from "@/components/ui/color-mode";
-import { FaBook, FaComment, FaImages, FaSeedling } from "react-icons/fa";
+import { FaBook, FaComment, FaImages, FaSeedling, FaVideo } from "react-icons/fa";
 import { Tooltip } from "@/components/ui/tooltip";
 import { useNavigate, useLocation } from "react-router-dom";
 import { FaRobot } from "react-icons/fa6";
@@ -84,6 +84,19 @@ function Navbar() {
                                     onClick={() => navigate("/image")}
                                 >
                                     <FaImages />
+                                </IconButton>
+                            </Tooltip>
+
+                            {/* Video library */}
+                            <Tooltip content="Video" showArrow>
+                                <IconButton
+                                    aria-label="Video library"
+                                    variant={isActive("/video") ? "solid" : "ghost"}
+                                    colorPalette={isActive("/video") ? "teal" : undefined}
+                                    size="xl"
+                                    onClick={() => navigate("/video")}
+                                >
+                                    <FaVideo />
                                 </IconButton>
                             </Tooltip>
 

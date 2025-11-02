@@ -12,6 +12,7 @@ import { ImageProvider } from "./context/image-ctx";
 import { ImageViewProvider } from "./context/image-view-ctx";
 import { Toaster } from "./components/ui/toaster";
 import ImagePage from "./pages/image-page";
+import VideoPage from "./pages/video-page";
 
 export const BASE_URL = import.meta.env.VITE_API_BASE_URL;
 
@@ -48,6 +49,10 @@ function App() {
                                     </ImageViewProvider>
                                 </ImageProvider>
                             }
+                        />
+                        <Route
+                            path="/video"
+                            element={<VideoPage />}
                         />
                         <Route
                             path="/knowledge"

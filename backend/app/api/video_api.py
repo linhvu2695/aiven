@@ -7,6 +7,8 @@ from app.classes.video import (
     GetVideoResponse,
     VideoType,
     VideoSourceType,
+    VideoListRequest,
+    VideoListResponse,
 )
 from app.services.video.video_service import VideoService
 
@@ -56,6 +58,16 @@ async def get_video(video_id: str):
     if not response.success:
         raise HTTPException(status_code=404, detail=response.message)
     return response
+
+@router.post("/list", response_model=VideoListResponse)
+async def list_videos(request: VideoListRequest):
+    """List all videos"""
+    try:
+        return await VideoService().list_videos(request)
+    except Exception as e:
+        message = f"Error listing videos: {str(e)}"
+        logging.getLogger("uvicorn.error").error(message)
+        raise HTTPException(status_code=400, detail=message)
 
 @router.get("/serve/{video_id}")
 async def serve_video(video_id: str):

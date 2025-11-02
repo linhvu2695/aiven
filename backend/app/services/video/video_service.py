@@ -6,16 +6,17 @@ import logging
 import tempfile
 import os
 from datetime import datetime, timedelta, timezone
+from typing import Dict, Any
 from bson import ObjectId
 import cv2
 import requests
 
-from app.classes.video import CreateVideoRequest, CreateVideoResponse, GetVideoResponse, VideoFormat, VideoInfo, VideoMetadata, VideoSourceType, VideoType, VideoUrlInfo, VideoUrlResponse, VideoUrlsResponse
+from app.classes.video import CreateVideoRequest, CreateVideoResponse, GetVideoResponse, VideoFormat, VideoInfo, VideoMetadata, VideoSourceType, VideoType, VideoUrlInfo, VideoUrlResponse, VideoUrlsResponse, VideoListRequest, VideoListResponse
 from app.utils.string.string_utils import validate_exactly_one_field, validate_required_fields
 from app.utils.video.video_utils import generate_storage_path
 from app.core.storage import FirebaseStorageRepository
 from app.classes.media import MediaProcessingStatus
-from app.core.database import get_document, insert_document
+from app.core.database import get_document, insert_document, find_documents_with_filters, count_documents_with_filters
 
 VIDEO_COLLECTION_NAME = "videos"
 VIDEO_PRESIGNED_URL_EXPIRATION = 60 * 60  # 1 hour
@@ -320,3 +321,80 @@ class VideoService:
             return VideoUrlsResponse(
                 success=False, results=[], message=f"Failed to get videos presigned URLs: {str(e)}"
                 )
+
+    async def list_videos(self, request: VideoListRequest) -> VideoListResponse:
+        """List videos with optional filtering"""
+        try:
+            # Build filters dictionary for multi-field filtering
+            filters: Dict[str, Any] = {}
+            if not request.include_deleted:
+                filters["is_deleted"] = False
+
+            if request.video_type:
+                filters["video_type"] = request.video_type.value
+            if request.entity_id:
+                filters["entity_id"] = request.entity_id
+            if request.entity_type:
+                filters["entity_type"] = request.entity_type
+
+            # Get total count for pagination
+            total_count = await count_documents_with_filters(
+                VIDEO_COLLECTION_NAME, filters
+            )
+
+            # Calculate pagination
+            skip = (request.page - 1) * request.page_size
+
+            # Get paginated documents
+            documents = await find_documents_with_filters(
+                VIDEO_COLLECTION_NAME,
+                filters,
+                skip=skip,
+                limit=request.page_size,
+                sort_by="updated_at",
+                asc=False,  # Most recent first
+            )
+
+            # Convert to VideoInfo objects
+            videos = []
+            for doc in documents:
+                video_info = VideoInfo(
+                    id=str(doc.get("_id", "")),
+                    filename=doc.get("filename", ""),
+                    original_filename=doc.get("original_filename"),
+                    title=doc.get("title"),
+                    description=doc.get("description"),
+                    alt_text=doc.get("alt_text"),
+                    notes=doc.get("notes"),
+                    storage_path=doc.get("storage_path", ""),
+                    storage_url=doc.get("storage_url"),
+                    video_type=VideoType(
+                        doc.get("video_type", VideoType.GENERAL.value)
+                    ),
+                    source_type=VideoSourceType(
+                        doc.get("source_type", VideoSourceType.UPLOAD.value)
+                    ),
+                    entity_id=doc.get("entity_id"),
+                    entity_type=doc.get("entity_type"),
+                    metadata=VideoMetadata(**doc.get("metadata", {})),
+                    processing_status=MediaProcessingStatus(
+                        doc.get(
+                            "processing_status", MediaProcessingStatus.PENDING.value
+                        )
+                    ),
+                    uploaded_at=doc.get("uploaded_at") or datetime.now(timezone.utc),
+                    updated_at=doc.get("updated_at") or datetime.now(timezone.utc),
+                    processed_at=doc.get("processed_at"),
+                    tags=doc.get("tags", []),
+                    is_deleted=doc.get("is_deleted", False),
+                )
+                videos.append(video_info)
+
+            return VideoListResponse(
+                videos=videos, total=total_count, page=request.page, page_size=request.page_size
+            )
+
+        except Exception as e:
+            error_msg = f"Failed to list videos: {str(e)}"
+            logging.getLogger("uvicorn.error").error(error_msg)
+            return VideoListResponse(videos=[], total=0, page=request.page, page_size=request.page_size)

@@ -171,9 +171,6 @@ export const ImagePage = () => {
                                 <Text fontSize="xl" color="gray.500">
                                     No images found
                                 </Text>
-                                <Text fontSize="sm" color="gray.400">
-                                    Generated images will appear here
-                                </Text>
                             </VStack>
                         </Center>
                     ) : (

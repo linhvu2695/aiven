@@ -137,3 +137,19 @@ class VideoUrlsResponse(BaseModel):
     success: bool
     results: list[VideoUrlInfo]
     message: str
+
+class VideoListRequest(BaseModel):
+    """Request model for listing videos"""
+    page: int = 1
+    page_size: int = 10
+    video_type: Optional[VideoType] = None
+    entity_id: Optional[str] = None
+    entity_type: Optional[str] = None
+    include_deleted: bool = False
+
+class VideoListResponse(BaseModel):
+    """Response model for listing videos"""
+    videos: list[VideoInfo]
+    total: int
+    page: int = 1
+    page_size: int = 50
