@@ -16,6 +16,7 @@ class ImageType(str, Enum):
     CHAT_ATTACHMENT = "chat_attachment"
     ARTICLE_ATTACHMENT = "article_attachment"
     GENERAL = "general"
+    REPRESENTATIVE = "representative"
 
 class ImageFormat(str, Enum):
     """Supported image formats"""

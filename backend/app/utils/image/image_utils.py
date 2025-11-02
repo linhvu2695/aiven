@@ -18,6 +18,8 @@ def generate_storage_path(image_type: ImageType, entity_id: Optional[str], filen
         return f"{base_folder}/{entity_id}/avatar/{filename}"
     elif image_type == ImageType.ARTICLE_ATTACHMENT and entity_id:
         return f"{base_folder}/{entity_id}/attachments/{timestamp}_{filename}"
+    elif image_type == ImageType.REPRESENTATIVE and entity_id:
+        return f"{base_folder}/{entity_id}/{timestamp}_{filename}"
     else:
         return f"{base_folder}/{timestamp}_{filename}"
 
@@ -28,7 +30,8 @@ def get_image_folder_by_type(image_type: ImageType) -> str:
         ImageType.AGENT_AVATAR: "agents",
         ImageType.USER_AVATAR: "users", 
         ImageType.ARTICLE_ATTACHMENT: "articles",
-        ImageType.GENERAL: "general"
+        ImageType.GENERAL: "general",
+        ImageType.REPRESENTATIVE: "representatives"
     }
     return folder_map.get(image_type, "general")
 

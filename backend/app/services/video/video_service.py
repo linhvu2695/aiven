@@ -6,17 +6,20 @@ import logging
 import tempfile
 import os
 from datetime import datetime, timedelta, timezone
-from typing import Dict, Any
+from typing import Dict, Any, Optional
 from bson import ObjectId
 import cv2
 import requests
 
 from app.classes.video import CreateVideoRequest, CreateVideoResponse, GetVideoResponse, VideoFormat, VideoInfo, VideoMetadata, VideoSourceType, VideoType, VideoUrlInfo, VideoUrlResponse, VideoUrlsResponse, VideoListRequest, VideoListResponse
-from app.utils.string.string_utils import validate_exactly_one_field, validate_required_fields
+from app.classes.image import CreateImageRequest, ImageType, ImageSourceType
+from app.utils.string.string_utils import is_empty_string, validate_exactly_one_field, validate_required_fields
 from app.utils.video.video_utils import generate_storage_path
 from app.core.storage import FirebaseStorageRepository
 from app.classes.media import MediaProcessingStatus
 from app.core.database import get_document, insert_document, find_documents_with_filters, count_documents_with_filters
+from app.services.image.image_service import ImageService
+from app.utils.file.file_utils import create_temp_local_file
 
 VIDEO_COLLECTION_NAME = "videos"
 VIDEO_PRESIGNED_URL_EXPIRATION = 60 * 60  # 1 hour
@@ -50,15 +53,11 @@ class VideoService:
         return True, ""
 
     async def _extract_video_metadata(self, video_data: bytes) -> VideoMetadata:
-        """Extract metadata from video data using OpenCV"""
+        """Extract metadata from video file using OpenCV"""
         try:
-            # Create a temporary file to store video data
-            # OpenCV requires a file path to read video
-            with tempfile.NamedTemporaryFile(delete=False, suffix=".mp4") as temp_file:
-                temp_file.write(video_data)
-                temp_path = temp_file.name
-            
             try:
+                temp_path = create_temp_local_file(video_data, ".mp4")
+                
                 # Open video file with OpenCV
                 cap = cv2.VideoCapture(temp_path)
                 
@@ -66,7 +65,7 @@ class VideoService:
                     logging.getLogger("uvicorn.warning").warning(
                         "Failed to open video file with OpenCV"
                     )
-                    return VideoMetadata(file_size=len(video_data))
+                    return VideoMetadata(file_size=os.path.getsize(temp_path))
                 
                 # Extract metadata
                 width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
@@ -127,6 +126,104 @@ class VideoService:
                 f"Failed to extract video metadata: {e}"
             )
             return VideoMetadata(file_size=len(video_data))
+
+    async def _extract_video_thumbnail(
+        self, 
+        video_data: bytes, 
+        video_id: str,
+    ) -> Optional[str]:
+        """
+        Extract a thumbnail image from video data and save it as a REPRESENTATIVE image
+            
+        Returns:
+            Image ID of the created thumbnail, or None if extraction failed
+        """
+        if is_empty_string(video_id):
+            logging.getLogger("uvicorn.warning").warning("Video ID is required")
+            return None
+        
+        try:
+            try:
+                temp_path = create_temp_local_file(video_data, ".mp4")
+                    
+                # Open video file with OpenCV
+                cap = cv2.VideoCapture(temp_path)
+                
+                if not cap.isOpened():
+                    logging.getLogger("uvicorn.warning").warning(
+                        "Failed to open video file for thumbnail extraction"
+                    )
+                    return None
+                
+                # Get total frame count and calculate middle frame
+                frame_count = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
+                middle_frame = frame_count // 2 if frame_count > 0 else 0
+                
+                # Set position to middle frame
+                cap.set(cv2.CAP_PROP_POS_FRAMES, middle_frame)
+                
+                # Read the frame
+                ret, frame = cap.read()
+                
+                if not ret or frame is None:
+                    logging.getLogger("uvicorn.warning").warning(
+                        "Failed to read frame for thumbnail extraction"
+                    )
+                    cap.release()
+                    return None
+                
+                # Release video capture
+                cap.release()
+                
+                # Encode frame as JPEG (keep in BGR format, JPEG encoder will handle it correctly)
+                success, buffer = cv2.imencode('.jpg', frame)
+                if not success:
+                    logging.getLogger("uvicorn.warning").warning(
+                        "Failed to encode thumbnail image"
+                    )
+                    return None
+                
+                # Convert to bytes
+                thumbnail_data = buffer.tobytes()
+                thumbnail_filename = f"video_{video_id}_thumbnail.jpg"
+                
+                # Create image request for thumbnail
+                image_request = CreateImageRequest(
+                    filename=thumbnail_filename,
+                    original_filename=thumbnail_filename,
+                    title=f"Thumbnail for video {video_id}",
+                    description="Auto-generated thumbnail from video",
+                    image_type=ImageType.REPRESENTATIVE,
+                    source_type=ImageSourceType.BASE64,
+                    entity_id=video_id,
+                    entity_type="video",
+                    file_data=thumbnail_data,
+                )
+                
+                # Create the thumbnail image
+                image_service = ImageService()
+                response = await image_service.create_image(image_request)
+                
+                if response.success:
+                    logging.getLogger("uvicorn.info").info(
+                        f"Successfully created thumbnail image {response.image_id} for video {video_id}"
+                    )
+                    return response.image_id
+                else:
+                    logging.getLogger("uvicorn.warning").warning(
+                        f"Failed to create thumbnail image: {response.message}"
+                    )
+                    return None
+            finally:
+                # Clean up temporary file
+                if os.path.exists(temp_path):
+                    os.unlink(temp_path)
+                    
+        except Exception as e:
+            logging.getLogger("uvicorn.error").error(
+                f"Failed to extract video thumbnail: {e}"
+            )
+            return None
 
     async def _get_video_data_from_request(self, request: CreateVideoRequest) -> bytes:
         """Get video data from the request based on source type"""
@@ -194,6 +291,22 @@ class VideoService:
 
             # Insert into MongoDB
             video_id = await insert_document(VIDEO_COLLECTION_NAME, document)
+
+            # Extract and save thumbnail image (non-blocking, failures are logged but don't affect video creation)
+            try:
+                thumbnail_image_id = await self._extract_video_thumbnail(
+                    video_data=video_data,
+                    video_id=video_id,
+                )
+                if thumbnail_image_id:
+                    logging.getLogger("uvicorn.info").info(
+                        f"Thumbnail extracted successfully for video {video_id}: {thumbnail_image_id}"
+                    )
+            except Exception as e:
+                # Log the error but don't fail the video creation
+                logging.getLogger("uvicorn.warning").warning(
+                    f"Failed to extract thumbnail for video {video_id}: {e}"
+                )
 
             return CreateVideoResponse(
                 success=True, video_id=video_id, storage_path=storage_path, storage_url=storage_url, presigned_url=presigned_url, message=""
