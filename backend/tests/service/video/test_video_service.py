@@ -965,7 +965,7 @@ class TestVideoServicePresignedUrl:
         
         with patch("app.services.video.video_service.get_document", return_value=mock_video_document), \
              patch("app.services.video.video_service.FirebaseStorageRepository", return_value=mock_storage):
-            response = await video_service.get_video_presigned_url(TEST_VIDEO_ID)
+            response = await video_service._get_video_presigned_url(TEST_VIDEO_ID)
             
             assert isinstance(response, VideoUrlInfo)
             assert response.video_id == TEST_VIDEO_ID
@@ -984,7 +984,7 @@ class TestVideoServicePresignedUrl:
     async def test_get_video_presigned_url_video_not_found(self, video_service: VideoService):
         """Test presigned URL generation when video is not found"""
         with patch("app.services.video.video_service.get_document", return_value=None):
-            response = await video_service.get_video_presigned_url(TEST_VIDEO_ID)
+            response = await video_service._get_video_presigned_url(TEST_VIDEO_ID)
             
             assert isinstance(response, VideoUrlInfo)
             assert response.video_id == TEST_VIDEO_ID
@@ -996,7 +996,7 @@ class TestVideoServicePresignedUrl:
     @pytest.mark.asyncio
     async def test_get_video_presigned_url_invalid_id(self, video_service: VideoService):
         """Test presigned URL generation with invalid video ID"""
-        response = await video_service.get_video_presigned_url("invalid_id")
+        response = await video_service._get_video_presigned_url("invalid_id")
         
         assert isinstance(response, VideoUrlInfo)
         assert response.video_id == "invalid_id"
@@ -1013,7 +1013,7 @@ class TestVideoServicePresignedUrl:
         
         with patch("app.services.video.video_service.get_document", return_value=mock_video_document), \
              patch("app.services.video.video_service.FirebaseStorageRepository", return_value=mock_storage):
-            response = await video_service.get_video_presigned_url(TEST_VIDEO_ID)
+            response = await video_service._get_video_presigned_url(TEST_VIDEO_ID)
             
             assert isinstance(response, VideoUrlInfo)
             assert response.video_id == TEST_VIDEO_ID
@@ -1025,7 +1025,7 @@ class TestVideoServicePresignedUrl:
     @pytest.mark.asyncio
     async def test_get_video_presigned_url_empty_id(self, video_service: VideoService):
         """Test presigned URL generation with empty video ID"""
-        response = await video_service.get_video_presigned_url("")
+        response = await video_service._get_video_presigned_url("")
         
         assert isinstance(response, VideoUrlInfo)
         assert response.video_id == ""

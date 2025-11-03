@@ -70,14 +70,6 @@ async def list_videos(request: VideoListRequest):
         logging.getLogger("uvicorn.error").error(message)
         raise HTTPException(status_code=400, detail=message)
 
-@router.get("/serve/{video_id}")
-async def serve_video(video_id: str):
-    """Serve a video by its ID"""
-    response = await VideoService().get_video_presigned_url(video_id)
-    if not response:
-        raise HTTPException(status_code=404, detail="Video not found")
-    return response
-
 @router.get("/serve/ids/{video_ids}")
 async def serve_videos(video_ids: str):
     """Serve multiple videos via GET with comma-separated video IDs"""

@@ -312,7 +312,44 @@ class VideoService:
             return response.content
         else:
             raise ValueError("No video data source provided")
-            
+
+    async def _get_video_presigned_url(self, video_id: str) -> VideoUrlInfo:
+        """Get presigned URL for video access"""
+        try:
+            video_response = await self.get_video(video_id)
+            if not video_response.success or not video_response.video:
+                logging.getLogger("uvicorn.error").error(f"Failed to get video for presigned URL: {video_response.message}")
+                return VideoUrlInfo(
+                    video_id=video_id,
+                    success=False, url="", 
+                    expires_at=None, 
+                    message=f"Failed to get video for presigned URL: {video_response.message}"
+                    )
+
+            storage_repo = FirebaseStorageRepository()
+            presigned_url = await storage_repo.get_presigned_url(
+                video_response.video.storage_path, VIDEO_PRESIGNED_URL_EXPIRATION
+            )
+            expires_at = datetime.now(timezone.utc).replace(
+                second=0, microsecond=0
+            ) + timedelta(seconds=VIDEO_PRESIGNED_URL_EXPIRATION)
+            return VideoUrlInfo(
+                video_id=video_id,
+                url=presigned_url, 
+                expires_at=expires_at, 
+                success=True,
+                message=""
+                )
+        except Exception as e:
+            logging.getLogger("uvicorn.error").error(f"Failed to get video presigned URL: {str(e)}")
+            return VideoUrlInfo(
+                video_id=video_id,
+                url="", 
+                expires_at=None, 
+                success=False,
+                message=f"Failed to get video presigned URL: {str(e)}"
+                )
+
     async def create_video(self, request: CreateVideoRequest) -> CreateVideoResponse:
         """Create and upload a new video"""
         valid, warning = self._validate_create_video_request(request)
@@ -431,43 +468,6 @@ class VideoService:
             logging.getLogger("uvicorn.error").error(f"Failed to get video: {str(e)}")
             return GetVideoResponse(success=False, video=None, message=f"Failed to get video: {str(e)}")
 
-    async def get_video_presigned_url(self, video_id: str) -> VideoUrlInfo:
-        """Get presigned URL for video access"""
-        try:
-            video_response = await self.get_video(video_id)
-            if not video_response.success or not video_response.video:
-                logging.getLogger("uvicorn.error").error(f"Failed to get video for presigned URL: {video_response.message}")
-                return VideoUrlInfo(
-                    video_id=video_id,
-                    success=False, url="", 
-                    expires_at=None, 
-                    message=f"Failed to get video for presigned URL: {video_response.message}"
-                    )
-
-            storage_repo = FirebaseStorageRepository()
-            presigned_url = await storage_repo.get_presigned_url(
-                video_response.video.storage_path, VIDEO_PRESIGNED_URL_EXPIRATION
-            )
-            expires_at = datetime.now(timezone.utc).replace(
-                second=0, microsecond=0
-            ) + timedelta(seconds=VIDEO_PRESIGNED_URL_EXPIRATION)
-            return VideoUrlInfo(
-                video_id=video_id,
-                url=presigned_url, 
-                expires_at=expires_at, 
-                success=True,
-                message=""
-                )
-        except Exception as e:
-            logging.getLogger("uvicorn.error").error(f"Failed to get video presigned URL: {str(e)}")
-            return VideoUrlInfo(
-                video_id=video_id,
-                url="", 
-                expires_at=None, 
-                success=False,
-                message=f"Failed to get video presigned URL: {str(e)}"
-                )
-
     async def get_videos_presigned_urls(self, request: VideoUrlsRequest) -> VideoUrlsResponse:
         """Get presigned URLs for multiple videos concurrently"""
         if not request.video_ids or len(request.video_ids) == 0:
@@ -477,7 +477,7 @@ class VideoService:
         
         try:
             # Process all videos concurrently
-            tasks = [self.get_video_presigned_url(video_id) for video_id in request.video_ids]
+            tasks = [self._get_video_presigned_url(video_id) for video_id in request.video_ids]
             results = await asyncio.gather(*tasks, return_exceptions=True) # same order as requests
             
             # Handle any exceptions from gather

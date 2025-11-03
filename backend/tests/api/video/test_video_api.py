@@ -16,6 +16,9 @@ from app.classes.video import (
     VideoFormat,
     VideoListRequest,
     VideoListResponse,
+    VideoUrlsRequest,
+    VideoUrlsResponse,
+    VideoUrlInfo,
 )
 from app.classes.media import MediaProcessingStatus
 
@@ -28,6 +31,8 @@ TEST_VIDEO_ID_2 = "507f191e810c19729de860ea"
 TEST_STORAGE_PATH = "videos/test/video.mp4"
 TEST_STORAGE_URL = "https://storage.example.com/videos/test/video.mp4"
 TEST_PRESIGNED_URL = "https://storage.example.com/videos/test/video.mp4?token=abc123"
+TEST_THUMBNAIL_URL = "https://storage.example.com/thumbnails/test.jpg"
+TEST_THUMBNAIL_URL_2 = "https://storage.example.com/thumbnails/test2.jpg"
 
 # Reusable test data
 _TEST_VIDEO_METADATA = VideoMetadata(
@@ -1125,3 +1130,439 @@ class TestVideoApiListVideos:
                 assert len(data["videos"]) == 0
                 assert data["page"] == 999999
                 assert data["total"] == 10
+
+
+class TestVideoApiServeVideos:
+    """Test cases for the serve videos endpoint"""
+
+    @pytest.mark.asyncio
+    async def test_serve_videos_single_id(self):
+        """Test serving a single video by ID"""
+        mock_url_info = VideoUrlInfo(
+            video_id=TEST_VIDEO_ID,
+            url=TEST_PRESIGNED_URL,
+            expires_at=datetime(2024, 1, 1, 13, 0, 0),
+            thumbnail_url=TEST_THUMBNAIL_URL,
+            thumbnail_expires_at=datetime(2024, 1, 1, 13, 0, 0),
+            success=True,
+            message="",
+        )
+
+        mock_response = VideoUrlsResponse(
+            success=True,
+            results=[mock_url_info],
+            message="",
+        )
+
+        mock_service = AsyncMock(return_value=mock_response)
+        with patch(
+            "app.services.video.video_service.VideoService.get_videos_presigned_urls",
+            new=mock_service,
+        ):
+            transport = ASGITransport(app=app)
+            async with AsyncClient(transport=transport, base_url="http://test") as ac:
+                response = await ac.get(f"/videos/serve/ids/{TEST_VIDEO_ID}")
+
+                # Verify the service was called
+                mock_service.assert_called_once()
+                call_args = mock_service.call_args[0][0]
+                assert isinstance(call_args, VideoUrlsRequest)
+                assert call_args.video_ids == [TEST_VIDEO_ID]
+
+                # Verify the response
+                assert response.status_code == 200
+                data = response.json()
+                assert data["success"] is True
+                assert len(data["results"]) == 1
+                assert data["results"][0]["video_id"] == TEST_VIDEO_ID
+                assert data["results"][0]["url"] == TEST_PRESIGNED_URL
+                assert data["results"][0]["expires_at"] == datetime(2024, 1, 1, 13, 0, 0).isoformat()
+                assert data["results"][0]["success"] is True
+                assert data["results"][0]["thumbnail_url"] == TEST_THUMBNAIL_URL
+                assert data["results"][0]["thumbnail_expires_at"] == datetime(2024, 1, 1, 13, 0, 0).isoformat()
+
+    @pytest.mark.asyncio
+    async def test_serve_videos_multiple_ids(self):
+        """Test serving multiple videos by comma-separated IDs"""
+        mock_url_info_1 = VideoUrlInfo(
+            video_id=TEST_VIDEO_ID,
+            url=TEST_PRESIGNED_URL,
+            expires_at=datetime(2024, 1, 1, 13, 0, 0),
+            thumbnail_url=TEST_THUMBNAIL_URL,
+            thumbnail_expires_at=datetime(2024, 1, 1, 13, 0, 0),
+            success=True,
+            message="",
+        )
+
+        mock_url_info_2 = VideoUrlInfo(
+            video_id=TEST_VIDEO_ID_2,
+            url="https://storage.example.com/videos/test2.mp4?token=xyz789",
+            expires_at=datetime(2024, 1, 1, 13, 0, 0),
+            thumbnail_url=TEST_THUMBNAIL_URL_2,
+            thumbnail_expires_at=datetime(2024, 1, 1, 13, 0, 0),
+            success=True,
+            message="",
+        )
+
+        mock_response = VideoUrlsResponse(
+            success=True,
+            results=[mock_url_info_1, mock_url_info_2],
+            message="",
+        )
+
+        mock_service = AsyncMock(return_value=mock_response)
+        with patch(
+            "app.services.video.video_service.VideoService.get_videos_presigned_urls",
+            new=mock_service,
+        ):
+            transport = ASGITransport(app=app)
+            async with AsyncClient(transport=transport, base_url="http://test") as ac:
+                response = await ac.get(f"/videos/serve/ids/{TEST_VIDEO_ID},{TEST_VIDEO_ID_2}")
+
+                # Verify the service was called
+                mock_service.assert_called_once()
+                call_args = mock_service.call_args[0][0]
+                assert isinstance(call_args, VideoUrlsRequest)
+                assert call_args.video_ids == [TEST_VIDEO_ID, TEST_VIDEO_ID_2]
+
+                # Verify the response
+                assert response.status_code == 200
+                data = response.json()
+                assert data["success"] is True
+                assert len(data["results"]) == 2
+                assert data["results"][0]["video_id"] == TEST_VIDEO_ID
+                assert data["results"][1]["video_id"] == TEST_VIDEO_ID_2
+                assert data["results"][0]["url"] == TEST_PRESIGNED_URL
+                assert data["results"][1]["url"] == "https://storage.example.com/videos/test2.mp4?token=xyz789"
+                assert data["results"][0]["expires_at"] == datetime(2024, 1, 1, 13, 0, 0).isoformat()
+                assert data["results"][1]["expires_at"] == datetime(2024, 1, 1, 13, 0, 0).isoformat()
+                assert data["results"][0]["thumbnail_url"] == TEST_THUMBNAIL_URL
+                assert data["results"][1]["thumbnail_url"] == TEST_THUMBNAIL_URL_2
+                assert data["results"][0]["thumbnail_expires_at"] == datetime(2024, 1, 1, 13, 0, 0).isoformat()
+                assert data["results"][1]["thumbnail_expires_at"] == datetime(2024, 1, 1, 13, 0, 0).isoformat()
+
+    @pytest.mark.asyncio
+    async def test_serve_videos_with_spaces_in_ids(self):
+        """Test serving videos with spaces in the comma-separated list"""
+        mock_url_info = VideoUrlInfo(
+            video_id=TEST_VIDEO_ID,
+            url=TEST_PRESIGNED_URL,
+            expires_at=datetime(2024, 1, 1, 13, 0, 0),
+            success=True,
+            message="",
+        )
+
+        mock_response = VideoUrlsResponse(
+            success=True,
+            results=[mock_url_info],
+            message="",
+        )
+
+        mock_service = AsyncMock(return_value=mock_response)
+        with patch(
+            "app.services.video.video_service.VideoService.get_videos_presigned_urls",
+            new=mock_service,
+        ):
+            transport = ASGITransport(app=app)
+            async with AsyncClient(transport=transport, base_url="http://test") as ac:
+                # IDs with extra spaces
+                response = await ac.get(f"/videos/serve/ids/{TEST_VIDEO_ID} , {TEST_VIDEO_ID_2}")
+
+                # Verify the service was called with trimmed IDs
+                mock_service.assert_called_once()
+                call_args = mock_service.call_args[0][0]
+                assert call_args.video_ids == [TEST_VIDEO_ID, TEST_VIDEO_ID_2]
+
+                assert response.status_code == 200
+
+    @pytest.mark.asyncio
+    async def test_serve_videos_empty_ids(self):
+        """Test serving videos with empty video IDs"""
+        transport = ASGITransport(app=app)
+        async with AsyncClient(transport=transport, base_url="http://test") as ac:
+            response = await ac.get("/videos/serve/ids/")
+
+            # Should return 404 error (route doesn't match)
+            assert response.status_code == 404
+
+    @pytest.mark.asyncio
+    async def test_serve_videos_only_commas(self):
+        """Test serving videos with only commas (no actual IDs)"""
+        transport = ASGITransport(app=app)
+        async with AsyncClient(transport=transport, base_url="http://test") as ac:
+            response = await ac.get("/videos/serve/ids/,,,")
+
+            # Should return 400 error
+            assert response.status_code == 400
+            data = response.json()
+            assert "detail" in data
+            assert "No video IDs provided" in data["detail"]
+
+    @pytest.mark.asyncio
+    async def test_serve_videos_exceeds_max_limit(self):
+        """Test serving videos with too many IDs (exceeds MAX_VIDEOS_LIMIT)"""
+        # Create 21 video IDs (MAX_VIDEOS_LIMIT is 20)
+        video_ids = [f"507f1f77bcf86cd79943{i:04d}" for i in range(21)]
+        ids_string = ",".join(video_ids)
+
+        transport = ASGITransport(app=app)
+        async with AsyncClient(transport=transport, base_url="http://test") as ac:
+            response = await ac.get(f"/videos/serve/ids/{ids_string}")
+
+            # Should return 400 error
+            assert response.status_code == 400
+            data = response.json()
+            assert "detail" in data
+            assert "Too many video IDs" in data["detail"]
+            assert "max 20" in data["detail"]
+
+    @pytest.mark.asyncio
+    async def test_serve_videos_at_max_limit(self):
+        """Test serving videos with exactly MAX_VIDEOS_LIMIT IDs"""
+        # Create exactly 20 video IDs (MAX_VIDEOS_LIMIT is 20)
+        video_ids = [f"507f1f77bcf86cd79943{i:04d}" for i in range(20)]
+        ids_string = ",".join(video_ids)
+
+        mock_results = [
+            VideoUrlInfo(
+                video_id=vid,
+                url=f"https://storage.example.com/videos/{vid}.mp4?token=abc",
+                expires_at=datetime(2024, 1, 1, 13, 0, 0),
+                success=True,
+                message="",
+            )
+            for vid in video_ids
+        ]
+
+        mock_response = VideoUrlsResponse(
+            success=True,
+            results=mock_results,
+            message="",
+        )
+
+        mock_service = AsyncMock(return_value=mock_response)
+        with patch(
+            "app.services.video.video_service.VideoService.get_videos_presigned_urls",
+            new=mock_service,
+        ):
+            transport = ASGITransport(app=app)
+            async with AsyncClient(transport=transport, base_url="http://test") as ac:
+                response = await ac.get(f"/videos/serve/ids/{ids_string}")
+
+                # Verify the service was called with all 20 IDs
+                mock_service.assert_called_once()
+                call_args = mock_service.call_args[0][0]
+                assert len(call_args.video_ids) == 20
+
+                # Should succeed
+                assert response.status_code == 200
+                data = response.json()
+                assert len(data["results"]) == 20
+
+    @pytest.mark.asyncio
+    async def test_serve_videos_partial_success(self):
+        """Test serving videos with mixed success/failure results"""
+        mock_url_info_1 = VideoUrlInfo(
+            video_id=TEST_VIDEO_ID,
+            url=TEST_PRESIGNED_URL,
+            expires_at=datetime(2024, 1, 1, 13, 0, 0),
+            success=True,
+            message="",
+        )
+
+        mock_url_info_2 = VideoUrlInfo(
+            video_id=TEST_VIDEO_ID_2,
+            url=None,
+            expires_at=None,
+            success=False,
+            message="Video not found",
+        )
+
+        mock_response = VideoUrlsResponse(
+            success=True,  # Overall success is True if at least one video succeeded
+            results=[mock_url_info_1, mock_url_info_2],
+            message="Partial success",
+        )
+
+        mock_service = AsyncMock(return_value=mock_response)
+        with patch(
+            "app.services.video.video_service.VideoService.get_videos_presigned_urls",
+            new=mock_service,
+        ):
+            transport = ASGITransport(app=app)
+            async with AsyncClient(transport=transport, base_url="http://test") as ac:
+                response = await ac.get(f"/videos/serve/ids/{TEST_VIDEO_ID},{TEST_VIDEO_ID_2}")
+
+                # Should return 200 with partial results
+                assert response.status_code == 200
+                data = response.json()
+                assert data["success"] is True
+                assert len(data["results"]) == 2
+                assert data["results"][0]["success"] is True
+                assert data["results"][1]["success"] is False
+                assert data["results"][1]["message"] == "Video not found"
+
+    @pytest.mark.asyncio
+    async def test_serve_videos_all_failed(self):
+        """Test serving videos when all video retrievals fail"""
+        mock_url_info_1 = VideoUrlInfo(
+            video_id=TEST_VIDEO_ID,
+            url=None,
+            expires_at=None,
+            success=False,
+            message="Video not found",
+        )
+
+        mock_url_info_2 = VideoUrlInfo(
+            video_id=TEST_VIDEO_ID_2,
+            url=None,
+            expires_at=None,
+            success=False,
+            message="Video not found",
+        )
+
+        mock_response = VideoUrlsResponse(
+            success=False,  # Overall success is False if all failed
+            results=[mock_url_info_1, mock_url_info_2],
+            message="All videos failed",
+        )
+
+        mock_service = AsyncMock(return_value=mock_response)
+        with patch(
+            "app.services.video.video_service.VideoService.get_videos_presigned_urls",
+            new=mock_service,
+        ):
+            transport = ASGITransport(app=app)
+            async with AsyncClient(transport=transport, base_url="http://test") as ac:
+                response = await ac.get(f"/videos/serve/ids/{TEST_VIDEO_ID},{TEST_VIDEO_ID_2}")
+
+                # Should return 400 when all videos fail
+                assert response.status_code == 400
+                data = response.json()
+                assert data["success"] is False
+                assert len(data["results"]) == 2
+                assert data["results"][0]["success"] is False
+                assert data["results"][1]["success"] is False
+
+    @pytest.mark.asyncio
+    async def test_serve_videos_service_exception(self):
+        """Test serving videos when service raises an exception"""
+        with patch(
+            "app.services.video.video_service.VideoService.get_videos_presigned_urls",
+            new=AsyncMock(side_effect=Exception("Storage service unavailable")),
+        ):
+            transport = ASGITransport(app=app)
+            async with AsyncClient(transport=transport, base_url="http://test") as ac:
+                response = await ac.get(f"/videos/serve/ids/{TEST_VIDEO_ID}")
+
+                # Should return 400 error
+                assert response.status_code == 400
+                data = response.json()
+                assert "detail" in data
+                assert "Error getting video urls" in data["detail"]
+                assert "Storage service unavailable" in data["detail"]
+
+    @pytest.mark.asyncio
+    async def test_serve_videos_without_thumbnails(self):
+        """Test serving videos without thumbnail URLs"""
+        mock_url_info = VideoUrlInfo(
+            video_id=TEST_VIDEO_ID,
+            url=TEST_PRESIGNED_URL,
+            expires_at=datetime(2024, 1, 1, 13, 0, 0),
+            thumbnail_url=None,
+            thumbnail_expires_at=None,
+            success=True,
+            message="",
+        )
+
+        mock_response = VideoUrlsResponse(
+            success=True,
+            results=[mock_url_info],
+            message="",
+        )
+
+        mock_service = AsyncMock(return_value=mock_response)
+        with patch(
+            "app.services.video.video_service.VideoService.get_videos_presigned_urls",
+            new=mock_service,
+        ):
+            transport = ASGITransport(app=app)
+            async with AsyncClient(transport=transport, base_url="http://test") as ac:
+                response = await ac.get(f"/videos/serve/ids/{TEST_VIDEO_ID}")
+
+                # Verify the response has null thumbnail fields
+                assert response.status_code == 200
+                data = response.json()
+                assert data["results"][0]["thumbnail_url"] is None
+                assert data["results"][0]["thumbnail_expires_at"] is None
+
+    @pytest.mark.asyncio
+    async def test_serve_videos_invalid_id_format(self):
+        """Test serving videos with invalid video ID format"""
+        mock_url_info = VideoUrlInfo(
+            video_id="invalid-id",
+            url=None,
+            expires_at=None,
+            success=False,
+            message="Invalid video ID format",
+        )
+
+        mock_response = VideoUrlsResponse(
+            success=False,
+            results=[mock_url_info],
+            message="Invalid video ID",
+        )
+
+        mock_service = AsyncMock(return_value=mock_response)
+        with patch(
+            "app.services.video.video_service.VideoService.get_videos_presigned_urls",
+            new=mock_service,
+        ):
+            transport = ASGITransport(app=app)
+            async with AsyncClient(transport=transport, base_url="http://test") as ac:
+                response = await ac.get("/videos/serve/ids/invalid-id")
+
+                # Should return 400 error when all results fail
+                assert response.status_code == 400
+                data = response.json()
+                assert data["success"] is False
+                assert data["results"][0]["success"] is False
+                assert "Invalid video ID" in data["results"][0]["message"]
+
+    @pytest.mark.asyncio
+    async def test_serve_videos_duplicate_ids(self):
+        """Test serving videos with duplicate IDs in the list"""
+        # Pass duplicate IDs
+        ids_string = f"{TEST_VIDEO_ID},{TEST_VIDEO_ID},{TEST_VIDEO_ID_2}"
+
+        mock_url_info = VideoUrlInfo(
+            video_id=TEST_VIDEO_ID,
+            url=TEST_PRESIGNED_URL,
+            expires_at=datetime(2024, 1, 1, 13, 0, 0),
+            success=True,
+            message="",
+        )
+
+        mock_response = VideoUrlsResponse(
+            success=True,
+            results=[mock_url_info],
+            message="",
+        )
+
+        mock_service = AsyncMock(return_value=mock_response)
+        with patch(
+            "app.services.video.video_service.VideoService.get_videos_presigned_urls",
+            new=mock_service,
+        ):
+            transport = ASGITransport(app=app)
+            async with AsyncClient(transport=transport, base_url="http://test") as ac:
+                response = await ac.get(f"/videos/serve/ids/{ids_string}")
+
+                # Verify the service was called with all IDs (including duplicates)
+                mock_service.assert_called_once()
+                call_args = mock_service.call_args[0][0]
+                assert call_args.video_ids == [TEST_VIDEO_ID, TEST_VIDEO_ID, TEST_VIDEO_ID_2]
+
+                # Should succeed
+                assert response.status_code == 200
+
