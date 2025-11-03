@@ -9,20 +9,16 @@ import {
     Center,
     HStack,
     IconButton,
-    Card,
 } from "@chakra-ui/react";
 import { useEffect, useState } from "react";
 import { toaster } from "@/components/ui/toaster";
 import type {
     VideoListResponse,
     VideoUrlsResponse,
-    VideoInfo,
+    VideoWithUrl,
 } from "@/types/video";
 import { FaArrowLeft, FaArrowRight } from "react-icons/fa";
-
-interface VideoWithUrl extends VideoInfo {
-    url?: string;
-}
+import { VideoCard } from "@/components/video-card";
 
 export const VideoPage = () => {
     const [videos, setVideos] = useState<VideoWithUrl[]>([]);
@@ -73,6 +69,7 @@ export const VideoPage = () => {
                         return {
                             ...video,
                             url: urlInfo?.url,
+                            thumbnail_url: urlInfo?.thumbnail_url,
                         };
                     });
 
@@ -144,84 +141,7 @@ export const VideoPage = () => {
                             p={4}
                         >
                             {videos.map((video) => (
-                                <Card.Root key={video.id} overflow="hidden">
-                                    <Card.Body p={0}>
-                                        {/* Video */}
-                                        {video.url ? (
-                                            <Box
-                                                width="100%"
-                                                height="100%"
-                                                bg="black"
-                                            >
-                                                <video
-                                                    src={video.url}
-                                                    controls
-                                                    style={{
-                                                        width: "100%",
-                                                        height: "100%",
-                                                        objectFit: "cover",
-                                                    }}
-                                                />
-                                            </Box>
-                                        ) : (
-                                            <Box
-                                                width="100%"
-                                                height="100%"
-                                                bg="gray.200"
-                                                display="flex"
-                                                alignItems="center"
-                                                justifyContent="center"
-                                            >
-                                                <Text color="gray.500">
-                                                    No preview available
-                                                </Text>
-                                            </Box>
-                                        )}
-
-                                        {/* Details */}
-                                        <VStack
-                                            align="stretch"
-                                            p={3}
-                                            gap={1}
-                                        >
-                                            <Text
-                                                fontWeight="semibold"
-                                                fontSize="sm"
-                                                lineClamp={1}
-                                            >
-                                                {video.title ||
-                                                    video.filename ||
-                                                    "Untitled"}
-                                            </Text>
-                                            {video.description && (
-                                                <Text
-                                                    fontSize="xs"
-                                                    color="gray.600"
-                                                    lineClamp={2}
-                                                >
-                                                    {video.description}
-                                                </Text>
-                                            )}
-
-                                            {/* Metadata */}
-                                            <VStack
-                                                fontSize="xs"
-                                                color="gray.500"
-                                                gap={3}
-                                                mt={1}
-                                            >
-                                                {video.uploaded_at && (
-                                                    <Text>
-                                                        Uploaded at{" "}
-                                                        {new Date(
-                                                            video.uploaded_at
-                                                        ).toLocaleString()}
-                                                    </Text>
-                                                )}
-                                            </VStack>
-                                        </VStack>
-                                    </Card.Body>
-                                </Card.Root>
+                                <VideoCard key={video.id} video={video} onClick={() => {}} onDelete={() => {}} />
                             ))}
                         </Grid>
                     )}

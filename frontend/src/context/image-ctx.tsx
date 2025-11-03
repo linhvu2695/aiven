@@ -1,9 +1,5 @@
 import { createContext, useContext, useState, type ReactNode } from "react";
-import type { ImageInfo } from "@/types/image";
-
-export interface ImageWithUrl extends ImageInfo {
-    url?: string;
-}
+import type { ImageWithUrl } from "@/types/image";
 
 type ImageContextType = {
     selectedImage: ImageWithUrl | null;

@@ -7,14 +7,10 @@ import {
     Image,
     useDisclosure,
 } from "@chakra-ui/react";
-import type { ImageInfo } from "@/types/image";
+import type { ImageWithUrl } from "@/types/image";
 import { DeleteItemButton } from "@/components/ui";
 import { ImageDeleteDialog } from "./image-delete-dialog";
 import { useImageView, ViewMode } from "@/context/image-view-ctx";
-
-interface ImageWithUrl extends ImageInfo {
-    url?: string;
-}
 
 interface ImageCardProps {
     image: ImageWithUrl;

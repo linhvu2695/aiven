@@ -2,6 +2,8 @@ export interface VideoUrlInfo {
     video_id: string;
     url?: string;
     expires_at?: string;
+    thumbnail_url?: string;
+    thumbnail_expires_at?: string;
     success: boolean;
     message: string;
 }
@@ -26,6 +28,11 @@ export interface VideoInfo {
         duration?: number;
         file_size?: number;
     };
+}
+
+export interface VideoWithUrl extends VideoInfo {
+    url?: string;
+    thumbnail_url?: string;
 }
 
 export interface VideoListResponse {

@@ -18,7 +18,8 @@ import type {
     ImageUrlsResponse,
 } from "@/types/image";
 import { ImageCard, ImageDetailDialog, ImageViewDialog, ImageGenDialog } from "@/components/image";
-import { useImage, type ImageWithUrl } from "@/context/image-ctx";
+import { useImage } from "@/context/image-ctx";
+import type { ImageWithUrl } from "@/types/image";
 import { useImageView } from "@/context/image-view-ctx";
 import { FaArrowLeft, FaArrowRight, FaListUl, FaMagic } from "react-icons/fa";
 import { Tooltip } from "@/components/ui";

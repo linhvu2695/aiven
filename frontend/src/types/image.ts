@@ -22,6 +22,10 @@ export interface ImageInfo {
     original_filename?: string;
 }
 
+export interface ImageWithUrl extends ImageInfo {
+    url?: string;
+}
+
 export interface ImageListResponse {
     images: ImageInfo[];
     total: number;
