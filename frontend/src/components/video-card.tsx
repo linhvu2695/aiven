@@ -1,37 +1,155 @@
-import { Box, Card, Image, Text, VStack } from "@chakra-ui/react";
+import { Box, Card, IconButton, Image, Text, VStack } from "@chakra-ui/react";
+import { useRef, useState } from "react";
+import { FaPlay, FaPause } from "react-icons/fa";
 import type { VideoWithUrl } from "@/types/video";
 
 interface VideoCardProps {
     video: VideoWithUrl;
-    onClick?: () => void;
+    onViewClick?: () => void;
     onDelete?: () => void;
 }
 
-export const VideoCard = ({ video, onClick, onDelete }: VideoCardProps) => {
+export const VideoCard = ({ video, onViewClick, onDelete }: VideoCardProps) => {
+    const [isPlaying, setIsPlaying] = useState(false);
+    const [isHovered, setIsHovered] = useState(false);
+    const [showVideo, setShowVideo] = useState(false);
+    const videoRef = useRef<HTMLVideoElement>(null);
+
+    const handlePlayClick = () => {
+        setShowVideo(true);
+        setIsPlaying(true);
+    };
+
+    const handleTogglePlayPause = () => {
+        if (videoRef.current) {
+            if (isPlaying) {
+                videoRef.current.pause();
+                setIsPlaying(false);
+            } else {
+                videoRef.current.play();
+                setIsPlaying(true);
+            }
+        }
+    };
+
     return (
         <Card.Root key={video.id} overflow="hidden">
             <Card.Body p={0}>
-                {/* Video */}
-                {video.thumbnail_url ? (
-                    <Image
-                        src={video.thumbnail_url}
-                        alt={video.title || video.filename || "Untitled"}
-                        width="100%"
-                        height="100%"
-                        objectFit="cover"
-                    />
-                ) : (
-                    <Box
-                        width="100%"
-                        height="100%"
-                        bg="gray.200"
-                        display="flex"
-                        alignItems="center"
-                        justifyContent="center"
-                    >
-                        <Text color="gray.500">No preview available</Text>
-                    </Box>
-                )}
+                {/* Video or Thumbnail */}
+                <Box
+                    position="relative"
+                    width="100%"
+                    height="100%"
+                    onMouseEnter={() => setIsHovered(true)}
+                    onMouseLeave={() => setIsHovered(false)}
+                >
+                    {showVideo && video.url ? (
+                        <>
+                            <video
+                                ref={videoRef}
+                                src={video.url}
+                                controls
+                                autoPlay
+                                style={{
+                                    width: "100%",
+                                    height: "100%",
+                                    objectFit: "cover",
+                                }}
+                                onPlay={() => setIsPlaying(true)}
+                                onPause={() => setIsPlaying(false)}
+                            />
+                            {/* Play/Pause button overlay */}
+                            <Box
+                                position="absolute"
+                                top={0}
+                                left={0}
+                                right={0}
+                                bottom={0}
+                                display="flex"
+                                alignItems="center"
+                                justifyContent="center"
+                                bg={isHovered ? "blackAlpha.400" : "transparent"}
+                                transition="background-color 0.2s"
+                                pointerEvents={isHovered ? "auto" : "none"}
+                            >
+                                <IconButton
+                                    aria-label={isPlaying ? "Pause" : "Play"}
+                                    size="xl"
+                                    colorScheme="teal"
+                                    rounded="full"
+                                    onClick={handleTogglePlayPause}
+                                    opacity={isHovered ? 1 : 0}
+                                    transform={isHovered ? "scale(1.1)" : "scale(1)"}
+                                    transition="all 0.2s"
+                                    pointerEvents="auto"
+                                    bg="rgb(255, 255, 255, 0.4)"
+                                    backdropFilter="blur(8px)"
+                                    _hover={{
+                                        transform: "scale(1.2)",
+                                    }}
+                                >
+                                    {isPlaying ? <FaPause /> : <FaPlay />}
+                                </IconButton>
+                            </Box>
+                        </>
+                    ) : (
+                        <>
+                            {/* Thumbnail */}
+                            {video.thumbnail_url ? (
+                                <Image
+                                    src={video.thumbnail_url}
+                                    alt={video.title || video.filename || "Untitled"}
+                                    width="100%"
+                                    height="100%"
+                                    objectFit="cover"
+                                />
+                            ) : (
+                                <Box
+                                    width="100%"
+                                    height="100%"
+                                    bg="gray.200"
+                                    display="flex"
+                                    alignItems="center"
+                                    justifyContent="center"
+                                >
+                                    <Text color="gray.500">No preview available</Text>
+                                </Box>
+                            )}
+
+                            {/* Play button overlay */}
+                            {video.url && (
+                                <Box
+                                    position="absolute"
+                                    top={0}
+                                    left={0}
+                                    right={0}
+                                    bottom={0}
+                                    display="flex"
+                                    alignItems="center"
+                                    justifyContent="center"
+                                    bg={isHovered ? "blackAlpha.400" : "transparent"}
+                                    transition="background-color 0.2s"
+                                >
+                                    <IconButton
+                                        aria-label="Play video"
+                                        size="xl"
+                                        colorScheme="teal"
+                                        rounded="full"
+                                        onClick={handlePlayClick}
+                                        opacity={isHovered ? 1 : 0.7}
+                                        transform={isHovered ? "scale(1.1)" : "scale(1)"}
+                                        transition="all 0.2s"
+                                        _hover={{
+                                            transform: "scale(1.2)",
+                                        }}
+                                    >
+                                        <FaPlay />
+                                    </IconButton>
+                                </Box>
+                            )}
+                        </>
+                    )}
+                </Box>
 
                 {/* Details */}
                 <VStack align="stretch" p={3} gap={1}>
