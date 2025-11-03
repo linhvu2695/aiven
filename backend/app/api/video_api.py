@@ -4,6 +4,8 @@ from fastapi.responses import JSONResponse
 from app.classes.video import (
     CreateVideoRequest,
     CreateVideoResponse,
+    DeleteVideoRequest,
+    DeleteVideoResponse,
     GetVideoResponse,
     VideoType,
     VideoSourceType,
@@ -93,3 +95,15 @@ async def serve_videos(video_ids: str):
     except Exception as e:
         logging.getLogger("uvicorn.error").error(f"Error getting video urls: {str(e)}")
         raise HTTPException(status_code=400, detail=f"Error getting video urls: {str(e)}")
+
+@router.delete("/{video_id}", response_model=DeleteVideoResponse)
+async def delete_video(video_id: str):
+    """Delete a video by its ID"""
+    response = await VideoService().delete_video(DeleteVideoRequest(
+        video_id=video_id, 
+        soft_delete=False
+        ))
+    if response.success:
+        return response
+    else:
+        raise HTTPException(status_code=400, detail=response.message)

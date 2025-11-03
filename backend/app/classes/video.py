@@ -153,3 +153,13 @@ class VideoListResponse(BaseModel):
     total: int
     page: int = 1
     page_size: int = 50
+
+class DeleteVideoRequest(BaseModel):
+    """Request model for deleting a video"""
+    video_id: str
+    soft_delete: bool = True
+
+class DeleteVideoResponse(BaseModel):
+    """Response model for deleting a video"""
+    success: bool
+    message: str

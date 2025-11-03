@@ -11,15 +11,16 @@ from bson import ObjectId
 import cv2
 import requests
 
-from app.classes.video import CreateVideoRequest, CreateVideoResponse, GetVideoResponse, VideoFormat, VideoInfo, VideoMetadata, VideoSourceType, VideoType, VideoUrlInfo, VideoUrlsRequest, VideoUrlsResponse, VideoListRequest, VideoListResponse
+from app.classes.video import CreateVideoRequest, CreateVideoResponse, DeleteVideoRequest, DeleteVideoResponse, GetVideoResponse, VideoFormat, VideoInfo, VideoMetadata, VideoSourceType, VideoType, VideoUrlInfo, VideoUrlsRequest, VideoUrlsResponse, VideoListRequest, VideoListResponse
 from app.classes.image import CreateImageRequest, ImageType, ImageSourceType
 from app.utils.string.string_utils import is_empty_string, validate_exactly_one_field, validate_required_fields
 from app.utils.video.video_utils import generate_storage_path
 from app.core.storage import FirebaseStorageRepository
 from app.classes.media import MediaProcessingStatus
-from app.core.database import get_document, insert_document, find_documents_with_filters, count_documents_with_filters
+from app.core.database import delete_document, get_document, insert_document, find_documents_with_filters, count_documents_with_filters, update_document
 from app.services.image.image_service import ImageService
 from app.utils.file.file_utils import create_temp_local_file
+from app.services.image.image_constants import IMAGE_COLLECTION_NAME
 
 VIDEO_COLLECTION_NAME = "videos"
 VIDEO_PRESIGNED_URL_EXPIRATION = 60 * 60  # 1 hour
@@ -600,3 +601,54 @@ class VideoService:
             error_msg = f"Failed to list videos: {str(e)}"
             logging.getLogger("uvicorn.error").error(error_msg)
             return VideoListResponse(videos=[], total=0, page=request.page, page_size=request.page_size)
+
+    async def delete_video(self, request: DeleteVideoRequest) -> DeleteVideoResponse:
+        """Delete a video"""
+        if not ObjectId.is_valid(request.video_id):
+            return DeleteVideoResponse(success=False, message="Invalid document ID format")
+
+        try:
+            data = await get_document(VIDEO_COLLECTION_NAME, request.video_id)
+            if not data:
+                return DeleteVideoResponse(success=False, message="Video not found")
+
+            if request.soft_delete:
+                await update_document(VIDEO_COLLECTION_NAME, request.video_id, {
+                    "is_deleted": True,
+                    "updated_at": datetime.now(timezone.utc)
+                })
+            else:
+                # Hard delete - remove from storage and database
+                storage_path = data.get("storage_path", "")
+                if not is_empty_string(storage_path):
+                    try:
+                        await FirebaseStorageRepository().delete(storage_path)
+                    except Exception as storage_exc:
+                        logging.getLogger("uvicorn.warning").warning(
+                            f"Failed to delete video from storage for video {request.video_id}: {storage_exc}"
+                        )
+                        # Returns immediately to prevent orphaned storage without DB records
+                        return DeleteVideoResponse(success=False, message=f"Failed to delete video from storage: {storage_exc}")
+                
+                # Delete from MongoDB
+                await delete_document(VIDEO_COLLECTION_NAME, request.video_id)
+
+                # Delete thumbnail image if it exists
+                filters = {
+                    "entity_id": request.video_id,
+                    "entity_type": "video",
+                    "image_type": ImageType.REPRESENTATIVE.value
+                }
+                thumbnail_images = await find_documents_with_filters(IMAGE_COLLECTION_NAME, filters)
+                deleted_thumbnail_images = 0
+                for thumbnail_image in thumbnail_images:
+                    thumbnail_image_id = str(thumbnail_image.get("_id", ""))
+                    if ObjectId.is_valid(thumbnail_image_id):
+                        await ImageService().delete_image(thumbnail_image_id, soft_delete=False)
+                        deleted_thumbnail_images += 1
+                logging.getLogger("uvicorn.info").info(f"Deleted {deleted_thumbnail_images}/{len(thumbnail_images)} thumbnail images for video {request.video_id}")
+                
+            return DeleteVideoResponse(success=True, message="")
+        except Exception as e:
+            logging.getLogger("uvicorn.error").error(f"Failed to delete video: {str(e)}")
+            return DeleteVideoResponse(success=False, message=f"Failed to delete video: {str(e)}")

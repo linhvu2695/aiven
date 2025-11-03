@@ -141,7 +141,12 @@ export const VideoPage = () => {
                             p={4}
                         >
                             {videos.map((video) => (
-                                <VideoCard key={video.id} video={video} onViewClick={() => {}} onDelete={() => {}} />
+                                <VideoCard 
+                                    key={video.id} 
+                                    video={video} 
+                                    onViewClick={() => {}} 
+                                    onDelete={() => fetchVideos(currentPage)} 
+                                />
                             ))}
                         </Grid>
                     )}

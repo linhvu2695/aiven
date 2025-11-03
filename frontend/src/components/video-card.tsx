@@ -1,7 +1,9 @@
-import { Box, Card, IconButton, Image, Text, VStack } from "@chakra-ui/react";
+import { Box, Card, IconButton, Image, Text, VStack, useDisclosure } from "@chakra-ui/react";
 import { useRef, useState } from "react";
 import { FaPlay, FaPause } from "react-icons/fa";
 import type { VideoWithUrl } from "@/types/video";
+import { DeleteItemButton } from "@/components/ui";
+import { VideoDeleteDialog } from "./video-delete-dialog";
 
 interface VideoCardProps {
     video: VideoWithUrl;
@@ -14,6 +16,7 @@ export const VideoCard = ({ video, onViewClick, onDelete }: VideoCardProps) => {
     const [isHovered, setIsHovered] = useState(false);
     const [showVideo, setShowVideo] = useState(false);
     const videoRef = useRef<HTMLVideoElement>(null);
+    const { open, onOpen, onClose } = useDisclosure();
 
     const handlePlayClick = () => {
         setShowVideo(true);
@@ -33,16 +36,26 @@ export const VideoCard = ({ video, onViewClick, onDelete }: VideoCardProps) => {
     };
 
     return (
-        <Card.Root key={video.id} overflow="hidden">
-            <Card.Body p={0}>
-                {/* Video or Thumbnail */}
-                <Box
-                    position="relative"
-                    width="100%"
-                    height="100%"
-                    onMouseEnter={() => setIsHovered(true)}
-                    onMouseLeave={() => setIsHovered(false)}
-                >
+        <>
+            <Card.Root key={video.id} overflow="hidden" position="relative">
+                {/* Delete button */}
+                <DeleteItemButton
+                    aria-label="Delete video"
+                    onClick={(e) => {
+                        e?.stopPropagation();
+                        onOpen();
+                    }}
+                />
+
+                <Card.Body p={0}>
+                    {/* Video or Thumbnail */}
+                    <Box
+                        position="relative"
+                        width="100%"
+                        height="100%"
+                        onMouseEnter={() => setIsHovered(true)}
+                        onMouseLeave={() => setIsHovered(false)}
+                    >
                     {showVideo && video.url ? (
                         <>
                             <video
@@ -174,6 +187,15 @@ export const VideoCard = ({ video, onViewClick, onDelete }: VideoCardProps) => {
                 </VStack>
             </Card.Body>
         </Card.Root>
+
+        <VideoDeleteDialog
+            isOpen={open}
+            onClose={onClose}
+            videoId={video.id}
+            videoName={video.title || video.filename}
+            onDelete={onDelete}
+        />
+    </>
     );
 };
 
