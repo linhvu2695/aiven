@@ -10,7 +10,7 @@ import {
 import { useRef, useState } from "react";
 import { FaPlay, FaPause } from "react-icons/fa";
 import type { VideoWithUrl } from "@/types/video";
-import { DeleteItemButton, DetailItemButton } from "@/components/ui";
+import { DeleteItemButton } from "@/components/ui";
 import { VideoDeleteDialog } from "./video-delete-dialog";
 
 interface VideoCardProps {

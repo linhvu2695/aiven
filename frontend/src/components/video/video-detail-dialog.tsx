@@ -6,6 +6,7 @@ import {
     Dialog,
     Portal,
     CloseButton,
+    Flex,
 } from "@chakra-ui/react";
 import { useVideo } from "@/context/video-ctx";
 
@@ -34,45 +35,16 @@ export const VideoDetailDialog = () => {
                         </Dialog.Header>
 
                         <Dialog.Body>
-                            <VStack align="stretch" gap={4}>
-                                {selectedVideo?.url ? (
-                                    <Box
-                                        display="flex"
-                                        justifyContent="center"
-                                        alignItems="center"
-                                        borderWidth="1px"
-                                        borderColor="gray.800"
-                                        borderRadius="lg"
-                                        maxH="600px"
-                                        overflow="hidden"
-                                    >
-                                        <video
-                                            src={selectedVideo.url}
-                                            controls
-                                            autoPlay
-                                            style={{
-                                                maxWidth: "100%",
-                                                maxHeight: "600px",
-                                                width: "100%",
-                                                objectFit: "contain",
-                                            }}
-                                        />
-                                    </Box>
-                                ) : (
-                                    <Center
-                                        width="100%"
-                                        height="400px"
-                                        bg="gray.100"
-                                        borderRadius="md"
-                                    >
-                                        <Text color="gray.500">
-                                            Video not available
-                                        </Text>
-                                    </Center>
-                                )}
-
-                                {/* Video Metadata */}
-                                <Box p={4} bg="bg.subtle" borderRadius="md">
+                            <Flex gap={6} direction={{ base: "column", lg: "row" }}>
+                                {/* Video Metadata - Left Side */}
+                                <Box 
+                                    flex="0 0 320px" 
+                                    p={4} 
+                                    bg="bg.subtle" 
+                                    borderRadius="md"
+                                    overflowY="auto"
+                                    maxH="600px"
+                                >
                                     <VStack align="stretch" gap={3}>
                                         {selectedVideo?.description && (
                                             <Box>
@@ -134,7 +106,7 @@ export const VideoDetailDialog = () => {
 
                                         <Box>
                                             <Text fontWeight="bold" fontSize="sm" mb={1}>
-                                                Uploaded:
+                                                Uploaded at:
                                             </Text>
                                             <Text fontSize="sm" color="gray.600">
                                                 {selectedVideo?.uploaded_at 
@@ -154,7 +126,46 @@ export const VideoDetailDialog = () => {
                                         </Box>
                                     </VStack>
                                 </Box>
-                            </VStack>
+
+                                {/* Video Player - Right Side */}
+                                <Box flex="1">
+                                    {selectedVideo?.url ? (
+                                        <Box
+                                            display="flex"
+                                            justifyContent="center"
+                                            alignItems="center"
+                                            borderWidth="1px"
+                                            borderColor="gray.800"
+                                            borderRadius="lg"
+                                            maxH="600px"
+                                            overflow="hidden"
+                                        >
+                                            <video
+                                                src={selectedVideo.url}
+                                                controls
+                                                autoPlay
+                                                style={{
+                                                    maxWidth: "100%",
+                                                    maxHeight: "600px",
+                                                    width: "100%",
+                                                    objectFit: "contain",
+                                                }}
+                                            />
+                                        </Box>
+                                    ) : (
+                                        <Center
+                                            width="100%"
+                                            height="400px"
+                                            bg="gray.100"
+                                            borderRadius="md"
+                                        >
+                                            <Text color="gray.500">
+                                                Video not available
+                                            </Text>
+                                        </Center>
+                                    )}
+                                </Box>
+                            </Flex>
                         </Dialog.Body>
 
                         <Dialog.CloseTrigger asChild>
