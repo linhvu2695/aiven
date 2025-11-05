@@ -19,6 +19,8 @@ import type {
 } from "@/types/video";
 import { FaArrowLeft, FaArrowRight } from "react-icons/fa";
 import { VideoCard } from "@/components/video-card";
+import { VideoDetailDialog } from "@/components/video";
+import { useVideo } from "@/context/video-ctx";
 
 export const VideoPage = () => {
     const [videos, setVideos] = useState<VideoWithUrl[]>([]);
@@ -26,6 +28,7 @@ export const VideoPage = () => {
     const [currentPage, setCurrentPage] = useState(1);
     const [totalVideos, setTotalVideos] = useState(0);
     const pageSize = 12;
+    const { openVideoDialog } = useVideo();
 
     const fetchVideos = async (page: number = currentPage) => {
         try {
@@ -144,7 +147,7 @@ export const VideoPage = () => {
                                 <VideoCard 
                                     key={video.id} 
                                     video={video} 
-                                    onViewClick={() => {}} 
+                                    onDetailClick={() => openVideoDialog(video)} 
                                     onDelete={() => fetchVideos(currentPage)} 
                                 />
                             ))}
@@ -182,6 +185,8 @@ export const VideoPage = () => {
                     </HStack>
                 )}
             </Flex>
+
+            <VideoDetailDialog />
         </Box>
     );
 };

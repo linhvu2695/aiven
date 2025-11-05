@@ -10,7 +10,7 @@ import {
 import { useRef, useState } from "react";
 import { FaPlay, FaPause } from "react-icons/fa";
 import type { VideoWithUrl } from "@/types/video";
-import { DeleteItemButton } from "@/components/ui";
+import { DeleteItemButton, DetailItemButton } from "@/components/ui";
 import { VideoDeleteDialog } from "./video-delete-dialog";
 
 interface VideoCardProps {
@@ -68,6 +68,17 @@ export const VideoCard = ({
                         onMouseEnter={() => setIsHovered(true)}
                         onMouseLeave={() => setIsHovered(false)}
                     >
+                        {/* Detail button */}
+                        {onDetailClick && (
+                            <DetailItemButton
+                                aria-label="View details"
+                                onClick={(e) => {
+                                    e?.stopPropagation();
+                                    onDetailClick();
+                                }}
+                            />
+                        )}
+
                         {showVideo && video.url ? (
                             <>
                                 <video

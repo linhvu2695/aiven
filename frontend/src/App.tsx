@@ -10,6 +10,7 @@ import { ArticleProvider } from "./context/article-ctx";
 import { ChatProvider } from "./context/chat-ctx";
 import { ImageProvider } from "./context/image-ctx";
 import { ImageViewProvider } from "./context/image-view-ctx";
+import { VideoProvider } from "./context/video-ctx";
 import { Toaster } from "./components/ui/toaster";
 import ImagePage from "./pages/image-page";
 import VideoPage from "./pages/video-page";
@@ -52,7 +53,11 @@ function App() {
                         />
                         <Route
                             path="/video"
-                            element={<VideoPage />}
+                            element={
+                                <VideoProvider>
+                                    <VideoPage />
+                                </VideoProvider>
+                            }
                         />
                         <Route
                             path="/knowledge"
