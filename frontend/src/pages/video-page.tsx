@@ -123,7 +123,7 @@ export const VideoPage = () => {
             </HStack>
 
             {/* Main Content */}
-            <Flex h="calc(100vh - 120px)" p={4} direction="column">
+            <Flex h="calc(100vh - 150px)" p={4} direction="column">
                 <Box flex={1} overflow="auto">
                     {loading ? (
                         <Center h="100%">

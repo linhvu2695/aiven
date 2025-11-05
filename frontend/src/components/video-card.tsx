@@ -68,17 +68,6 @@ export const VideoCard = ({
                         onMouseEnter={() => setIsHovered(true)}
                         onMouseLeave={() => setIsHovered(false)}
                     >
-                        {/* Detail button */}
-                        {onDetailClick && (
-                            <DetailItemButton
-                                aria-label="View details"
-                                onClick={(e) => {
-                                    e?.stopPropagation();
-                                    onDetailClick();
-                                }}
-                            />
-                        )}
-
                         {showVideo && video.url ? (
                             <>
                                 <video
@@ -110,7 +99,7 @@ export const VideoCard = ({
                                             : "transparent"
                                     }
                                     transition="background-color 0.2s"
-                                    pointerEvents={isHovered ? "auto" : "none"}
+                                    pointerEvents="none"
                                 >
                                     <IconButton
                                         aria-label={
@@ -212,7 +201,13 @@ export const VideoCard = ({
                     </Box>
 
                     {/* Details */}
-                    <VStack align="stretch" p={3} gap={1}>
+                    <VStack
+                        align="stretch"
+                        p={3}
+                        gap={1}
+                        onClick={onDetailClick}
+                        cursor="pointer"
+                    >
                         <Text fontWeight="semibold" fontSize="sm" lineClamp={1}>
                             {video.title || video.filename || "Untitled"}
                         </Text>
