@@ -4,6 +4,9 @@ from pydantic import BaseModel, Field
 from typing import Optional
 
 from app.classes.media import MediaProcessingStatus
+from app.services.video.video_gen.video_gen_aspect_ratio import VideoGenAspectRatio
+from app.services.video.video_constants import VideoGenModel
+    
 
 class VideoType(str, Enum):
     """Types of videos in the platform"""
@@ -162,4 +165,35 @@ class DeleteVideoRequest(BaseModel):
 class DeleteVideoResponse(BaseModel):
     """Response model for deleting a video"""
     success: bool
+    message: str
+
+class VideoGenerateRequest(BaseModel):
+    """Request model for generating a video with a provider"""
+    prompt: str
+    model: VideoGenModel
+    image_id: Optional[str] = None
+    aspect_ratio: Optional[VideoGenAspectRatio] = None
+    duration: Optional[int] = 5
+
+class VideoGenerateResponse(BaseModel):
+    """Response model for generating a video with a provider"""
+    success: bool
+    video_id: Optional[str] = None
+    text_data: Optional[str] = None
+    message: str
+
+class GenVideoRequest(BaseModel):
+    """Request model for generating a video"""
+    prompt: str
+    model: VideoGenModel
+    image_data: Optional[bytes] = None
+    aspect_ratio: Optional[VideoGenAspectRatio] = None
+    duration: Optional[int] = 5
+
+class GenVideoResponse(BaseModel):
+    """Response model for generating a video"""
+    success: bool
+    video_data: Optional[bytes] = None
+    text_data: Optional[str] = None
+    mimetype: Optional[str] = None
     message: str

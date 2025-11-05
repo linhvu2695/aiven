@@ -1,4 +1,5 @@
 import logging
+from typing import Optional
 from fastapi import APIRouter, HTTPException, UploadFile, File
 from fastapi.responses import JSONResponse
 from app.classes.video import (
@@ -12,12 +13,22 @@ from app.classes.video import (
     VideoListRequest,
     VideoListResponse,
     VideoUrlsRequest,
+    VideoGenerateRequest,
+    VideoGenerateResponse,
 )
 from app.services.video.video_service import VideoService
+from app.services.video.video_gen.video_gen_aspect_ratio import VideoGenAspectRatio
+from app.services.video.video_constants import VideoGenModel
 
 MAX_VIDEOS_LIMIT = 20
 
 router = APIRouter()
+
+
+@router.get("/models")
+async def get_models():
+    """Get available video generation models grouped by provider"""
+    return await VideoService().get_models()
 
 
 @router.post("/upload", response_model=CreateVideoResponse)
@@ -107,3 +118,28 @@ async def delete_video(video_id: str):
         return response
     else:
         raise HTTPException(status_code=400, detail=response.message)
+
+@router.post("/generate", response_model=VideoGenerateResponse)
+async def generate_video(
+    prompt: str, 
+    model: str,
+    image_id: Optional[str] = None, 
+    aspect_ratio: Optional[VideoGenAspectRatio] = VideoGenAspectRatio.RATIO_16_9,
+    duration: Optional[int] = 5
+    ):
+    """Generate a video using the specified provider"""
+    video_gen_model = VideoGenModel(model)
+    if not video_gen_model:
+        raise HTTPException(status_code=400, detail=f"Invalid model: {model}")
+
+    response = await VideoService().generate_video(VideoGenerateRequest(
+        prompt=prompt, 
+        model=video_gen_model,
+        image_id=image_id,
+        aspect_ratio=aspect_ratio,
+        duration=duration
+        ))
+
+    if not response.success:
+        raise HTTPException(status_code=400, detail=response.message)
+    return response
