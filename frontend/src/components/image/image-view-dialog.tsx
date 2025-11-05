@@ -9,6 +9,7 @@ import {
     Fieldset,
 } from "@chakra-ui/react";
 import { useImageView, ViewMode, ViewRatio } from "@/context/image-view-ctx";
+import { useColorMode } from "@/components/ui/color-mode";
 
 const PAGE_SIZE_OPTIONS = [5, 10, 20, 30, 50] as const;
 
@@ -44,6 +45,7 @@ const ViewOptionButton = <T,>({ value, currentValue, label, onClick }: ViewOptio
 };
 
 export const ImageViewDialog = () => {
+    const { colorMode } = useColorMode();
     const { 
         pageSize, 
         setPageSize, 
@@ -70,7 +72,7 @@ export const ImageViewDialog = () => {
                 <Dialog.Backdrop />
                 <Dialog.Positioner>
                     <Dialog.Content
-                        bg="rgba(0, 0, 0, 0.80)" 
+                        bg={colorMode === "dark" ? "rgba(0, 0, 0, 0.80)" : "rgba(255, 255, 255, 0.80)"}
                         backdropFilter="blur(8px)"
                     >
                         <Dialog.Header>

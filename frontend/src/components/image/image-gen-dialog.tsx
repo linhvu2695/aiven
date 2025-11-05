@@ -15,6 +15,7 @@ import { ImageGenProviderSelector } from "./image-gen-provider-selector";
 import { ImageGenProvider, useImageGen } from "@/context/image-gen-ctx";
 import { useImage } from "@/context/image-ctx";
 import { useEffect } from "react";
+import { useColorMode } from "@/components/ui/color-mode";
 
 interface ImageGenDialogProps {
     isOpen: boolean;
@@ -24,6 +25,7 @@ interface ImageGenDialogProps {
 
 const ImageGenDialogContent = ({ isOpen, onClose, onSuccess }: ImageGenDialogProps) => {
     const { selectedImage } = useImage();
+    const { colorMode } = useColorMode();
     const {
         prompt,
         setPrompt,
@@ -138,7 +140,7 @@ const ImageGenDialogContent = ({ isOpen, onClose, onSuccess }: ImageGenDialogPro
                 <Dialog.Backdrop />
                 <Dialog.Positioner>
                     <Dialog.Content 
-                        bg="rgba(0, 0, 0, 0.80)" 
+                        bg={colorMode === "dark" ? "rgba(0, 0, 0, 0.80)" : "rgba(255, 255, 255, 0.80)"}
                         backdropFilter="blur(8px)"
                     >
                         <Dialog.Header>
