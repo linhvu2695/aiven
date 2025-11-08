@@ -118,7 +118,10 @@ export const ImagePage = () => {
     return (
         <Box h="100vh" overflow="hidden">
             {/* Header */}
-            <HStack as="header" gap={4}>
+            <HStack as="header" gap={4} p={4}>
+                <Text fontSize="2xl" fontWeight="bold">
+                    Images
+                </Text>
 
                 {/* Search */}
                 <Input
@@ -160,7 +163,7 @@ export const ImagePage = () => {
             </HStack>
 
             {/* Main Content */}
-            <Flex h="calc(100vh - 120px)" p={4} direction="column">
+            <Flex h="calc(100vh - 150px)" p={4} direction="column">
                 <Box flex={1} overflow="auto">
                     {loading ? (
                         <Center h="100%">

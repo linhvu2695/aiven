@@ -125,7 +125,7 @@ async def generate_video(
     model: str,
     image_id: Optional[str] = None, 
     aspect_ratio: Optional[VideoGenAspectRatio] = VideoGenAspectRatio.RATIO_16_9,
-    duration: Optional[int] = 5
+    duration: Optional[int] = 4
     ):
     """Generate a video using the specified provider"""
     video_gen_model = VideoGenModel(model)

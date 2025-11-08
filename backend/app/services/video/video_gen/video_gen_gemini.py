@@ -1,5 +1,6 @@
 import logging
 import mimetypes
+import time
 from google import genai
 from google.genai import types
 
@@ -8,6 +9,7 @@ from app.core.config import settings
 from app.utils.string.string_utils import is_empty_string
 from app.services.video.video_gen.video_gen_aspect_ratio import VideoGenAspectRatio
 from app.services.video.video_gen.video_gen_providers import VideoGenInterface
+
 
 class VideoGenGemini(VideoGenInterface):
     """Service for generating videos using Google Gemini"""
@@ -28,8 +30,6 @@ class VideoGenGemini(VideoGenInterface):
         """
         Generate a video using Google Gemini.
         """
-        
-        # Placeholder validation
         if is_empty_string(request.prompt):
             return GenVideoResponse(
                 success=False,
@@ -38,26 +38,85 @@ class VideoGenGemini(VideoGenInterface):
                 text_data=None,
                 mimetype=None,
             )
-        
+
         # TODO: Implement actual video generation logic
         # This should follow a similar pattern to image generation but for video
-        # 
+        #
         # Expected flow:
         # 1. Prepare content parts (prompt + optional image)
         # 2. Set up video generation config with aspect ratio and duration
         # 3. Call Gemini video generation API
         # 4. Stream and collect video data chunks
         # 5. Return video data with mimetype
-        
-        logging.getLogger("uvicorn.error").warning(
-            f"Video generation with Gemini is not yet implemented. Prompt: {request.prompt}"
-        )
-        
-        return GenVideoResponse(
-            success=False,
-            message="Video generation is not yet implemented. This is a placeholder.",
-            video_data=None,
-            text_data=None,
-            mimetype=None,
+
+        image = (
+            types.Image(
+                image_bytes=request.image_data,
+                mime_type="image/jpeg",
+            )
+            if request.image_data
+            else None
         )
 
+        aspect_ratio = (
+            request.aspect_ratio.value
+            if request.aspect_ratio
+            else VideoGenAspectRatio.RATIO_16_9.value
+        )
+        logging.getLogger("uvicorn.info").info(f"Generating video with Gemini. Duration: {request.duration}")
+
+        operation = self.client.models.generate_videos(
+            model="veo-3.1-generate-preview",
+            prompt=request.prompt,
+            image=image,
+            config=types.GenerateVideosConfig(
+                duration_seconds=request.duration,
+                aspect_ratio=aspect_ratio,
+            ),
+        )
+
+        # Poll the operation status until the video is ready.
+        while not operation.done:
+            print("Waiting for video generation to complete...")
+            time.sleep(10)
+            operation = self.client.operations.get(operation)
+
+        # Download the video.
+        if not operation.response:
+            return GenVideoResponse(
+                success=False,
+                message="Failed to generate video: No response from Gemini",
+                video_data=None,
+                text_data=None,
+                mimetype=None,
+            )
+        if not operation.response.generated_videos:
+            return GenVideoResponse(
+                success=False,
+                message=f"Failed to generate video: No generated videos. Error: {operation.error}",
+                video_data=None,
+                text_data=None,
+                mimetype=None,
+            )
+
+        video = operation.response.generated_videos[0]
+        if not video.video:
+            return GenVideoResponse(
+                success=False,
+                message="Failed to generate video: empty video file from Gemini",
+                video_data=None,
+                text_data=None,
+                mimetype=None,
+            )
+
+        self.client.files.download(file=video.video)
+        video.video.save("veo3.1_with_interpolation.mp4")
+        print("Generated video saved to veo3.1_with_interpolation.mp4")
+
+        return GenVideoResponse(
+            success=True,
+            message="",
+            video_data=video.video.video_bytes,
+            text_data=None,
+            mimetype=video.video.mime_type,
+        )
