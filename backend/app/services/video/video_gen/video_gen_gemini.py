@@ -63,14 +63,20 @@ class VideoGenGemini(VideoGenInterface):
             if request.aspect_ratio
             else VideoGenAspectRatio.RATIO_16_9.value
         )
-        logging.getLogger("uvicorn.info").info(f"Generating video with Gemini. Duration: {request.duration}")
+
+        duration = 4
+        if request.duration:
+            if request.duration not in [4, 8]:
+                logging.getLogger("uvicorn.error").error(f"Invalid Gemini duration: {request.duration}. Falling back to 4 seconds.")
+            else:
+                duration = request.duration
 
         operation = self.client.models.generate_videos(
             model="veo-3.1-generate-preview",
             prompt=request.prompt,
             image=image,
             config=types.GenerateVideosConfig(
-                duration_seconds=request.duration,
+                duration_seconds=duration,
                 aspect_ratio=aspect_ratio,
             ),
         )

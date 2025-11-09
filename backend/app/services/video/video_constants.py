@@ -8,10 +8,12 @@ class VideoGenModel(str, Enum):
     # https://ai.google.dev/gemini-api/docs/veo
     VEO_3_1 = "veo-3.1-generate-preview"
     
-    # Placeholder for future video generation models
-    # OPENAI_VIDEO_MODEL = "openai-video-model"
+    # https://platform.openai.com/docs/guides/video-generation#models
+    SORA_2 = "sora-2"
 
-OPENAI_MODELS = set()
+OPENAI_MODELS = {
+    VideoGenModel.SORA_2,
+}
 
 GEMINI_MODELS = {
     VideoGenModel.VEO_3_1,

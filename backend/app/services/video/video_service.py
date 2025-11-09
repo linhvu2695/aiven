@@ -24,6 +24,7 @@ from app.services.image.image_constants import IMAGE_COLLECTION_NAME
 from app.services.video.video_constants import GEMINI_MODELS, OPENAI_MODELS
 from app.services.video.video_gen.video_gen_gemini import VideoGenGemini
 from app.services.video.video_gen.video_gen_providers import VideoGenInterface
+from app.services.video.video_gen.video_gen_openai import VideoGenOpenAI
 
 VIDEO_COLLECTION_NAME = "videos"
 VIDEO_PRESIGNED_URL_EXPIRATION = 60 * 60  # 1 hour
@@ -662,6 +663,8 @@ class VideoService:
         gen_provider: VideoGenInterface | None = None
         if request.model in GEMINI_MODELS:
             gen_provider = VideoGenGemini()
+        elif request.model in OPENAI_MODELS:
+            gen_provider = VideoGenOpenAI()
         else:
             return VideoGenerateResponse(
                 success=False, 
