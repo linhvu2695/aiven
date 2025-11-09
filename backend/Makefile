@@ -1,4 +1,4 @@
-.PHONY: run run-dev run-mcp run-mcp-dev test coverage
+.PHONY: run run-dev run-mcp run-mcp-dev test coverage ngrok tun
 
 run:
 	set -a && source venv/bin/activate && [ -f .env.prod ] && source .env.prod; set +a && python -m uvicorn main:app --reload
@@ -38,4 +38,13 @@ coverage:
 	else \
 		echo "Opening HTML coverage report..."; \
 		open htmlcov/index.html; \
+	fi
+
+ngrok:
+	@echo "🌐 Starting ngrok tunnel to localhost:3000..."
+	@if command -v ngrok >/dev/null 2>&1; then \
+		ngrok http 3000; \
+	else \
+		echo "❌ ngrok not found. Install it from https://ngrok.com/download"; \
+		exit 1; \
 	fi

@@ -8,5 +8,9 @@ export default defineConfig({
   plugins: [react(),  tsconfigPaths()],
   server: {
     port: 3000,
+    allowedHosts: [
+      '.ngrok-free.app',
+      '.ngrok.io'
+    ],
   }
 })
