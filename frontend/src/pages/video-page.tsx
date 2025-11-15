@@ -18,8 +18,7 @@ import type {
     VideoWithUrl,
 } from "@/types/video";
 import { FaArrowLeft, FaArrowRight } from "react-icons/fa";
-import { VideoCard } from "@/components/video-card";
-import { VideoDetailDialog } from "@/components/video";
+import { VideoCard, VideoDetailDialog } from "@/components/video";
 import { useVideo } from "@/context/video-ctx";
 
 export const VideoPage = () => {
