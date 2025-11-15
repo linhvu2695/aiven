@@ -22,7 +22,8 @@ class Settings(BaseSettings):
     redis_port: str
     redis_password: str
     redis_username: str
-    redis_database: str
+    redis_cache_database: str
+    redis_streams_database: str
 
     langchain_api_key: str
     langchain_project: str

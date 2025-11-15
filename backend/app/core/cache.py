@@ -15,7 +15,7 @@ class RedisCache:
         self.redis = Redis(
             host=settings.redis_host,
             port=int(settings.redis_port),
-            db=int(settings.redis_database),
+            db=int(settings.redis_cache_database),
             username=settings.redis_username,
             password=settings.redis_password,
         )
