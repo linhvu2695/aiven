@@ -3,6 +3,8 @@ from app.classes.job import (
     CreateJobRequest,
     CreateJobResponse,
     GetJobResponse,
+    UpdateJobRequest,
+    UpdateJobResponse,
 )
 from app.services.job.job_service import JobService
 
@@ -34,3 +36,15 @@ async def get_job(job_id: str):
         return response
     else:
         raise HTTPException(status_code=404, detail=response.message)
+
+
+@router.put("/{job_id}", response_model=UpdateJobResponse)
+async def update_job(job_id: str, request: UpdateJobRequest):
+    """
+    Update specific fields of an existing job.
+    """
+    response = await JobService().update_job(job_id, request)
+    if response.success:
+        return response
+    else:
+        raise HTTPException(status_code=400, detail=response.message)

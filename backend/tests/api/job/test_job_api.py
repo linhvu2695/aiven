@@ -9,9 +9,12 @@ from app.classes.job import (
     JobType,
     CreateJobResponse,
     GetJobResponse,
+    UpdateJobResponse,
     JobInfo,
     JobStatus,
-    JobPriority
+    JobPriority,
+    JobProgress,
+    JobResult,
 )
 
 # Test constants
@@ -140,3 +143,185 @@ async def test_get_nonexistent_job():
             data = response.json()
             assert "not found" in data["detail"].lower()
 
+
+@pytest.mark.asyncio
+async def test_update_job_success():
+    """Test successfully updating a job"""
+    mock_response = UpdateJobResponse(
+        success=True,
+        job_id=TEST_JOB_ID,
+        message=""
+    )
+    
+    with patch("app.services.job.job_service.JobService.update_job", new=AsyncMock(return_value=mock_response)):
+        transport = ASGITransport(app=app)
+        async with AsyncClient(transport=transport, base_url="http://test") as ac:
+            response = await ac.put(
+                f"/jobs/{TEST_JOB_ID}",
+                json={
+                    "job_name": "updated_job_name",
+                    "status": JobStatus.SUCCESS.value,
+                    "priority": JobPriority.HIGH.value,
+                }
+            )
+            
+            assert response.status_code == 200
+            data = response.json()
+            assert data["success"] is True
+            assert data["job_id"] == TEST_JOB_ID
+            assert data["message"] == ""
+
+
+@pytest.mark.asyncio
+async def test_update_job_with_progress():
+    """Test updating a job with progress information"""
+    mock_response = UpdateJobResponse(
+        success=True,
+        job_id=TEST_JOB_ID,
+        message=""
+    )
+    
+    with patch("app.services.job.job_service.JobService.update_job", new=AsyncMock(return_value=mock_response)):
+        transport = ASGITransport(app=app)
+        async with AsyncClient(transport=transport, base_url="http://test") as ac:
+            response = await ac.put(
+                f"/jobs/{TEST_JOB_ID}",
+                json={
+                    "status": JobStatus.PROGRESS.value,
+                    "progress": {
+                        "current": 50,
+                        "total": 100,
+                        "message": "Processing frame 50/100"
+                    }
+                }
+            )
+            
+            assert response.status_code == 200
+            data = response.json()
+            assert data["success"] is True
+            assert data["job_id"] == TEST_JOB_ID
+
+
+@pytest.mark.asyncio
+async def test_update_job_with_result():
+    """Test updating a job with result information"""
+    mock_response = UpdateJobResponse(
+        success=True,
+        job_id=TEST_JOB_ID,
+        message=""
+    )
+    
+    with patch("app.services.job.job_service.JobService.update_job", new=AsyncMock(return_value=mock_response)):
+        transport = ASGITransport(app=app)
+        async with AsyncClient(transport=transport, base_url="http://test") as ac:
+            response = await ac.put(
+                f"/jobs/{TEST_JOB_ID}",
+                json={
+                    "status": JobStatus.SUCCESS.value,
+                    "result": {
+                        "success": True,
+                        "data": {"output_url": "https://example.com/output.mp4"},
+                        "message": "Video processed successfully"
+                    }
+                }
+            )
+            
+            assert response.status_code == 200
+            data = response.json()
+            assert data["success"] is True
+            assert data["job_id"] == TEST_JOB_ID
+
+
+@pytest.mark.asyncio
+async def test_update_job_with_metadata():
+    """Test updating a job with metadata"""
+    mock_response = UpdateJobResponse(
+        success=True,
+        job_id=TEST_JOB_ID,
+        message=""
+    )
+    
+    with patch("app.services.job.job_service.JobService.update_job", new=AsyncMock(return_value=mock_response)):
+        transport = ASGITransport(app=app)
+        async with AsyncClient(transport=transport, base_url="http://test") as ac:
+            response = await ac.put(
+                f"/jobs/{TEST_JOB_ID}",
+                json={
+                    "metadata": {
+                        "resolution": "4K",
+                        "fps": 60,
+                        "codec": "h265"
+                    }
+                }
+            )
+            
+            assert response.status_code == 200
+            data = response.json()
+            assert data["success"] is True
+
+
+@pytest.mark.asyncio
+async def test_update_job_not_found():
+    """Test updating a job that doesn't exist"""
+    mock_response = UpdateJobResponse(
+        success=False,
+        job_id=TEST_JOB_ID,
+        message=f"Job not found: {TEST_JOB_ID}"
+    )
+    
+    with patch("app.services.job.job_service.JobService.update_job", new=AsyncMock(return_value=mock_response)):
+        transport = ASGITransport(app=app)
+        async with AsyncClient(transport=transport, base_url="http://test") as ac:
+            response = await ac.put(
+                f"/jobs/{TEST_JOB_ID}",
+                json={"job_name": "new_name"}
+            )
+            
+            assert response.status_code == 400
+            data = response.json()
+            assert "not found" in data["detail"].lower()
+
+
+@pytest.mark.asyncio
+async def test_update_job_empty_job_name():
+    """Test updating a job with empty job_name"""
+    mock_response = UpdateJobResponse(
+        success=False,
+        job_id=TEST_JOB_ID,
+        message="Job name cannot be empty"
+    )
+    
+    with patch("app.services.job.job_service.JobService.update_job", new=AsyncMock(return_value=mock_response)):
+        transport = ASGITransport(app=app)
+        async with AsyncClient(transport=transport, base_url="http://test") as ac:
+            response = await ac.put(
+                f"/jobs/{TEST_JOB_ID}",
+                json={"job_name": ""}
+            )
+            
+            assert response.status_code == 400
+            data = response.json()
+            assert "cannot be empty" in data["detail"].lower()
+
+
+@pytest.mark.asyncio
+async def test_update_job_no_fields():
+    """Test updating a job with no fields (should succeed with no changes)"""
+    mock_response = UpdateJobResponse(
+        success=True,
+        job_id=TEST_JOB_ID,
+        message="No fields to update"
+    )
+    
+    with patch("app.services.job.job_service.JobService.update_job", new=AsyncMock(return_value=mock_response)):
+        transport = ASGITransport(app=app)
+        async with AsyncClient(transport=transport, base_url="http://test") as ac:
+            response = await ac.put(
+                f"/jobs/{TEST_JOB_ID}",
+                json={}
+            )
+            
+            assert response.status_code == 200
+            data = response.json()
+            assert data["success"] is True
+            assert "no fields" in data["message"].lower()
