@@ -6,6 +6,8 @@ from app.classes.job import (
     CreateJobRequest,
     CreateJobResponse,
     GetJobResponse,
+    UpdateJobRequest,
+    UpdateJobResponse,
     JobInfo,
     JobStatus,
     JobPriority,
@@ -145,7 +147,7 @@ class JobService:
             return GetJobResponse(
                 success=True,
                 job=job_info,
-                message="Job retrieved successfully."
+                message=""
             )
             
         except Exception as e:
@@ -154,6 +156,109 @@ class JobService:
             return GetJobResponse(
                 success=False,
                 job=None,
+                message=error_msg
+            )
+
+    async def update_job(
+        self, job_id: str, request: UpdateJobRequest
+    ) -> UpdateJobResponse:
+        """
+        Update specific fields of an existing job.
+        """
+        if is_empty_string(job_id):
+            return UpdateJobResponse(
+                success=False,
+                job_id="",
+                message="Job ID is required"
+            )
+
+        try:
+            # Check if the job exists
+            existing_job = await get_document(JOB_COLLECTION_NAME, job_id)
+            if not existing_job:
+                return UpdateJobResponse(
+                    success=False,
+                    job_id=job_id,
+                    message=f"Job not found: {job_id}"
+                )
+
+            # Build update document with only the fields that were provided
+            update_data = {}
+            
+            if request.job_name is not None:
+                if request.job_name.strip() == "":
+                    return UpdateJobResponse(
+                        success=False,
+                        job_id=job_id,
+                        message="Job name cannot be empty"
+                    )
+                update_data["job_name"] = request.job_name
+            
+            if request.status is not None:
+                update_data["status"] = request.status.value
+                
+                # Auto-update timestamps based on status changes
+                current_status = existing_job.get("status")
+                if request.status.value != current_status:
+                    now = datetime.now(timezone.utc)
+                    
+                    # Set started_at when moving to STARTED
+                    if request.status == JobStatus.STARTED and not existing_job.get("started_at"):
+                        update_data["started_at"] = now
+                    
+                    # Set completed_at when moving to terminal states
+                    elif request.status in [JobStatus.SUCCESS, JobStatus.FAILURE, JobStatus.CANCELLED]:
+                        if not existing_job.get("completed_at"):
+                            update_data["completed_at"] = now
+            
+            if request.priority is not None:
+                update_data["priority"] = request.priority.value
+            
+            if request.progress is not None:
+                update_data["progress"] = request.progress.model_dump()
+            
+            if request.metadata is not None:
+                update_data["metadata"] = request.metadata
+            
+            if request.result is not None:
+                update_data["result"] = request.result.model_dump()
+
+            # If no fields to update, return early
+            if not update_data:
+                return UpdateJobResponse(
+                    success=True,
+                    job_id=job_id,
+                    message="No fields to update"
+                )
+
+            # Perform the update
+            success = await update_document(
+                JOB_COLLECTION_NAME,
+                job_id,
+                update_data
+            )
+
+            if not success:
+                error_msg = "Failed to update job: Database update failed"
+                logging.getLogger("uvicorn.error").error(error_msg)
+                return UpdateJobResponse(
+                    success=False,
+                    job_id=job_id,
+                    message=error_msg
+                )
+
+            return UpdateJobResponse(
+                success=True,
+                job_id=job_id,
+                message=""
+            )
+
+        except Exception as e:
+            error_msg = f"Failed to update job {job_id}: {e}"
+            logging.getLogger("uvicorn.error").error(error_msg)
+            return UpdateJobResponse(
+                success=False,
+                job_id=job_id,
                 message=error_msg
             )
 

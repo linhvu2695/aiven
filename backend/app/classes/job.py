@@ -140,3 +140,20 @@ class RetryJobResponse(BaseModel):
     job_id: str
     new_job_id: Optional[str] = None  # If a new job was created
     message: str
+
+
+class UpdateJobRequest(BaseModel):
+    """Request model for updating a job - only allows updating certain fields"""
+    job_name: Optional[str] = None
+    status: Optional[JobStatus] = None
+    priority: Optional[JobPriority] = None
+    progress: Optional[JobProgress] = None
+    metadata: Optional[Dict[str, Any]] = None
+    result: Optional[JobResult] = None
+
+
+class UpdateJobResponse(BaseModel):
+    """Response model for updating a job"""
+    success: bool
+    job_id: str
+    message: str
