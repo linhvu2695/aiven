@@ -1,4 +1,4 @@
-.PHONY: run run-dev run-mcp run-mcp-dev test coverage ngrok tun
+.PHONY: run run-dev run-mcp run-mcp-dev test test-worker coverage ngrok tun worker
 
 run:
 	set -a && source venv/bin/activate && [ -f .env.prod ] && source .env.prod; set +a && python -m uvicorn main:app --reload
@@ -21,6 +21,12 @@ run-mcp-dev:
 test:
 	PYTHONPATH=. pytest --trace-config
 
+test-worker:
+	@echo "🧪 Running tests with real Celery worker..."
+	@echo "⚠️  Make sure worker is running: make worker"
+	@echo ""
+	PYTHONPATH=. pytest tests/tasks/ --celery-worker -v
+
 coverage:
 	@echo "Running test coverage analysis..."
 	@if [ "$(TARGET)" ] && [ "$(MODULE)" ]; then \
@@ -39,6 +45,11 @@ coverage:
 		echo "Opening HTML coverage report..."; \
 		open htmlcov/index.html; \
 	fi
+
+worker:
+	@echo "🔧 Starting Celery worker..."
+	@echo "Make sure Redis is running (docker-compose up -d)"
+	source venv/bin/activate && celery -A background:background_app worker --loglevel=info
 
 ngrok:
 	@echo "🌐 Starting ngrok tunnel to localhost:3000..."
