@@ -154,6 +154,7 @@ class TestUpdateDocument:
         doc_id = str(ObjectId())
         document = {"name": "updated"}
         mock_result = MagicMock()
+        mock_result.matched_count = 1  # Document was matched and updated
         mock_result.upserted_id = None  # No upsert, document existed
         mock_motor_client["collection"].update_one.return_value = mock_result
         
@@ -161,7 +162,7 @@ class TestUpdateDocument:
         result = await update_document("test_collection", doc_id, document)
         
         # Assert
-        assert result is None
+        assert result is True
         mock_motor_client["collection"].update_one.assert_awaited_once_with(
             {"_id": ObjectId(doc_id)},
             {"$set": document},
@@ -176,6 +177,7 @@ class TestUpdateDocument:
         document = {"name": "new"}
         upserted_id = ObjectId()
         mock_result = MagicMock()
+        mock_result.matched_count = 0  # No existing document was matched
         mock_result.upserted_id = upserted_id
         mock_motor_client["collection"].update_one.return_value = mock_result
         
@@ -183,7 +185,7 @@ class TestUpdateDocument:
         result = await update_document("test_collection", doc_id, document)
         
         # Assert
-        assert result == upserted_id
+        assert result is True
         mock_motor_client["collection"].update_one.assert_awaited_once_with(
             {"_id": ObjectId(doc_id)},
             {"$set": document},
@@ -673,6 +675,7 @@ class TestIntegrationScenarios:
         
         # Update
         update_result = MagicMock()
+        update_result.matched_count = 1  # Document was matched and updated
         update_result.upserted_id = None
         mock_motor_client["collection"].update_one.return_value = update_result
         
@@ -691,8 +694,8 @@ class TestIntegrationScenarios:
         assert retrieved_doc == stored_doc
         
         # Update
-        update_id = await update_document(collection_name, doc_id, updated_document)
-        assert update_id is None
+        update_success = await update_document(collection_name, doc_id, updated_document)
+        assert update_success is True
         
         # Delete
         deleted = await delete_document(collection_name, doc_id)

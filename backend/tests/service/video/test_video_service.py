@@ -218,15 +218,9 @@ class TestVideoServiceMetadata:
         }.get(prop, 0)
         
         with patch("app.services.video.video_service.cv2.VideoCapture", return_value=mock_cap), \
-             patch("app.services.video.video_service.tempfile.NamedTemporaryFile") as mock_tempfile, \
+             patch("app.services.video.video_service.create_temp_local_file", return_value="/tmp/test_video.mp4"), \
              patch("app.services.video.video_service.os.path.exists", return_value=True), \
              patch("app.services.video.video_service.os.unlink"):
-            
-            # Mock the temp file
-            mock_file = MagicMock()
-            mock_file.name = "/tmp/test_video.mp4"
-            mock_file.__enter__.return_value = mock_file
-            mock_tempfile.return_value = mock_file
             
             metadata = await video_service._extract_video_metadata(sample_video_bytes)
             
@@ -247,15 +241,9 @@ class TestVideoServiceMetadata:
         mock_cap.isOpened.return_value = False
         
         with patch("app.services.video.video_service.cv2.VideoCapture", return_value=mock_cap), \
-             patch("app.services.video.video_service.tempfile.NamedTemporaryFile") as mock_tempfile, \
+             patch("app.services.video.video_service.create_temp_local_file", return_value="/tmp/test_video.mp4"), \
              patch("app.services.video.video_service.os.path.exists", return_value=True), \
              patch("app.services.video.video_service.os.unlink"):
-            
-            # Mock the temp file
-            mock_file = MagicMock()
-            mock_file.name = "/tmp/test_video.mp4"
-            mock_file.__enter__.return_value = mock_file
-            mock_tempfile.return_value = mock_file
             
             metadata = await video_service._extract_video_metadata(sample_video_bytes)
             
@@ -267,7 +255,7 @@ class TestVideoServiceMetadata:
     @pytest.mark.asyncio
     async def test_extract_video_metadata_exception(self, video_service: VideoService, sample_video_bytes: bytes):
         """Test video metadata extraction with exception"""
-        with patch("app.services.video.video_service.tempfile.NamedTemporaryFile", side_effect=Exception("Temp file error")):
+        with patch("app.services.video.video_service.create_temp_local_file", side_effect=Exception("Temp file error")):
             metadata = await video_service._extract_video_metadata(sample_video_bytes)
             
             assert isinstance(metadata, VideoMetadata)
@@ -289,14 +277,9 @@ class TestVideoServiceMetadata:
         }.get(prop, 0)
         
         with patch("app.services.video.video_service.cv2.VideoCapture", return_value=mock_cap), \
-             patch("app.services.video.video_service.tempfile.NamedTemporaryFile") as mock_tempfile, \
+             patch("app.services.video.video_service.create_temp_local_file", return_value="/tmp/test_video.mp4"), \
              patch("app.services.video.video_service.os.path.exists", return_value=True), \
              patch("app.services.video.video_service.os.unlink"):
-            
-            mock_file = MagicMock()
-            mock_file.name = "/tmp/test_video.mp4"
-            mock_file.__enter__.return_value = mock_file
-            mock_tempfile.return_value = mock_file
             
             metadata = await video_service._extract_video_metadata(sample_video_bytes)
             

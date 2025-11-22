@@ -3,7 +3,6 @@ import base64
 import datetime
 import io
 import logging
-import tempfile
 import os
 from datetime import datetime, timedelta, timezone
 from typing import Dict, Any, Optional
@@ -11,7 +10,7 @@ from bson import ObjectId
 import cv2
 import requests
 
-from app.classes.video import CreateVideoRequest, CreateVideoResponse, DeleteVideoRequest, DeleteVideoResponse, GetVideoResponse, VideoFormat, VideoInfo, VideoMetadata, VideoSourceType, VideoType, VideoUrlInfo, VideoUrlsRequest, VideoUrlsResponse, VideoListRequest, VideoListResponse, VideoGenerateRequest, VideoGenerateResponse, GenVideoRequest
+from app.classes.video import CreateVideoRequest, CreateVideoResponse, DeleteVideoRequest, DeleteVideoResponse, GetVideoResponse, VideoFormat, VideoInfo, VideoMetadata, VideoSourceType, VideoType, VideoUrlInfo, VideoUrlsRequest, VideoUrlsResponse, VideoListRequest, VideoListResponse
 from app.classes.image import CreateImageRequest, ImageType, ImageSourceType
 from app.utils.string.string_utils import is_empty_string, validate_exactly_one_field, validate_required_fields
 from app.utils.video.video_utils import generate_storage_path
@@ -21,10 +20,6 @@ from app.core.database import delete_document, get_document, insert_document, fi
 from app.services.image.image_service import ImageService
 from app.utils.file.file_utils import create_temp_local_file
 from app.services.image.image_constants import IMAGE_COLLECTION_NAME
-from app.services.video.video_constants import GEMINI_MODELS, OPENAI_MODELS
-from app.services.video.video_gen.video_gen_gemini import VideoGenGemini
-from app.services.video.video_gen.video_gen_providers import VideoGenInterface
-from app.services.video.video_gen.video_gen_openai import VideoGenOpenAI
 
 VIDEO_COLLECTION_NAME = "videos"
 VIDEO_PRESIGNED_URL_EXPIRATION = 60 * 60  # 1 hour
@@ -656,73 +651,3 @@ class VideoService:
         except Exception as e:
             logging.getLogger("uvicorn.error").error(f"Failed to delete video: {str(e)}")
             return DeleteVideoResponse(success=False, message=f"Failed to delete video: {str(e)}")
-
-    async def generate_video(self, request: VideoGenerateRequest) -> VideoGenerateResponse:
-        """Generate a video using AI models"""
-        # Get video generation provider
-        gen_provider: VideoGenInterface | None = None
-        if request.model in GEMINI_MODELS:
-            gen_provider = VideoGenGemini()
-        elif request.model in OPENAI_MODELS:
-            gen_provider = VideoGenOpenAI()
-        else:
-            return VideoGenerateResponse(
-                success=False, 
-                video_id="", 
-                message=f"Model {request.model} not supported"
-            )
-
-        # Get image data if needed
-        image_data = None
-        if request.image_id:
-            image_response = await ImageService().get_image(request.image_id)
-            if not image_response.success or not image_response.image:
-                return VideoGenerateResponse(
-                    success=False, 
-                    video_id="", 
-                    message=f"Image not found. Error: {image_response.message}"
-                )
-            image_data = await FirebaseStorageRepository().download(image_response.image.storage_path)
-
-        # Generate video
-        genvideo_response = gen_provider.generate_video(GenVideoRequest(
-            prompt=request.prompt, 
-            image_data=image_data,
-            model=request.model,
-            aspect_ratio=request.aspect_ratio,
-            duration=request.duration
-        ))
-
-        if not genvideo_response.success or not genvideo_response.video_data:
-            return VideoGenerateResponse(success=False, video_id="", message=genvideo_response.message)
-
-        # Persist video to database
-        create_video_response = await self.create_video(CreateVideoRequest(
-            filename=f"video_{request.model.value}_{datetime.now().strftime('%Y%m%d_%H%M%S')}{genvideo_response.mimetype}",
-            video_type=VideoType.GENERAL,
-            source_type=VideoSourceType.AI_GENERATE,
-            file_data=genvideo_response.video_data,
-            description=f"Generated video for prompt: {request.prompt}. Model: {request.model.value}",
-        ))
-
-        if not create_video_response.success:
-            return VideoGenerateResponse(success=False, video_id="", message=create_video_response.message)
-
-        return VideoGenerateResponse(
-            success=True,
-            video_id=create_video_response.video_id,
-            text_data=genvideo_response.text_data,
-            message=""
-        )
-
-    async def get_models(self) -> dict[str, list[dict[str, str]]]:
-        """Get available video generation models"""
-        from app.services.video.video_constants import VideoGenModel
-        
-        def model_info(model: VideoGenModel) -> dict[str, str]:
-            return {"value": model.value, "label": model.value}
-
-        return {
-            "google_genai": [model_info(model) for model in GEMINI_MODELS],
-            "openai": [],  # No OpenAI models yet
-        }

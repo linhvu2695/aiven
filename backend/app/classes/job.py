@@ -50,7 +50,6 @@ class JobResult(BaseModel):
     success: bool
     data: Optional[Dict[str, Any]] = None
     message: Optional[str] = None
-    error: Optional[str] = None
 
 
 class JobInfo(BaseModel):

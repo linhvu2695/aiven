@@ -549,7 +549,6 @@ class TestJobServiceUpdateJob:
                 success=True,
                 data={"output_file": "video.mp4"},
                 message="Video processed successfully",
-                error=None
             )
         )
         

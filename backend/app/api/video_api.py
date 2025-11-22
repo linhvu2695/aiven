@@ -17,6 +17,7 @@ from app.classes.video import (
     VideoGenerateResponse,
 )
 from app.services.video.video_service import VideoService
+from app.services.video.video_gen_service import VideoGenService
 from app.services.video.video_gen.video_gen_aspect_ratio import VideoGenAspectRatio
 from app.services.video.video_constants import VideoGenModel
 
@@ -28,7 +29,7 @@ router = APIRouter()
 @router.get("/models")
 async def get_models():
     """Get available video generation models grouped by provider"""
-    return await VideoService().get_models()
+    return await VideoGenService().get_models()
 
 
 @router.post("/upload", response_model=CreateVideoResponse)
@@ -128,11 +129,12 @@ async def generate_video(
     duration: Optional[int] = 4
     ):
     """Generate a video using the specified provider"""
-    video_gen_model = VideoGenModel(model)
-    if not video_gen_model:
-        raise HTTPException(status_code=400, detail=f"Invalid model: {model}")
+    try:
+        video_gen_model = VideoGenModel(model)
+    except Exception:
+        raise HTTPException(status_code=400, detail=f"Invalid model: {model}. Supported models: {', '.join([model.value for model in VideoGenModel])}")
 
-    response = await VideoService().generate_video(VideoGenerateRequest(
+    response = await VideoGenService().generate_video(VideoGenerateRequest(
         prompt=prompt, 
         model=video_gen_model,
         image_id=image_id,

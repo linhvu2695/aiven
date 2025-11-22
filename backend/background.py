@@ -12,8 +12,8 @@ def make_celery():
         backend=background_url,
         include=[
             "app.tasks.test_tasks",
+            "app.tasks.video.video_poll",
             # "app.tasks.video_start",
-            # "app.tasks.video_poll",
             # "app.tasks.video_post"
         ]
     )

@@ -178,8 +178,7 @@ class VideoGenerateRequest(BaseModel):
 class VideoGenerateResponse(BaseModel):
     """Response model for generating a video with a provider"""
     success: bool
-    video_id: Optional[str] = None
-    text_data: Optional[str] = None
+    job_id: str
     message: str
 
 class GenVideoRequest(BaseModel):
@@ -193,7 +192,5 @@ class GenVideoRequest(BaseModel):
 class GenVideoResponse(BaseModel):
     """Response model for generating a video"""
     success: bool
-    video_data: Optional[bytes] = None
-    text_data: Optional[str] = None
-    mimetype: Optional[str] = None
+    job_id: str
     message: str

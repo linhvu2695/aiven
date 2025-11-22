@@ -15,7 +15,7 @@ class VideoGenInterface(ABC):
     """Abstract base class defining the interface for video generation providers"""
 
     @abstractmethod
-    def generate_video(self, request: "GenVideoRequest") -> "GenVideoResponse":
+    async def generate_video(self, request: "GenVideoRequest") -> "GenVideoResponse":
         """Generate a video based on the provided request.
         """
         pass

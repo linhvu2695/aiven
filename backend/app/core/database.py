@@ -51,14 +51,21 @@ async def insert_document(collection_name: str, document: dict) -> str:
     result = await db[collection_name].insert_one(document)
     return str(result.inserted_id)
     
-async def update_document(collection_name: str, id: str, document: dict) -> str | None:
+async def update_document(collection_name: str, id: str, document: dict) -> bool:
+    """
+    Update a document in MongoDB.
+    
+    Returns:
+        bool: True if the document was updated or upserted, False otherwise
+    """
     db = get_mongodb_conn()
     result = await db[collection_name].update_one(
         {"_id": ObjectId(id)},
         {"$set": document},
         upsert=True
     )
-    return result.upserted_id
+    # Success if either matched an existing doc OR inserted a new one (upsert)
+    return result.matched_count > 0 or result.upserted_id is not None
 
 async def list_documents(collection_name: str, convert_object_id: bool = False) -> list[dict]:
     db = get_mongodb_conn()

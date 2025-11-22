@@ -26,7 +26,7 @@ class VideoGenGemini(VideoGenInterface):
             raise ValueError("GEMINI_API_KEY is not set")
         self.client = genai.Client(api_key=api_key)
 
-    def generate_video(self, request: GenVideoRequest) -> GenVideoResponse:
+    async def generate_video(self, request: GenVideoRequest) -> GenVideoResponse:
         """
         Generate a video using Google Gemini.
         """
