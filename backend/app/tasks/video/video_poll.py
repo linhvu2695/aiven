@@ -8,13 +8,15 @@ from openai import OpenAI
 from app.classes.job import JobProgress, JobResult, JobStatus, UpdateJobRequest
 from app.services.video.video_service import VideoService
 from app.classes.video import CreateVideoRequest, VideoSourceType, VideoType
-from background import background_app
+from background import background_app, get_worker_loop
 from app.core.config import settings
 from app.services.job.job_service import JobService
 
 @background_app.task(name="video.poll", bind=True, max_retries=12)
 def video_poll(self, job_id: str, operation_id: str):
-    asyncio.run(_video_poll_async(self, job_id, operation_id))
+    loop = get_worker_loop()
+    asyncio.set_event_loop(loop)
+    return loop.run_until_complete(_video_poll_async(self, job_id, operation_id))
 
 async def _video_poll_async(task: Task, job_id: str, operation_id: str):
     """

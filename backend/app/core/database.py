@@ -4,18 +4,35 @@ import logging
 from bson import ObjectId
 from typing import Dict, Any, Optional
 
-def get_mongodb_conn() -> AsyncIOMotorDatabase:
-    host = settings.mongodb_host
-    port = settings.mongodb_port
-    user = settings.mongodb_root_username
-    password = settings.mongodb_root_password
-    db_name = settings.mongodb_db_name
+# Global MongoDB client - one per worker process
+_mongodb_client: Optional[AsyncIOMotorClient] = None
+_mongodb_database: Optional[AsyncIOMotorDatabase] = None
 
-    mongodb_uri = f"mongodb://{user}:{password}@{host}:{port}"
-    mongo_client = AsyncIOMotorClient(mongodb_uri)
-    mongodb = mongo_client.get_database(db_name)
+def get_mongodb_conn() -> AsyncIOMotorDatabase:
+    global _mongodb_client, _mongodb_database
     
-    return mongodb
+    if _mongodb_client is None:
+        host = settings.mongodb_host
+        port = settings.mongodb_port
+        user = settings.mongodb_root_username
+        password = settings.mongodb_root_password
+        db_name = settings.mongodb_db_name
+
+        mongodb_uri = f"mongodb://{user}:{password}@{host}:{port}"
+        _mongodb_client = AsyncIOMotorClient(mongodb_uri)
+        _mongodb_database = _mongodb_client.get_database(db_name)
+    
+    # At this point _mongodb_database is guaranteed to be not None
+    assert _mongodb_database is not None
+    return _mongodb_database
+
+async def close_mongodb_conn():
+    """Close MongoDB connection"""
+    global _mongodb_client, _mongodb_database
+    if _mongodb_client:
+        _mongodb_client.close()
+        _mongodb_client = None
+        _mongodb_database = None
 
 async def check_mongodb_health():
     try:

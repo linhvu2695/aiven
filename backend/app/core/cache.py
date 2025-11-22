@@ -26,4 +26,10 @@ class RedisCache:
     
     async def set(self, key: str, value: str, expiration: int = 60) -> bool:
         return await self.redis.set(key, value, ex=expiration)
+    
+    async def close(self):
+        """Close Redis connection"""
+        if hasattr(self, 'redis') and self.redis:
+            await self.redis.aclose()
+            self._initialized = False
         
