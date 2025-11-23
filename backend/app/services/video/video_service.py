@@ -16,7 +16,7 @@ from app.utils.string.string_utils import is_empty_string, validate_exactly_one_
 from app.utils.video.video_utils import generate_storage_path
 from app.core.storage import FirebaseStorageRepository
 from app.classes.media import MediaProcessingStatus
-from app.core.database import delete_document, insert_document, find_documents_with_filters, count_documents_with_filters, update_document, MongoDB
+from app.core.database import delete_document, find_documents_with_filters, count_documents_with_filters, update_document, MongoDB
 from app.services.image.image_service import ImageService
 from app.utils.file.file_utils import create_temp_local_file
 from app.services.image.image_constants import IMAGE_COLLECTION_NAME
@@ -402,7 +402,7 @@ class VideoService:
             }
 
             # Insert into MongoDB
-            video_id = await insert_document(VIDEO_COLLECTION_NAME, document)
+            video_id = await MongoDB().insert_document(VIDEO_COLLECTION_NAME, document)
 
             # Extract and save thumbnail image (non-blocking, failures are logged but don't affect video creation)
             try:

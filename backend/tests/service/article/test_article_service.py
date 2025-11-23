@@ -241,7 +241,11 @@ class TestArticleService:
     @pytest.mark.asyncio
     async def test_create_article_success(self, article_service: ArticleService, create_article_request):
         """Test successful article creation"""
-        with patch("app.services.article.article_service.insert_document", return_value="new_id_123"):
+        with patch("app.services.article.article_service.MongoDB") as mock_mongodb_class:
+            mock_mongodb_instance = MagicMock()
+            mock_mongodb_class.return_value = mock_mongodb_instance
+            mock_mongodb_instance.insert_document = AsyncMock(return_value="new_id_123")
+            
             response = await article_service.create_or_update_article(create_article_request)
             
             assert isinstance(response, CreateOrUpdateArticleResponse)
@@ -272,7 +276,11 @@ class TestArticleService:
     @pytest.mark.asyncio
     async def test_create_article_exception(self, article_service: ArticleService, create_article_request):
         """Test article creation with database exception"""
-        with patch("app.services.article.article_service.insert_document", side_effect=Exception("Database error")):
+        with patch("app.services.article.article_service.MongoDB") as mock_mongodb_class:
+            mock_mongodb_instance = MagicMock()
+            mock_mongodb_class.return_value = mock_mongodb_instance
+            mock_mongodb_instance.insert_document = AsyncMock(side_effect=Exception("Database error"))
+            
             response = await article_service.create_or_update_article(create_article_request)
             
             assert isinstance(response, CreateOrUpdateArticleResponse)

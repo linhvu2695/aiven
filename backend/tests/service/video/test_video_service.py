@@ -614,8 +614,11 @@ class TestVideoServiceCreateVideo:
         
         with patch("app.services.video.video_service.generate_storage_path", return_value="test/path"), \
              patch("app.services.video.video_service.FirebaseStorageRepository", return_value=mock_storage), \
-             patch("app.services.video.video_service.insert_document", return_value="video_123"), \
+             patch("app.services.video.video_service.MongoDB") as mock_mongodb_class, \
              patch.object(video_service, "_extract_video_metadata", return_value=mock_metadata):
+            mock_mongodb_instance = MagicMock()
+            mock_mongodb_class.return_value = mock_mongodb_instance
+            mock_mongodb_instance.insert_document = AsyncMock(return_value="video_123")
             
             response = await video_service.create_video(create_video_request_file_data)
             
@@ -666,8 +669,11 @@ class TestVideoServiceCreateVideo:
         
         with patch("app.services.video.video_service.generate_storage_path", return_value="test/path"), \
              patch("app.services.video.video_service.FirebaseStorageRepository", return_value=mock_storage), \
-             patch("app.services.video.video_service.insert_document", return_value="video_123"), \
+             patch("app.services.video.video_service.MongoDB") as mock_mongodb_class, \
              patch.object(video_service, "_extract_video_metadata", return_value=mock_metadata):
+            mock_mongodb_instance = MagicMock()
+            mock_mongodb_class.return_value = mock_mongodb_instance
+            mock_mongodb_instance.insert_document = AsyncMock(return_value="video_123")
             
             response = await video_service.create_video(create_video_request_base64)
             
@@ -690,9 +696,12 @@ class TestVideoServiceCreateVideo:
         
         with patch("app.services.video.video_service.generate_storage_path", return_value="test/path"), \
              patch("app.services.video.video_service.FirebaseStorageRepository", return_value=mock_storage), \
-             patch("app.services.video.video_service.insert_document", return_value="video_123"), \
+             patch("app.services.video.video_service.MongoDB") as mock_mongodb_class, \
              patch("app.services.video.video_service.requests.get", return_value=mock_response), \
              patch.object(video_service, "_extract_video_metadata", return_value=mock_metadata):
+            mock_mongodb_instance = MagicMock()
+            mock_mongodb_class.return_value = mock_mongodb_instance
+            mock_mongodb_instance.insert_document = AsyncMock(return_value="video_123")
             
             response = await video_service.create_video(create_video_request_url)
             
@@ -729,8 +738,11 @@ class TestVideoServiceCreateVideo:
         
         with patch("app.services.video.video_service.generate_storage_path", return_value="test/path"), \
              patch("app.services.video.video_service.FirebaseStorageRepository", return_value=mock_storage), \
-             patch("app.services.video.video_service.insert_document", side_effect=Exception("DB Error")), \
+             patch("app.services.video.video_service.MongoDB") as mock_mongodb_class, \
              patch.object(video_service, "_extract_video_metadata", return_value=mock_metadata):
+            mock_mongodb_instance = MagicMock()
+            mock_mongodb_class.return_value = mock_mongodb_instance
+            mock_mongodb_instance.insert_document = AsyncMock(side_effect=Exception("DB Error"))
             
             response = await video_service.create_video(create_video_request_file_data)
             
@@ -763,8 +775,12 @@ class TestVideoServiceCreateVideo:
         
         with patch("app.services.video.video_service.generate_storage_path", return_value="test/path"), \
              patch("app.services.video.video_service.FirebaseStorageRepository", return_value=mock_storage), \
-             patch("app.services.video.video_service.insert_document", return_value="video_999") as mock_insert, \
+             patch("app.services.video.video_service.MongoDB") as mock_mongodb_class, \
              patch.object(video_service, "_extract_video_metadata", return_value=mock_metadata):
+            mock_mongodb_instance = MagicMock()
+            mock_mongodb_class.return_value = mock_mongodb_instance
+            mock_insert = AsyncMock(return_value="video_999")
+            mock_mongodb_instance.insert_document = mock_insert
             
             response = await video_service.create_video(request)
             
@@ -798,9 +814,12 @@ class TestVideoServiceCreateVideo:
         
         with patch("app.services.video.video_service.generate_storage_path", return_value="test/path"), \
              patch("app.services.video.video_service.FirebaseStorageRepository", return_value=mock_storage), \
-             patch("app.services.video.video_service.insert_document", return_value=TEST_VIDEO_ID), \
+             patch("app.services.video.video_service.MongoDB") as mock_mongodb_class, \
              patch.object(video_service, "_extract_video_metadata", return_value=mock_metadata), \
              patch.object(video_service, "_extract_video_thumbnail", return_value=TEST_THUMBNAIL_ID) as mock_extract_thumbnail:
+            mock_mongodb_instance = MagicMock()
+            mock_mongodb_class.return_value = mock_mongodb_instance
+            mock_mongodb_instance.insert_document = AsyncMock(return_value=TEST_VIDEO_ID)
             
             response = await video_service.create_video(create_video_request_file_data)
             
@@ -824,9 +843,12 @@ class TestVideoServiceCreateVideo:
         
         with patch("app.services.video.video_service.generate_storage_path", return_value="test/path"), \
              patch("app.services.video.video_service.FirebaseStorageRepository", return_value=mock_storage), \
-             patch("app.services.video.video_service.insert_document", return_value=TEST_VIDEO_ID), \
+             patch("app.services.video.video_service.MongoDB") as mock_mongodb_class, \
              patch.object(video_service, "_extract_video_metadata", return_value=mock_metadata), \
              patch.object(video_service, "_extract_video_thumbnail", side_effect=Exception("Thumbnail extraction failed")):
+            mock_mongodb_instance = MagicMock()
+            mock_mongodb_class.return_value = mock_mongodb_instance
+            mock_mongodb_instance.insert_document = AsyncMock(return_value=TEST_VIDEO_ID)
             
             response = await video_service.create_video(create_video_request_file_data)
             
@@ -846,9 +868,12 @@ class TestVideoServiceCreateVideo:
         
         with patch("app.services.video.video_service.generate_storage_path", return_value="test/path"), \
              patch("app.services.video.video_service.FirebaseStorageRepository", return_value=mock_storage), \
-             patch("app.services.video.video_service.insert_document", return_value=TEST_VIDEO_ID), \
+             patch("app.services.video.video_service.MongoDB") as mock_mongodb_class, \
              patch.object(video_service, "_extract_video_metadata", return_value=mock_metadata), \
              patch.object(video_service, "_extract_video_thumbnail", return_value=None) as mock_extract_thumbnail:
+            mock_mongodb_instance = MagicMock()
+            mock_mongodb_class.return_value = mock_mongodb_instance
+            mock_mongodb_instance.insert_document = AsyncMock(return_value=TEST_VIDEO_ID)
             
             response = await video_service.create_video(create_video_request_file_data)
             

@@ -29,7 +29,6 @@ from app.classes.image import (
     ImageUrlsResponse,
 )
 from app.core.database import (
-    insert_document,
     MongoDB,
     update_document,
     delete_document,
@@ -181,7 +180,7 @@ class ImageService:
             }
 
             # Insert into MongoDB
-            image_id = await insert_document(IMAGE_COLLECTION_NAME, document)
+            image_id = await MongoDB().insert_document(IMAGE_COLLECTION_NAME, document)
 
             return ImageCreateResponse(
                 success=True,

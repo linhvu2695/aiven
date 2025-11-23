@@ -5,7 +5,6 @@ from bson.errors import InvalidId
 
 from app.core.database import (
     MongoDB,
-    insert_document,
     update_document,
     list_documents,
     find_documents_by_field,
@@ -153,7 +152,7 @@ class TestInsertDocument:
         mock_motor_client["collection"].insert_one.return_value = mock_result
         
         # Act
-        result = await insert_document("test_collection", document)
+        result = await MongoDB().insert_document("test_collection", document)
         
         # Assert
         assert result == str(inserted_id)
@@ -699,7 +698,7 @@ class TestIntegrationScenarios:
         
         # Execute CRUD operations
         # Create
-        result_id = await insert_document(collection_name, document)
+        result_id = await MongoDB().insert_document(collection_name, document)
         assert result_id == doc_id
         
         # Read

@@ -14,7 +14,6 @@ from app.classes.job import (
     JobType,
 )
 from app.core.database import (
-    insert_document,
     MongoDB,
     update_document,
     delete_document,
@@ -84,7 +83,7 @@ class JobService:
                 "result": None,
             }
 
-            inserted_id = await insert_document(JOB_COLLECTION_NAME, document)
+            inserted_id = await MongoDB().insert_document(JOB_COLLECTION_NAME, document)
             if is_empty_string(inserted_id):
                 error_msg = "Failed to create job: Failed to insert document."
                 logging.getLogger("uvicorn.error").error(error_msg)

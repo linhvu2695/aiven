@@ -304,7 +304,10 @@ class TestImageServiceCreateImage:
         
         with patch("app.services.image.image_service.generate_storage_path", return_value="test/path"), \
              patch("app.services.image.image_service.FirebaseStorageRepository", return_value=mock_storage), \
-             patch("app.services.image.image_service.insert_document", return_value="image_123"):
+             patch("app.services.image.image_service.MongoDB") as mock_mongodb_class:
+            mock_mongodb_instance = MagicMock()
+            mock_mongodb_class.return_value = mock_mongodb_instance
+            mock_mongodb_instance.insert_document = AsyncMock(return_value="image_123")
             
             response = await image_service.create_image(create_image_request_file_data)
             

@@ -21,7 +21,6 @@ from app.classes.plant import (
 )
 from app.classes.image import ImageType, CreateImageRequest
 from app.core.database import (
-    insert_document,
     MongoDB,
     update_document,
     list_documents,
@@ -140,7 +139,7 @@ class PlantService:
                     "ai_care_tips": [],
                 }
 
-                plant_id = await insert_document(PLANT_COLLECTION_NAME, plant_data)
+                plant_id = await MongoDB().insert_document(PLANT_COLLECTION_NAME, plant_data)
 
             return CreateOrUpdatePlantResponse(
                 success=True, id=plant_id, message="Plant saved successfully"

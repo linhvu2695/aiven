@@ -203,7 +203,11 @@ class TestAgentService:
     @pytest.mark.asyncio
     async def test_create_agent_success(self, agent_service: AgentService, create_agent_request):
         """Test successful agent creation"""
-        with patch("app.services.agent.agent_service.insert_document", return_value="new_id_123"):
+        with patch("app.services.agent.agent_service.MongoDB") as mock_mongodb_class:
+            mock_mongodb_instance = MagicMock()
+            mock_mongodb_class.return_value = mock_mongodb_instance
+            mock_mongodb_instance.insert_document = AsyncMock(return_value="new_id_123")
+            
             response = await agent_service.create_or_update_agent(create_agent_request)
             
             assert isinstance(response, CreateOrUpdateAgentResponse)
@@ -235,7 +239,11 @@ class TestAgentService:
     @pytest.mark.asyncio
     async def test_create_agent_exception(self, agent_service: AgentService, create_agent_request):
         """Test agent creation with database exception"""
-        with patch("app.services.agent.agent_service.insert_document", side_effect=Exception("Database error")):
+        with patch("app.services.agent.agent_service.MongoDB") as mock_mongodb_class:
+            mock_mongodb_instance = MagicMock()
+            mock_mongodb_class.return_value = mock_mongodb_instance
+            mock_mongodb_instance.insert_document = AsyncMock(side_effect=Exception("Database error"))
+            
             response = await agent_service.create_or_update_agent(create_agent_request)
             
             assert isinstance(response, CreateOrUpdateAgentResponse)

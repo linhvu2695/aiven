@@ -207,23 +207,22 @@ class TestAddMessages:
     
     @pytest.mark.asyncio
     @patch('app.services.chat.chat_history.update_document')
-    @patch('app.services.chat.chat_history.insert_document')
     @patch('app.services.chat.chat_history.MongoDB')
     async def test_aadd_messages_new_conversation(
-        self, mock_mongodb_class, mock_insert_document, mock_update_document, sample_messages
+        self, mock_mongodb_class, mock_update_document, sample_messages
     ):
         """Test adding messages when creating new conversation."""
         mock_mongodb_instance = MagicMock()
         mock_mongodb_class.return_value = mock_mongodb_instance
         mock_mongodb_instance.get_document = AsyncMock(return_value=None)
-        mock_insert_document.return_value = TEST_NEW_SESSION_ID
+        mock_mongodb_instance.insert_document = AsyncMock(return_value=TEST_NEW_SESSION_ID)
         
         chat_history = MongoDBChatHistory("", TEST_AGENT_ID)  # Empty session ID with agent ID
         await chat_history.aadd_messages([sample_messages[0]])
         
         # Verify new conversation was created
-        mock_insert_document.assert_called_once()
-        insert_args = mock_insert_document.call_args[0]
+        mock_mongodb_instance.insert_document.assert_called_once()
+        insert_args = mock_mongodb_instance.insert_document.call_args[0]
         assert insert_args[0] == CONVERSATION_COLLECTION
         assert insert_args[1]["messages"] == []
         assert insert_args[1]["agent_id"] == TEST_AGENT_ID

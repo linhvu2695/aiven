@@ -112,7 +112,11 @@ class TestJobServiceCreateJob:
     @pytest.mark.asyncio
     async def test_create_job_success(self, job_service: JobService, create_job_request: CreateJobRequest):
         """Test successfully creating a job"""
-        with patch("app.services.job.job_service.insert_document", return_value=TEST_JOB_ID):
+        with patch("app.services.job.job_service.MongoDB") as mock_mongodb_class:
+            mock_mongodb_instance = MagicMock()
+            mock_mongodb_class.return_value = mock_mongodb_instance
+            mock_mongodb_instance.insert_document = AsyncMock(return_value=TEST_JOB_ID)
+            
             response = await job_service.create_job(create_job_request)
             
             assert isinstance(response, CreateJobResponse)
@@ -138,7 +142,11 @@ class TestJobServiceCreateJob:
     @pytest.mark.asyncio
     async def test_create_job_database_insert_failure(self, job_service: JobService, create_job_request: CreateJobRequest):
         """Test job creation when database insert fails"""
-        with patch("app.services.job.job_service.insert_document", side_effect=Exception("DB Error")):
+        with patch("app.services.job.job_service.MongoDB") as mock_mongodb_class:
+            mock_mongodb_instance = MagicMock()
+            mock_mongodb_class.return_value = mock_mongodb_instance
+            mock_mongodb_instance.insert_document = AsyncMock(side_effect=Exception("DB Error"))
+            
             response = await job_service.create_job(create_job_request)
             
             assert isinstance(response, CreateJobResponse)
@@ -149,7 +157,11 @@ class TestJobServiceCreateJob:
     @pytest.mark.asyncio
     async def test_create_job_empty_inserted_id(self, job_service: JobService, create_job_request: CreateJobRequest):
         """Test job creation when insert_document returns empty string"""
-        with patch("app.services.job.job_service.insert_document", return_value=""):
+        with patch("app.services.job.job_service.MongoDB") as mock_mongodb_class:
+            mock_mongodb_instance = MagicMock()
+            mock_mongodb_class.return_value = mock_mongodb_instance
+            mock_mongodb_instance.insert_document = AsyncMock(return_value="")
+            
             response = await job_service.create_job(create_job_request)
             
             assert isinstance(response, CreateJobResponse)
@@ -165,7 +177,11 @@ class TestJobServiceCreateJob:
             job_name="simple_task"
         )
         
-        with patch("app.services.job.job_service.insert_document", return_value=TEST_JOB_ID) as mock_insert:
+        with patch("app.services.job.job_service.MongoDB") as mock_mongodb_class:
+            mock_mongodb_instance = MagicMock()
+            mock_mongodb_class.return_value = mock_mongodb_instance
+            mock_insert = AsyncMock(return_value=TEST_JOB_ID)
+            mock_mongodb_instance.insert_document = mock_insert
             response = await job_service.create_job(request)
             
             assert response.success is True
@@ -185,7 +201,11 @@ class TestJobServiceCreateJob:
     @pytest.mark.asyncio
     async def test_create_job_with_all_fields(self, job_service: JobService, create_job_request: CreateJobRequest):
         """Test creating a job with all fields populated"""
-        with patch("app.services.job.job_service.insert_document", return_value=TEST_JOB_ID) as mock_insert:
+        with patch("app.services.job.job_service.MongoDB") as mock_mongodb_class:
+            mock_mongodb_instance = MagicMock()
+            mock_mongodb_class.return_value = mock_mongodb_instance
+            mock_insert = AsyncMock(return_value=TEST_JOB_ID)
+            mock_mongodb_instance.insert_document = mock_insert
             response = await job_service.create_job(create_job_request)
             
             assert response.success is True
@@ -203,7 +223,11 @@ class TestJobServiceCreateJob:
     @pytest.mark.asyncio
     async def test_create_job_sets_timestamps(self, job_service: JobService, create_job_request: CreateJobRequest):
         """Test that create_job sets created_at and expires_at timestamps"""
-        with patch("app.services.job.job_service.insert_document", return_value=TEST_JOB_ID) as mock_insert:
+        with patch("app.services.job.job_service.MongoDB") as mock_mongodb_class:
+            mock_mongodb_instance = MagicMock()
+            mock_mongodb_class.return_value = mock_mongodb_instance
+            mock_insert = AsyncMock(return_value=TEST_JOB_ID)
+            mock_mongodb_instance.insert_document = mock_insert
             response = await job_service.create_job(create_job_request)
             
             assert response.success is True
@@ -228,7 +252,11 @@ class TestJobServiceCreateJob:
                 priority=priority
             )
             
-            with patch("app.services.job.job_service.insert_document", return_value=TEST_JOB_ID) as mock_insert:
+            with patch("app.services.job.job_service.MongoDB") as mock_mongodb_class:
+                mock_mongodb_instance = MagicMock()
+                mock_mongodb_class.return_value = mock_mongodb_instance
+                mock_insert = AsyncMock(return_value=TEST_JOB_ID)
+                mock_mongodb_instance.insert_document = mock_insert
                 response = await job_service.create_job(request)
                 
                 assert response.success is True

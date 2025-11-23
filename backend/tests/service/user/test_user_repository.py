@@ -39,7 +39,11 @@ class TestUserRepositoryCreateUser:
         """Test successful user creation"""
         mock_user_id = "user_12345"
         
-        with patch("app.services.user.user_repository.insert_document", new_callable=AsyncMock, return_value=mock_user_id) as mock_insert:
+        with patch("app.services.user.user_repository.MongoDB") as mock_mongodb_class:
+            mock_mongodb_instance = MagicMock()
+            mock_mongodb_class.return_value = mock_mongodb_instance
+            mock_insert = AsyncMock(return_value=mock_user_id)
+            mock_mongodb_instance.insert_document = mock_insert
             response = await user_repository.create_user(create_user_request)
             
             # Verify response
@@ -82,7 +86,11 @@ class TestUserRepositoryCreateUser:
             password="SamePassword123!"
         )
         
-        with patch("app.services.user.user_repository.insert_document", new_callable=AsyncMock, return_value="user_id") as mock_insert:
+        with patch("app.services.user.user_repository.MongoDB") as mock_mongodb_class:
+            mock_mongodb_instance = MagicMock()
+            mock_mongodb_class.return_value = mock_mongodb_instance
+            mock_insert = AsyncMock(return_value="user_id")
+            mock_mongodb_instance.insert_document = mock_insert
             await user_repository.create_user(request1)
             await user_repository.create_user(request2)
             
@@ -101,7 +109,10 @@ class TestUserRepositoryCreateUser:
     @pytest.mark.asyncio
     async def test_create_user_insert_failure(self, user_repository: UserRepository, create_user_request: CreateUserRequest):
         """Test user creation when insert_document returns None"""
-        with patch("app.services.user.user_repository.insert_document", new_callable=AsyncMock, return_value=None):
+        with patch("app.services.user.user_repository.MongoDB") as mock_mongodb_class:
+            mock_mongodb_instance = MagicMock()
+            mock_mongodb_class.return_value = mock_mongodb_instance
+            mock_mongodb_instance.insert_document = AsyncMock(return_value=None)
             response = await user_repository.create_user(create_user_request)
             
             assert isinstance(response, CreateUserResponse)
@@ -112,7 +123,10 @@ class TestUserRepositoryCreateUser:
     @pytest.mark.asyncio
     async def test_create_user_insert_empty_output_id(self, user_repository: UserRepository, create_user_request: CreateUserRequest):
         """Test user creation when insert_document returns empty string"""
-        with patch("app.services.user.user_repository.insert_document", new_callable=AsyncMock, return_value=""):
+        with patch("app.services.user.user_repository.MongoDB") as mock_mongodb_class:
+            mock_mongodb_instance = MagicMock()
+            mock_mongodb_class.return_value = mock_mongodb_instance
+            mock_mongodb_instance.insert_document = AsyncMock(return_value="")
             response = await user_repository.create_user(create_user_request)
             
             assert isinstance(response, CreateUserResponse)
@@ -123,7 +137,10 @@ class TestUserRepositoryCreateUser:
     @pytest.mark.asyncio
     async def test_create_user_database_exception(self, user_repository: UserRepository, create_user_request: CreateUserRequest):
         """Test user creation when database throws an exception"""
-        with patch("app.services.user.user_repository.insert_document", new_callable=AsyncMock, side_effect=Exception("Database connection error")):
+        with patch("app.services.user.user_repository.MongoDB") as mock_mongodb_class:
+            mock_mongodb_instance = MagicMock()
+            mock_mongodb_class.return_value = mock_mongodb_instance
+            mock_mongodb_instance.insert_document = AsyncMock(side_effect=Exception("Database connection error"))
             response = await user_repository.create_user(create_user_request)
             
             assert isinstance(response, CreateUserResponse)
@@ -140,7 +157,11 @@ class TestUserRepositoryCreateUser:
             password="P@ssw0rd!#$%^&*()"
         )
         
-        with patch("app.services.user.user_repository.insert_document", new_callable=AsyncMock, return_value="user_id") as mock_insert:
+        with patch("app.services.user.user_repository.MongoDB") as mock_mongodb_class:
+            mock_mongodb_instance = MagicMock()
+            mock_mongodb_class.return_value = mock_mongodb_instance
+            mock_insert = AsyncMock(return_value="user_id")
+            mock_mongodb_instance.insert_document = mock_insert
             response = await user_repository.create_user(request)
             
             assert response.success is True
@@ -155,7 +176,11 @@ class TestUserRepositoryCreateUser:
     @pytest.mark.asyncio
     async def test_create_user_password_hash_algorithm_stored(self, user_repository: UserRepository, create_user_request: CreateUserRequest):
         """Test that the hash algorithm is properly stored"""
-        with patch("app.services.user.user_repository.insert_document", new_callable=AsyncMock, return_value="user_id") as mock_insert:
+        with patch("app.services.user.user_repository.MongoDB") as mock_mongodb_class:
+            mock_mongodb_instance = MagicMock()
+            mock_mongodb_class.return_value = mock_mongodb_instance
+            mock_insert = AsyncMock(return_value="user_id")
+            mock_mongodb_instance.insert_document = mock_insert
             response = await user_repository.create_user(create_user_request)
             
             assert response.success is True
@@ -166,7 +191,11 @@ class TestUserRepositoryCreateUser:
     @pytest.mark.asyncio
     async def test_create_user_timestamps_are_utc(self, user_repository: UserRepository, create_user_request: CreateUserRequest):
         """Test that timestamps are in UTC timezone"""
-        with patch("app.services.user.user_repository.insert_document", new_callable=AsyncMock, return_value="user_id") as mock_insert:
+        with patch("app.services.user.user_repository.MongoDB") as mock_mongodb_class:
+            mock_mongodb_instance = MagicMock()
+            mock_mongodb_class.return_value = mock_mongodb_instance
+            mock_insert = AsyncMock(return_value="user_id")
+            mock_mongodb_instance.insert_document = mock_insert
             response = await user_repository.create_user(create_user_request)
             
             assert response.success is True
@@ -189,7 +218,11 @@ class TestUserRepositoryCreateUser:
             password="Password2!"
         )
         
-        with patch("app.services.user.user_repository.insert_document", new_callable=AsyncMock) as mock_insert:
+        with patch("app.services.user.user_repository.MongoDB") as mock_mongodb_class:
+            mock_mongodb_instance = MagicMock()
+            mock_mongodb_class.return_value = mock_mongodb_instance
+            mock_insert = AsyncMock()
+            mock_mongodb_instance.insert_document = mock_insert
             mock_insert.side_effect = ["user_id_1", "user_id_2"]
             
             response1 = await user_repository.create_user(request1)

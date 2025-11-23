@@ -5,7 +5,7 @@ from bson import ObjectId
 from langchain_core.messages import HumanMessage, AIMessage, SystemMessage
 from langchain_core.chat_history import BaseChatMessageHistory
 from langchain_core.messages.base import BaseMessage
-from app.core.database import delete_document, update_document, insert_document, MongoDB
+from app.core.database import delete_document, update_document, MongoDB
 from app.classes.conversation import Conversation, ConversationDeleteRequest, ConversationInfo
 
 CONVERSATION_COLLECTION = "conversation"
@@ -113,7 +113,7 @@ class ConversationRepository:
         return cls._instance
 
     async def create_new_conversation(self, agent_id: str) -> str:
-        session_id = await insert_document(CONVERSATION_COLLECTION, {
+        session_id = await MongoDB().insert_document(CONVERSATION_COLLECTION, {
                 "name": "",
                 "messages": [],
                 "agent_id": agent_id,

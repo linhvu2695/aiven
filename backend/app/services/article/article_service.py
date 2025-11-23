@@ -9,7 +9,7 @@ from app.classes.article import (
     DeleteArticleResponse,
     SearchArticlesResponse,
 )
-from app.core.database import insert_document, update_document, list_documents, delete_document, find_documents_by_field, MongoDB
+from app.core.database import update_document, list_documents, delete_document, find_documents_by_field, MongoDB
 
 ARTICLE_COLLECTION_NAME = "articles"
 
@@ -93,7 +93,7 @@ class ArticleService:
                 )
             else:  # Insert new
                 document["created_at"] = current_time
-                inserted_id = await insert_document(ARTICLE_COLLECTION_NAME, document)
+                inserted_id = await MongoDB().insert_document(ARTICLE_COLLECTION_NAME, document)
                 return CreateOrUpdateArticleResponse(
                     success=True, id=inserted_id, message="Article created successfully."
                 )

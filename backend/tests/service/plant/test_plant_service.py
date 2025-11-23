@@ -155,7 +155,11 @@ class TestPlantServiceCreateOrUpdatePlant:
     @pytest.mark.asyncio
     async def test_create_plant_success(self, plant_service, create_plant_request):
         """Test successful plant creation"""
-        with patch("app.services.plant.plant_service.insert_document", return_value="new_plant_123"):
+        with patch("app.services.plant.plant_service.MongoDB") as mock_mongodb_class:
+            mock_mongodb_instance = MagicMock()
+            mock_mongodb_class.return_value = mock_mongodb_instance
+            mock_mongodb_instance.insert_document = AsyncMock(return_value="new_plant_123")
+            
             response = await plant_service.create_or_update_plant(create_plant_request)
             
             assert isinstance(response, CreateOrUpdatePlantResponse)
@@ -180,7 +184,12 @@ class TestPlantServiceCreateOrUpdatePlant:
         """Test plant creation with minimal data uses defaults"""
         request = CreateOrUpdatePlantRequest(name="Minimal Plant")
         
-        with patch("app.services.plant.plant_service.insert_document", return_value="new_plant_123") as mock_insert:
+        with patch("app.services.plant.plant_service.MongoDB") as mock_mongodb_class:
+            mock_mongodb_instance = MagicMock()
+            mock_mongodb_class.return_value = mock_mongodb_instance
+            mock_insert = AsyncMock(return_value="new_plant_123")
+            mock_mongodb_instance.insert_document = mock_insert
+            
             response = await plant_service.create_or_update_plant(request)
             
             assert response.success is True
@@ -196,7 +205,11 @@ class TestPlantServiceCreateOrUpdatePlant:
     @pytest.mark.asyncio
     async def test_create_plant_exception(self, plant_service, create_plant_request):
         """Test plant creation with database exception"""
-        with patch("app.services.plant.plant_service.insert_document", side_effect=Exception("Database error")):
+        with patch("app.services.plant.plant_service.MongoDB") as mock_mongodb_class:
+            mock_mongodb_instance = MagicMock()
+            mock_mongodb_class.return_value = mock_mongodb_instance
+            mock_mongodb_instance.insert_document = AsyncMock(side_effect=Exception("Database error"))
+            
             response = await plant_service.create_or_update_plant(create_plant_request)
             
             assert isinstance(response, CreateOrUpdatePlantResponse)

@@ -5,7 +5,7 @@ from typing import Dict, Any
 
 from bson import ObjectId
 from app.classes.user import CreateUserRequest, CreateUserResponse, DeleteUserResponse, GetUserByEmailRequest, GetUserByEmailResponse, GetUserByUsernameRequest, GetUserByUsernameResponse, GetUserByIdResponse, UserInfo
-from app.core.database import delete_document, find_documents_with_filters, insert_document, MongoDB
+from app.core.database import delete_document, find_documents_with_filters, MongoDB
 
 USER_COLLECTION_NAME = "users"
 
@@ -52,7 +52,7 @@ class UserRepository:
         }
 
         try:
-            user_id = await insert_document(USER_COLLECTION_NAME, user_data)
+            user_id = await MongoDB().insert_document(USER_COLLECTION_NAME, user_data)
             if not user_id:
                 return CreateUserResponse(
                     success=False,

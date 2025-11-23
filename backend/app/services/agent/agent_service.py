@@ -11,7 +11,6 @@ from app.classes.agent import (
 )
 from app.classes.image import ImageType, ImageSourceType, CreateImageRequest
 from app.core.database import (
-    insert_document,
     MongoDB,
     update_document,
     list_documents,
@@ -98,7 +97,7 @@ class AgentService:
                     message="Agent updated successfully.",
                 )
             else:  # Insert new
-                inserted_id = await insert_document(AGENT_COLLECTION_NAME, document)
+                inserted_id = await MongoDB().insert_document(AGENT_COLLECTION_NAME, document)
                 return CreateOrUpdateAgentResponse(
                     success=True, id=inserted_id, message="Agent created successfully."
                 )
