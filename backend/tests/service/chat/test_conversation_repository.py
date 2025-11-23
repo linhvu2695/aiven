@@ -66,15 +66,17 @@ class TestGetConversations:
     """Test get_conversations method."""
     
     @pytest.mark.asyncio
-    @patch('app.services.chat.chat_history.get_mongodb_conn')
-    async def test_get_conversations_success(self, mock_get_conn, sample_conversation_info_data):
+    @patch('app.services.chat.chat_history.MongoDB')
+    async def test_get_conversations_success(self, mock_mongodb_class, sample_conversation_info_data):
         """Test successful retrieval of conversations."""
         # Mock database connection and cursor
         mock_db = MagicMock()
         mock_collection = MagicMock()
         mock_cursor = MagicMock()
         
-        mock_get_conn.return_value = mock_db
+        mock_mongodb_instance = MagicMock()
+        mock_mongodb_class.return_value = mock_mongodb_instance
+        mock_mongodb_instance.database = mock_db
         mock_db.__getitem__.return_value = mock_collection
         mock_collection.find.return_value = mock_cursor
         mock_cursor.sort.return_value = mock_cursor
@@ -107,14 +109,16 @@ class TestGetConversations:
         assert conversations[1].name == "Older Conversation"
     
     @pytest.mark.asyncio
-    @patch('app.services.chat.chat_history.get_mongodb_conn')
-    async def test_get_conversations_empty_result(self, mock_get_conn):
+    @patch('app.services.chat.chat_history.MongoDB')
+    async def test_get_conversations_empty_result(self, mock_mongodb_class):
         """Test retrieval when no conversations exist."""
         mock_db = MagicMock()
         mock_collection = MagicMock()
         mock_cursor = MagicMock()
         
-        mock_get_conn.return_value = mock_db
+        mock_mongodb_instance = MagicMock()
+        mock_mongodb_class.return_value = mock_mongodb_instance
+        mock_mongodb_instance.database = mock_db
         mock_db.__getitem__.return_value = mock_collection
         mock_collection.find.return_value = mock_cursor
         mock_cursor.sort.return_value = mock_cursor
@@ -133,15 +137,19 @@ class TestGetConversations:
         assert conversations == []
     
     @pytest.mark.asyncio
-    @patch('app.services.chat.chat_history.get_mongodb_conn')
+    @patch('app.services.chat.chat_history.MongoDB')
     @patch('logging.getLogger')
-    async def test_get_conversations_database_error(self, mock_get_logger, mock_get_conn):
+    async def test_get_conversations_database_error(self, mock_get_logger, mock_mongodb_class):
         """Test error handling when database operation fails."""
+        from unittest.mock import PropertyMock
+        
         mock_logger = MagicMock()
         mock_get_logger.return_value = mock_logger
         
         # Mock database connection to raise an exception
-        mock_get_conn.side_effect = Exception("Database connection failed")
+        mock_mongodb_instance = MagicMock()
+        mock_mongodb_class.return_value = mock_mongodb_instance
+        type(mock_mongodb_instance).database = PropertyMock(side_effect=Exception("Database connection failed"))
         
         repo = ConversationRepository()
         conversations = await repo.get_conversations(limit=10)
@@ -154,14 +162,16 @@ class TestGetConversations:
         assert "Error retrieving conversations" in mock_logger.error.call_args[0][0]
     
     @pytest.mark.asyncio
-    @patch('app.services.chat.chat_history.get_mongodb_conn')
-    async def test_get_conversations_with_different_limits(self, mock_get_conn):
+    @patch('app.services.chat.chat_history.MongoDB')
+    async def test_get_conversations_with_different_limits(self, mock_mongodb_class):
         """Test that different limit values are passed correctly."""
         mock_db = MagicMock()
         mock_collection = MagicMock()
         mock_cursor = MagicMock()
         
-        mock_get_conn.return_value = mock_db
+        mock_mongodb_instance = MagicMock()
+        mock_mongodb_class.return_value = mock_mongodb_instance
+        mock_mongodb_instance.database = mock_db
         mock_db.__getitem__.return_value = mock_collection
         mock_collection.find.return_value = mock_cursor
         mock_cursor.sort.return_value = mock_cursor
@@ -183,14 +193,16 @@ class TestGetConversations:
         mock_cursor.limit.assert_called_with(20)
     
     @pytest.mark.asyncio
-    @patch('app.services.chat.chat_history.get_mongodb_conn')
-    async def test_get_conversations_missing_name_field(self, mock_get_conn):
+    @patch('app.services.chat.chat_history.MongoDB')
+    async def test_get_conversations_missing_name_field(self, mock_mongodb_class):
         """Test handling of documents with missing name field."""
         mock_db = MagicMock()
         mock_collection = MagicMock()
         mock_cursor = MagicMock()
         
-        mock_get_conn.return_value = mock_db
+        mock_mongodb_instance = MagicMock()
+        mock_mongodb_class.return_value = mock_mongodb_instance
+        mock_mongodb_instance.database = mock_db
         mock_db.__getitem__.return_value = mock_collection
         mock_collection.find.return_value = mock_cursor
         mock_cursor.sort.return_value = mock_cursor
@@ -214,14 +226,16 @@ class TestGetConversations:
         assert conversations[0].name == ""  # Should default to empty string
 
     @pytest.mark.asyncio
-    @patch('app.services.chat.chat_history.get_mongodb_conn')
-    async def test_get_conversations_with_agent_id_filter(self, mock_get_conn, sample_conversation_info_data):
+    @patch('app.services.chat.chat_history.MongoDB')
+    async def test_get_conversations_with_agent_id_filter(self, mock_mongodb_class, sample_conversation_info_data):
         """Test retrieval of conversations filtered by agent_id."""
         mock_db = MagicMock()
         mock_collection = MagicMock()
         mock_cursor = MagicMock()
         
-        mock_get_conn.return_value = mock_db
+        mock_mongodb_instance = MagicMock()
+        mock_mongodb_class.return_value = mock_mongodb_instance
+        mock_mongodb_instance.database = mock_db
         mock_db.__getitem__.return_value = mock_collection
         mock_collection.find.return_value = mock_cursor
         mock_cursor.sort.return_value = mock_cursor
@@ -250,14 +264,16 @@ class TestGetConversations:
         assert all(isinstance(conv, ConversationInfo) for conv in conversations)
 
     @pytest.mark.asyncio
-    @patch('app.services.chat.chat_history.get_mongodb_conn')
-    async def test_get_conversations_with_empty_agent_id(self, mock_get_conn, sample_conversation_info_data):
+    @patch('app.services.chat.chat_history.MongoDB')
+    async def test_get_conversations_with_empty_agent_id(self, mock_mongodb_class, sample_conversation_info_data):
         """Test retrieval of conversations with empty agent_id (should get all conversations)."""
         mock_db = MagicMock()
         mock_collection = MagicMock()
         mock_cursor = MagicMock()
         
-        mock_get_conn.return_value = mock_db
+        mock_mongodb_instance = MagicMock()
+        mock_mongodb_class.return_value = mock_mongodb_instance
+        mock_mongodb_instance.database = mock_db
         mock_db.__getitem__.return_value = mock_collection
         mock_collection.find.return_value = mock_cursor
         mock_cursor.sort.return_value = mock_cursor
@@ -282,14 +298,16 @@ class TestGetConversations:
         mock_cursor.limit.assert_called_once_with(10)
 
     @pytest.mark.asyncio
-    @patch('app.services.chat.chat_history.get_mongodb_conn')
-    async def test_get_conversations_with_whitespace_agent_id(self, mock_get_conn, sample_conversation_info_data):
+    @patch('app.services.chat.chat_history.MongoDB')
+    async def test_get_conversations_with_whitespace_agent_id(self, mock_mongodb_class, sample_conversation_info_data):
         """Test retrieval of conversations with whitespace-only agent_id (should get all conversations)."""
         mock_db = MagicMock()
         mock_collection = MagicMock()
         mock_cursor = MagicMock()
         
-        mock_get_conn.return_value = mock_db
+        mock_mongodb_instance = MagicMock()
+        mock_mongodb_class.return_value = mock_mongodb_instance
+        mock_mongodb_instance.database = mock_db
         mock_db.__getitem__.return_value = mock_collection
         mock_collection.find.return_value = mock_cursor
         mock_cursor.sort.return_value = mock_cursor

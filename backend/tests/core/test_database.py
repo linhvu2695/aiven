@@ -4,7 +4,7 @@ from bson import ObjectId
 from bson.errors import InvalidId
 
 from app.core.database import (
-    get_mongodb_conn,
+    MongoDB,
     check_mongodb_health,
     get_document,
     insert_document,
@@ -18,6 +18,9 @@ from app.core.database import (
 @pytest.fixture
 def mock_motor_client():
     """Mock the MongoDB motor client and database"""
+    # Reset the MongoDB singleton before each test
+    MongoDB._instance = None
+    
     with patch("app.core.database.AsyncIOMotorClient") as MockClient:
         mock_client_instance = MagicMock()
         MockClient.return_value = mock_client_instance
@@ -43,11 +46,14 @@ def mock_motor_client():
             "db": mock_db,
             "collection": mock_collection
         }
+    
+    # Clean up singleton after test
+    MongoDB._instance = None
 
-class TestGetMongodbConn:
+class TestMongoDBSingleton:
     @patch("app.core.database.settings")
-    def test_get_mongodb_conn_creates_correct_uri(self, mock_settings, mock_motor_client):
-        """Test that _get_mongodb_conn creates the correct MongoDB URI"""
+    def test_mongodb_singleton_creates_correct_uri(self, mock_settings, mock_motor_client):
+        """Test that MongoDB singleton creates the correct MongoDB URI"""
         # Arrange
         mock_settings.mongodb_host = "localhost"
         mock_settings.mongodb_port = 27017
@@ -56,7 +62,8 @@ class TestGetMongodbConn:
         mock_settings.mongodb_db_name = "testdb"
         
         # Act
-        result = get_mongodb_conn()
+        db_instance = MongoDB()
+        result = db_instance.database
         
         # Assert
         expected_uri = "mongodb://admin:password@localhost:27017"

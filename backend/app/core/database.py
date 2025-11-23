@@ -4,14 +4,19 @@ import logging
 from bson import ObjectId
 from typing import Dict, Any, Optional
 
-# Global MongoDB client - one per worker process
-_mongodb_client: Optional[AsyncIOMotorClient] = None
-_mongodb_database: Optional[AsyncIOMotorDatabase] = None
 
-def get_mongodb_conn() -> AsyncIOMotorDatabase:
-    global _mongodb_client, _mongodb_database
-    
-    if _mongodb_client is None:
+class MongoDB:
+    _instance = None
+
+    def __new__(cls, *args, **kwargs):
+        if cls._instance is None:
+            cls._instance = super(MongoDB, cls).__new__(cls)
+        return cls._instance
+
+    def __init__(self):
+        if hasattr(self, '_initialized') and self._initialized:
+            return
+        
         host = settings.mongodb_host
         port = settings.mongodb_port
         user = settings.mongodb_root_username
@@ -19,92 +24,172 @@ def get_mongodb_conn() -> AsyncIOMotorDatabase:
         db_name = settings.mongodb_db_name
 
         mongodb_uri = f"mongodb://{user}:{password}@{host}:{port}"
-        _mongodb_client = AsyncIOMotorClient(mongodb_uri)
-        _mongodb_database = _mongodb_client.get_database(db_name)
-    
-    # At this point _mongodb_database is guaranteed to be not None
-    assert _mongodb_database is not None
-    return _mongodb_database
+        self.client = AsyncIOMotorClient(mongodb_uri)
+        self.database = self.client.get_database(db_name)
+        self._initialized = True
 
-async def close_mongodb_conn():
-    """Close MongoDB connection"""
-    global _mongodb_client, _mongodb_database
-    if _mongodb_client:
-        _mongodb_client.close()
-        _mongodb_client = None
-        _mongodb_database = None
+    async def close(self):
+        """Close MongoDB connection"""
+        if hasattr(self, 'client') and self.client:
+            self.client.close()
+            self._initialized = False
 
-async def check_mongodb_health():
-    try:
-        conn = get_mongodb_conn()
-        await conn.command("ping")
-        logging.getLogger("uvicorn.info").info("Successfully connected to MongoDB")
-        return True
-    except Exception as ex:
-        logging.getLogger("uvicorn.error").error(f"Fail to connect to MongoDB: {ex}")
-        return False
+    async def check_health(self):
+        """Check MongoDB connection health"""
+        try:
+            await self.database.command("ping")
+            logging.getLogger("uvicorn.info").info("Successfully connected to MongoDB")
+            return True
+        except Exception as ex:
+            logging.getLogger("uvicorn.error").error(f"Fail to connect to MongoDB: {ex}")
+            return False
 
-async def get_document(collection_name: str, id: str, convert_object_id: bool = False) -> dict:
-    try:
-        obj_id = ObjectId(id)
-    except Exception:
-        raise ValueError("Invalid document id format")
-    
-    db = get_mongodb_conn()
-    document = await db[collection_name].find_one({"_id": obj_id})
+    async def get_document(self, collection_name: str, id: str, convert_object_id: bool = False) -> dict:
+        """Get a document by ID from a collection"""
+        try:
+            obj_id = ObjectId(id)
+        except Exception:
+            raise ValueError("Invalid document id format")
+        
+        document = await self.database[collection_name].find_one({"_id": obj_id})
 
-    if not document:
-        raise ValueError(f"Document {id} not found in collection {collection_name}")
-    
-    # Convert MongoDB _id to id if needed
-    if convert_object_id and "_id" in document:
-        document["id"] = str(document["_id"])
-        del document["_id"]
-
-    return document
-
-async def insert_document(collection_name: str, document: dict) -> str:
-    db = get_mongodb_conn()
-    result = await db[collection_name].insert_one(document)
-    return str(result.inserted_id)
-    
-async def update_document(collection_name: str, id: str, document: dict) -> bool:
-    """
-    Update a document in MongoDB.
-    
-    Returns:
-        bool: True if the document was updated or upserted, False otherwise
-    """
-    db = get_mongodb_conn()
-    result = await db[collection_name].update_one(
-        {"_id": ObjectId(id)},
-        {"$set": document},
-        upsert=True
-    )
-    # Success if either matched an existing doc OR inserted a new one (upsert)
-    return result.matched_count > 0 or result.upserted_id is not None
-
-async def list_documents(collection_name: str, convert_object_id: bool = False) -> list[dict]:
-    db = get_mongodb_conn()
-    cursor = db[collection_name].find()
-    documents = []
-    async for document in cursor:
-        documents.append(document)
-
+        if not document:
+            raise ValueError(f"Document {id} not found in collection {collection_name}")
+        
         # Convert MongoDB _id to id if needed
         if convert_object_id and "_id" in document:
             document["id"] = str(document["_id"])
             del document["_id"]
-    return documents
+
+        return document
+
+    async def insert_document(self, collection_name: str, document: dict) -> str:
+        """Insert a document into a collection"""
+        result = await self.database[collection_name].insert_one(document)
+        return str(result.inserted_id)
+        
+    async def update_document(self, collection_name: str, id: str, document: dict) -> bool:
+        """
+        Update a document in MongoDB.
+        
+        Returns:
+            bool: True if the document was updated or upserted, False otherwise
+        """
+        result = await self.database[collection_name].update_one(
+            {"_id": ObjectId(id)},
+            {"$set": document},
+            upsert=True
+        )
+        # Success if either matched an existing doc OR inserted a new one (upsert)
+        return result.matched_count > 0 or result.upserted_id is not None
+
+    async def list_documents(self, collection_name: str, convert_object_id: bool = False) -> list[dict]:
+        """List all documents in a collection"""
+        cursor = self.database[collection_name].find()
+        documents = []
+        async for document in cursor:
+            # Convert MongoDB _id to id if needed
+            if convert_object_id and "_id" in document:
+                document["id"] = str(document["_id"])
+                del document["_id"]
+            documents.append(document)
+        return documents
+
+    async def find_documents_by_field(self, collection_name: str, field_name: str, field_value: str) -> list[dict]:
+        """Find documents where a specific field matches a given value."""
+        cursor = self.database[collection_name].find({field_name: field_value})
+        documents = []
+        async for document in cursor:
+            documents.append(document)
+        return documents
+
+    async def find_documents_with_filters(
+        self,
+        collection_name: str, 
+        filters: Dict[str, Any], 
+        skip: int = 0, 
+        limit: Optional[int] = None,
+        sort_by: Optional[str] = None,
+        asc: bool = True
+    ) -> list[dict]:
+        """
+        Find documents with multiple field filters and optional pagination/sorting.
+        
+        Args:
+            collection_name: Name of the MongoDB collection
+            filters: Dictionary of field-value pairs to filter by
+            skip: Number of documents to skip (for pagination)
+            limit: Maximum number of documents to return
+            sort_by: Field name to sort by
+            asc: True for ascending, False for descending
+        
+        Returns:
+            List of matching documents
+            
+        Example:
+            # Find images that are plant photos, not deleted, for a specific entity
+            filters = {
+                "image_type": "plant_photo",
+                "is_deleted": False,
+                "entity_id": "plant123"
+            }
+            docs = await MongoDB().find_documents_with_filters("images", filters, limit=10)
+        """
+        cursor = self.database[collection_name].find(filters)
+        
+        # Apply sorting if specified
+        if sort_by:
+            cursor = cursor.sort(sort_by, 1 if asc else -1)
+        
+        # Apply pagination
+        if skip > 0:
+            cursor = cursor.skip(skip)
+        if limit:
+            cursor = cursor.limit(limit)
+        
+        documents = []
+        async for document in cursor:
+            documents.append(document)
+        return documents
+
+    async def count_documents_with_filters(self, collection_name: str, filters: Dict[str, Any]) -> int:
+        """Count documents matching the given filters."""
+        return await self.database[collection_name].count_documents(filters)
+
+    async def delete_document(self, collection_name: str, id: str) -> bool:
+        """Delete a document from a collection"""
+        result = await self.database[collection_name].delete_one({"_id": ObjectId(id)})
+        return result.deleted_count > 0
+
+
+# Backward compatibility functions - delegate to MongoDB singleton
+async def close_mongodb_conn():
+    """Deprecated: Use MongoDB().close() instead"""
+    await MongoDB().close()
+
+async def check_mongodb_health():
+    """Deprecated: Use MongoDB().check_health() instead"""
+    return await MongoDB().check_health()
+
+async def get_document(collection_name: str, id: str, convert_object_id: bool = False) -> dict:
+    """Deprecated: Use MongoDB().get_document() instead"""
+    return await MongoDB().get_document(collection_name, id, convert_object_id)
+
+async def insert_document(collection_name: str, document: dict) -> str:
+    """Deprecated: Use MongoDB().insert_document() instead"""
+    return await MongoDB().insert_document(collection_name, document)
+    
+async def update_document(collection_name: str, id: str, document: dict) -> bool:
+    """Deprecated: Use MongoDB().update_document() instead"""
+    return await MongoDB().update_document(collection_name, id, document)
+
+async def list_documents(collection_name: str, convert_object_id: bool = False) -> list[dict]:
+    """Deprecated: Use MongoDB().list_documents() instead"""
+    return await MongoDB().list_documents(collection_name, convert_object_id)
 
 async def find_documents_by_field(collection_name: str, field_name: str, field_value: str) -> list[dict]:
-    """Find documents where a specific field matches a given value."""
-    db = get_mongodb_conn()
-    cursor = db[collection_name].find({field_name: field_value})
-    documents = []
-    async for document in cursor:
-        documents.append(document)
-    return documents
+    """Deprecated: Use MongoDB().find_documents_by_field() instead"""
+    return await MongoDB().find_documents_by_field(collection_name, field_name, field_value)
 
 async def find_documents_with_filters(
     collection_name: str, 
@@ -114,53 +199,13 @@ async def find_documents_with_filters(
     sort_by: Optional[str] = None,
     asc: bool = True
 ) -> list[dict]:
-    """
-    Find documents with multiple field filters and optional pagination/sorting.
-    
-    Args:
-        collection_name: Name of the MongoDB collection
-        filters: Dictionary of field-value pairs to filter by
-        skip: Number of documents to skip (for pagination)
-        limit: Maximum number of documents to return
-        sort_by: Field name to sort by
-        asc: True for ascending, False for descending
-    
-    Returns:
-        List of matching documents
-        
-    Example:
-        # Find images that are plant photos, not deleted, for a specific entity
-        filters = {
-            "image_type": "plant_photo",
-            "is_deleted": False,
-            "entity_id": "plant123"
-        }
-        docs = await find_documents_with_filters("images", filters, limit=10)
-    """
-    db = get_mongodb_conn()
-    cursor = db[collection_name].find(filters)
-    
-    # Apply sorting if specified
-    if sort_by:
-        cursor = cursor.sort(sort_by, 1 if asc else -1)
-    
-    # Apply pagination
-    if skip > 0:
-        cursor = cursor.skip(skip)
-    if limit:
-        cursor = cursor.limit(limit)
-    
-    documents = []
-    async for document in cursor:
-        documents.append(document)
-    return documents
+    """Deprecated: Use MongoDB().find_documents_with_filters() instead"""
+    return await MongoDB().find_documents_with_filters(collection_name, filters, skip, limit, sort_by, asc)
 
 async def count_documents_with_filters(collection_name: str, filters: Dict[str, Any]) -> int:
-    """Count documents matching the given filters."""
-    db = get_mongodb_conn()
-    return await db[collection_name].count_documents(filters)
+    """Deprecated: Use MongoDB().count_documents_with_filters() instead"""
+    return await MongoDB().count_documents_with_filters(collection_name, filters)
 
 async def delete_document(collection_name: str, id: str) -> bool:
-    db = get_mongodb_conn()
-    result = await db[collection_name].delete_one({"_id": ObjectId(id)})
-    return result.deleted_count > 0
+    """Deprecated: Use MongoDB().delete_document() instead"""
+    return await MongoDB().delete_document(collection_name, id)

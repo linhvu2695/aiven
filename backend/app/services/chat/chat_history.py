@@ -5,7 +5,7 @@ from bson import ObjectId
 from langchain_core.messages import HumanMessage, AIMessage, SystemMessage
 from langchain_core.chat_history import BaseChatMessageHistory
 from langchain_core.messages.base import BaseMessage
-from app.core.database import delete_document, get_document, update_document, insert_document, get_mongodb_conn
+from app.core.database import delete_document, get_document, update_document, insert_document, MongoDB
 from app.classes.conversation import Conversation, ConversationDeleteRequest, ConversationInfo
 
 CONVERSATION_COLLECTION = "conversation"
@@ -134,7 +134,7 @@ class ConversationRepository:
             List of ConversationInfo objects
         """
         try:
-            db = get_mongodb_conn()
+            db = MongoDB().database
             
             # Build filter based on agent_id parameter
             filter_query = {}
