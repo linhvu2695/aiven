@@ -65,17 +65,6 @@ class VideoGenOpenAI(VideoGenInterface):
                 job_id="",
             )
 
-        # TODO: Implement OpenAI video generation logic
-        # This is a placeholder implementation
-        # 
-        # Expected flow:
-        # 1. Validate request parameters
-        # 2. Handle image_data if provided (for image-to-video)
-        # 3. Map aspect ratio to OpenAI format
-        # 4. Call OpenAI video generation API
-        # 5. Poll for completion (if async)
-        # 6. Download and return video data
-
         if request.image_data:
             self.logger.info(
                 "Image-to-video generation not yet implemented"
@@ -113,7 +102,7 @@ class VideoGenOpenAI(VideoGenInterface):
         # Queue the polling task to check video generation status
         video_poll.apply_async(
             args=[video_job.job_id, operation.id],
-            countdown=5  # Start polling after 5 seconds
+            countdown=5 
         )
 
         # Return success with job ID for tracking
