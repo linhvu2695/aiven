@@ -5,7 +5,7 @@ from typing import Dict, Any
 
 from bson import ObjectId
 from app.classes.user import CreateUserRequest, CreateUserResponse, DeleteUserResponse, GetUserByEmailRequest, GetUserByEmailResponse, GetUserByUsernameRequest, GetUserByUsernameResponse, GetUserByIdResponse, UserInfo
-from app.core.database import delete_document, MongoDB
+from app.core.database import MongoDB
 
 USER_COLLECTION_NAME = "users"
 
@@ -227,7 +227,7 @@ class UserRepository:
                     status_code=404
                 )
             
-            user_deleted = await delete_document(USER_COLLECTION_NAME, id)
+            user_deleted = await MongoDB().delete_document(USER_COLLECTION_NAME, id)
             if user_deleted:
                 return DeleteUserResponse(
                     success=True,

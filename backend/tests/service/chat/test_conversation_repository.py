@@ -438,23 +438,27 @@ class TestDeleteConversation:
     """Test delete_conversation method."""
     
     @pytest.mark.asyncio
-    @patch('app.services.chat.chat_history.delete_document')
-    async def test_delete_conversation_success(self, mock_delete_document):
+    @patch('app.services.chat.chat_history.MongoDB')
+    async def test_delete_conversation_success(self, mock_mongodb_class):
         """Test successful deletion of a conversation."""
-        mock_delete_document.return_value = True
+        mock_mongodb_instance = MagicMock()
+        mock_mongodb_class.return_value = mock_mongodb_instance
+        mock_mongodb_instance.delete_document = AsyncMock(return_value=True)
         
         repo = ConversationRepository()
         result = await repo.delete_conversation(TEST_SESSION_ID_1)
         
-        mock_delete_document.assert_called_once_with(CONVERSATION_COLLECTION, TEST_SESSION_ID_1)
+        mock_mongodb_instance.delete_document.assert_called_once_with(CONVERSATION_COLLECTION, TEST_SESSION_ID_1)
         assert result.success is True
         assert result.message == ""
     
     @pytest.mark.asyncio
-    @patch('app.services.chat.chat_history.delete_document')
-    async def test_delete_conversation_database_error(self, mock_delete_document):
+    @patch('app.services.chat.chat_history.MongoDB')
+    async def test_delete_conversation_database_error(self, mock_mongodb_class):
         """Test error handling when delete_document fails."""
-        mock_delete_document.side_effect = Exception("Database deletion failed")
+        mock_mongodb_instance = MagicMock()
+        mock_mongodb_class.return_value = mock_mongodb_instance
+        mock_mongodb_instance.delete_document = AsyncMock(side_effect=Exception("Database deletion failed"))
         
         repo = ConversationRepository()
         result = await repo.delete_conversation(TEST_SESSION_ID_1)
@@ -464,52 +468,60 @@ class TestDeleteConversation:
         assert result.message == "Database deletion failed"
     
     @pytest.mark.asyncio
-    @patch('app.services.chat.chat_history.delete_document')
-    async def test_delete_conversation_invalid_id(self, mock_delete_document):
+    @patch('app.services.chat.chat_history.MongoDB')
+    async def test_delete_conversation_invalid_id(self, mock_mongodb_class):
         """Test deletion of non-existent conversation ID."""
-        mock_delete_document.return_value = True
+        mock_mongodb_instance = MagicMock()
+        mock_mongodb_class.return_value = mock_mongodb_instance
+        mock_mongodb_instance.delete_document = AsyncMock(return_value=True)
         
         repo = ConversationRepository()
         result = await repo.delete_conversation("invalid-id")
         
         # Should not call delete_document with invalid ID - validation happens first
-        mock_delete_document.assert_not_called()
+        mock_mongodb_instance.delete_document.assert_not_called()
         assert result.success is False
         assert result.message == "Invalid conversation ID"
     
     @pytest.mark.asyncio
-    @patch('app.services.chat.chat_history.delete_document')
-    async def test_delete_conversation_empty_id(self, mock_delete_document):
+    @patch('app.services.chat.chat_history.MongoDB')
+    async def test_delete_conversation_empty_id(self, mock_mongodb_class):
         """Test deletion with empty ID string."""
-        mock_delete_document.return_value = True
+        mock_mongodb_instance = MagicMock()
+        mock_mongodb_class.return_value = mock_mongodb_instance
+        mock_mongodb_instance.delete_document = AsyncMock(return_value=True)
         
         repo = ConversationRepository()
         result = await repo.delete_conversation("")
         
         # Should not call delete_document with empty ID - validation happens first
-        mock_delete_document.assert_not_called()
+        mock_mongodb_instance.delete_document.assert_not_called()
         assert result.success is False
         assert result.message == "Invalid conversation ID"
     
     @pytest.mark.asyncio
-    @patch('app.services.chat.chat_history.delete_document')
-    async def test_delete_conversation_with_object_id(self, mock_delete_document):
+    @patch('app.services.chat.chat_history.MongoDB')
+    async def test_delete_conversation_with_object_id(self, mock_mongodb_class):
         """Test deletion using ObjectId string format."""
-        mock_delete_document.return_value = True
+        mock_mongodb_instance = MagicMock()
+        mock_mongodb_class.return_value = mock_mongodb_instance
+        mock_mongodb_instance.delete_document = AsyncMock(return_value=True)
         object_id_string = TEST_SESSION_ID_1
         
         repo = ConversationRepository()
         result = await repo.delete_conversation(object_id_string)
         
-        mock_delete_document.assert_called_once_with(CONVERSATION_COLLECTION, object_id_string)
+        mock_mongodb_instance.delete_document.assert_called_once_with(CONVERSATION_COLLECTION, object_id_string)
         assert result.success is True
         assert result.message == ""
     
     @pytest.mark.asyncio
-    @patch('app.services.chat.chat_history.delete_document')
-    async def test_delete_conversation_connection_error(self, mock_delete_document):
+    @patch('app.services.chat.chat_history.MongoDB')
+    async def test_delete_conversation_connection_error(self, mock_mongodb_class):
         """Test error handling when database connection fails."""
-        mock_delete_document.side_effect = ConnectionError("Failed to connect to database")
+        mock_mongodb_instance = MagicMock()
+        mock_mongodb_class.return_value = mock_mongodb_instance
+        mock_mongodb_instance.delete_document = AsyncMock(side_effect=ConnectionError("Failed to connect to database"))
         
         repo = ConversationRepository()
         result = await repo.delete_conversation(TEST_SESSION_ID_1)
@@ -519,10 +531,12 @@ class TestDeleteConversation:
         assert result.message == "Failed to connect to database"
     
     @pytest.mark.asyncio
-    @patch('app.services.chat.chat_history.delete_document')
-    async def test_delete_conversation_idempotence(self, mock_delete_document):
+    @patch('app.services.chat.chat_history.MongoDB')
+    async def test_delete_conversation_idempotence(self, mock_mongodb_class):
         """Test that deleting the same conversation twice is idempotent and doesn't cause issues."""
-        mock_delete_document.return_value = True
+        mock_mongodb_instance = MagicMock()
+        mock_mongodb_class.return_value = mock_mongodb_instance
+        mock_mongodb_instance.delete_document = AsyncMock(return_value=True)
         
         repo = ConversationRepository()
         
@@ -536,8 +550,8 @@ class TestDeleteConversation:
         assert result2.message == ""
         
         # Verify both calls were made with the same parameters
-        assert mock_delete_document.call_count == 2
-        mock_delete_document.assert_has_calls([
+        assert mock_mongodb_instance.delete_document.call_count == 2
+        mock_mongodb_instance.delete_document.assert_has_calls([
             call(CONVERSATION_COLLECTION, TEST_SESSION_ID_1),
             call(CONVERSATION_COLLECTION, TEST_SESSION_ID_1)
         ])

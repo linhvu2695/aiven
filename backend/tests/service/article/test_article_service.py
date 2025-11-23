@@ -357,11 +357,11 @@ class TestArticleService:
     @pytest.mark.asyncio
     async def test_delete_article_success(self, article_service: ArticleService):
         """Test successful article deletion"""
-        with patch("app.services.article.article_service.MongoDB") as mock_mongodb_class, \
-             patch("app.services.article.article_service.delete_document", return_value=True):
+        with patch("app.services.article.article_service.MongoDB") as mock_mongodb_class:
             mock_mongodb_instance = MagicMock()
             mock_mongodb_class.return_value = mock_mongodb_instance
             mock_mongodb_instance.find_documents_by_field = AsyncMock(return_value=[])
+            mock_mongodb_instance.delete_document = AsyncMock(return_value=True)
             
             result = await article_service.delete_article(TEST_ARTICLE_ID)
             
@@ -372,11 +372,11 @@ class TestArticleService:
     @pytest.mark.asyncio
     async def test_delete_article_failure(self, article_service: ArticleService):
         """Test article deletion failure"""
-        with patch("app.services.article.article_service.MongoDB") as mock_mongodb_class, \
-             patch("app.services.article.article_service.delete_document", return_value=False):
+        with patch("app.services.article.article_service.MongoDB") as mock_mongodb_class:
             mock_mongodb_instance = MagicMock()
             mock_mongodb_class.return_value = mock_mongodb_instance
             mock_mongodb_instance.find_documents_by_field = AsyncMock(return_value=[])
+            mock_mongodb_instance.delete_document = AsyncMock(return_value=False)
             
             result = await article_service.delete_article(TEST_ARTICLE_ID)     
             
@@ -438,12 +438,11 @@ class TestArticleService:
             deletion_calls.append(doc_id)
             return True
         
-        with patch("app.services.article.article_service.MongoDB") as mock_mongodb_class, \
-             patch("app.services.article.article_service.delete_document", 
-                  side_effect=mock_delete_document) as mock_delete:
+        with patch("app.services.article.article_service.MongoDB") as mock_mongodb_class:
             mock_mongodb_instance = MagicMock()
             mock_mongodb_class.return_value = mock_mongodb_instance
             mock_mongodb_instance.find_documents_by_field = AsyncMock(side_effect=mock_find_documents_by_field)
+            mock_mongodb_instance.delete_document = AsyncMock(side_effect=mock_delete_document)
             
             result = await article_service.delete_article(TEST_PARENT_ID)
             
@@ -496,12 +495,11 @@ class TestArticleService:
                 return False
             return True
         
-        with patch("app.services.article.article_service.MongoDB") as mock_mongodb_class, \
-             patch("app.services.article.article_service.delete_document", 
-                  side_effect=mock_delete_document):
+        with patch("app.services.article.article_service.MongoDB") as mock_mongodb_class:
             mock_mongodb_instance = MagicMock()
             mock_mongodb_class.return_value = mock_mongodb_instance
             mock_mongodb_instance.find_documents_by_field = AsyncMock(side_effect=mock_find_documents_by_field)
+            mock_mongodb_instance.delete_document = AsyncMock(side_effect=mock_delete_document)
             
             result = await article_service.delete_article(TEST_PARENT_ID)
             

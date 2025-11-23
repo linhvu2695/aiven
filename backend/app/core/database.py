@@ -166,9 +166,3 @@ class MongoDB:
         result = await self.database[collection_name].delete_one({"_id": ObjectId(id)})
         return result.deleted_count > 0
 
-
-# Backward compatibility functions - delegate to MongoDB singleton
-
-async def delete_document(collection_name: str, id: str) -> bool:
-    """Deprecated: Use MongoDB().delete_document() instead"""
-    return await MongoDB().delete_document(collection_name, id)

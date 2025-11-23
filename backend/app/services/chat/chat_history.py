@@ -5,7 +5,7 @@ from bson import ObjectId
 from langchain_core.messages import HumanMessage, AIMessage, SystemMessage
 from langchain_core.chat_history import BaseChatMessageHistory
 from langchain_core.messages.base import BaseMessage
-from app.core.database import delete_document, MongoDB
+from app.core.database import MongoDB
 from app.classes.conversation import Conversation, ConversationDeleteRequest, ConversationInfo
 
 CONVERSATION_COLLECTION = "conversation"
@@ -221,7 +221,7 @@ class ConversationRepository:
             return ConversationDeleteRequest(success=False, message="Invalid conversation ID")
         
         try:
-            deleted = await delete_document(CONVERSATION_COLLECTION, id)
+            deleted = await MongoDB().delete_document(CONVERSATION_COLLECTION, id)
             if deleted:
                 return ConversationDeleteRequest(success=True, message="")
             else:

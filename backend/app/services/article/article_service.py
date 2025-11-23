@@ -9,7 +9,7 @@ from app.classes.article import (
     DeleteArticleResponse,
     SearchArticlesResponse,
 )
-from app.core.database import delete_document, MongoDB
+from app.core.database import MongoDB
 
 ARTICLE_COLLECTION_NAME = "articles"
 
@@ -134,7 +134,7 @@ class ArticleService:
                         return DeleteArticleResponse(success=False, message=f"Failed to delete child article {child_id}")
             
             # After all children are deleted, delete the original article
-            article_deleted = await delete_document(ARTICLE_COLLECTION_NAME, id)
+            article_deleted = await MongoDB().delete_document(ARTICLE_COLLECTION_NAME, id)
             if article_deleted:
                 return DeleteArticleResponse(success=True, message="")
             else:

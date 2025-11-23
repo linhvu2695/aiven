@@ -10,10 +10,7 @@ from app.classes.agent import (
     SearchAgentsResponse,
 )
 from app.classes.image import ImageType, ImageSourceType, CreateImageRequest
-from app.core.database import (
-    MongoDB,
-    delete_document,
-)
+from app.core.database import MongoDB
 from app.services.image.image_service import ImageService
 from app.utils.string.string_utils import is_empty_string
 
@@ -153,7 +150,7 @@ class AgentService:
                     # Continue with agent deletion even if avatar deletion fails
 
             # Delete the agent document
-            agent_deleted = await delete_document(AGENT_COLLECTION_NAME, id)
+            agent_deleted = await MongoDB().delete_document(AGENT_COLLECTION_NAME, id)
             
             if agent_deleted:
                 return DeleteAgentResponse(

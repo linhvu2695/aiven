@@ -28,10 +28,7 @@ from app.classes.image import (
     ImageUrlInfo,
     ImageUrlsResponse,
 )
-from app.core.database import (
-    MongoDB,
-    delete_document,
-)
+from app.core.database import MongoDB
 from app.core.storage import FirebaseStorageRepository
 from app.utils.string.string_utils import (
     validate_required_fields,
@@ -420,7 +417,7 @@ class ImageService:
                     )
 
                 # Delete from MongoDB
-                await delete_document(IMAGE_COLLECTION_NAME, image_id)
+                await MongoDB().delete_document(IMAGE_COLLECTION_NAME, image_id)
 
             return DeleteImageResponse(
                 success=True,

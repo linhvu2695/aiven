@@ -3,10 +3,7 @@ from unittest.mock import AsyncMock, patch, MagicMock
 from bson import ObjectId
 from bson.errors import InvalidId
 
-from app.core.database import (
-    MongoDB,
-    delete_document
-)
+from app.core.database import MongoDB
 
 @pytest.fixture
 def mock_motor_client():
@@ -652,7 +649,7 @@ class TestDeleteDocument:
         mock_motor_client["collection"].delete_one.return_value = mock_result
         
         # Act
-        result = await delete_document("test_collection", doc_id)
+        result = await MongoDB().delete_document("test_collection", doc_id)
         
         # Assert
         assert result is False

@@ -13,10 +13,7 @@ from app.classes.job import (
     JobPriority,
     JobType,
 )
-from app.core.database import (
-    MongoDB,
-    delete_document,
-)
+from app.core.database import MongoDB
 
 JOB_COLLECTION_NAME = "jobs"
 DEFAULT_JOB_EXPIRATION_MINUTES = 24 * 60

@@ -300,11 +300,11 @@ class TestAgentService:
         mock_image_service.delete_image = AsyncMock()
         
         with patch("app.services.agent.agent_service.MongoDB") as mock_mongodb_class, \
-             patch("app.services.agent.agent_service.ImageService", return_value=mock_image_service), \
-             patch("app.services.agent.agent_service.delete_document", return_value=True):
+             patch("app.services.agent.agent_service.ImageService", return_value=mock_image_service):
             mock_mongodb_instance = MagicMock()
             mock_mongodb_class.return_value = mock_mongodb_instance
             mock_mongodb_instance.get_document = AsyncMock(return_value=mock_agent_data)
+            mock_mongodb_instance.delete_document = AsyncMock(return_value=True)
             
             result = await agent_service.delete_agent(valid_id)
             
@@ -324,11 +324,11 @@ class TestAgentService:
         valid_id = str(ObjectId())
         mock_data = {"_id": valid_id, "name": "Test Agent", "avatar_image_id": None}
         
-        with patch("app.services.agent.agent_service.MongoDB") as mock_mongodb_class, \
-             patch("app.services.agent.agent_service.delete_document", return_value=True):
+        with patch("app.services.agent.agent_service.MongoDB") as mock_mongodb_class:
             mock_mongodb_instance = MagicMock()
             mock_mongodb_class.return_value = mock_mongodb_instance
             mock_mongodb_instance.get_document = AsyncMock(return_value=mock_data)
+            mock_mongodb_instance.delete_document = AsyncMock(return_value=True)
             
             result = await agent_service.delete_agent(valid_id)
             
@@ -351,11 +351,11 @@ class TestAgentService:
         mock_image_service.delete_image = AsyncMock(side_effect=Exception("Image service error"))
         
         with patch("app.services.agent.agent_service.MongoDB") as mock_mongodb_class, \
-             patch("app.services.agent.agent_service.ImageService", return_value=mock_image_service), \
-             patch("app.services.agent.agent_service.delete_document", return_value=True):
+             patch("app.services.agent.agent_service.ImageService", return_value=mock_image_service):
             mock_mongodb_instance = MagicMock()
             mock_mongodb_class.return_value = mock_mongodb_instance
             mock_mongodb_instance.get_document = AsyncMock(return_value=mock_agent_data)
+            mock_mongodb_instance.delete_document = AsyncMock(return_value=True)
             
             result = await agent_service.delete_agent(valid_id)
             
@@ -432,11 +432,11 @@ class TestAgentService:
         valid_id = str(ObjectId())
         mock_data = {"_id": valid_id, "name": "Test Agent", "avatar_image_id": None}
         
-        with patch("app.services.agent.agent_service.MongoDB") as mock_mongodb_class, \
-             patch("app.services.agent.agent_service.delete_document", return_value=False):
+        with patch("app.services.agent.agent_service.MongoDB") as mock_mongodb_class:
             mock_mongodb_instance = MagicMock()
             mock_mongodb_class.return_value = mock_mongodb_instance
             mock_mongodb_instance.get_document = AsyncMock(return_value=mock_data)
+            mock_mongodb_instance.delete_document = AsyncMock(return_value=False)
             
             result = await agent_service.delete_agent(valid_id)
             

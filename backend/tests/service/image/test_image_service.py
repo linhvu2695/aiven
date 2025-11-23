@@ -642,11 +642,11 @@ class TestImageServiceDeleteImage:
         mock_storage.delete = AsyncMock()
         
         with patch("app.services.image.image_service.MongoDB") as mock_mongodb_class, \
-             patch("app.services.image.image_service.FirebaseStorageRepository", return_value=mock_storage), \
-             patch("app.services.image.image_service.delete_document") as mock_delete:
+             patch("app.services.image.image_service.FirebaseStorageRepository", return_value=mock_storage):
             mock_mongodb_instance = MagicMock()
             mock_mongodb_class.return_value = mock_mongodb_instance
             mock_mongodb_instance.get_document = AsyncMock(return_value=mock_image_document)
+            mock_mongodb_instance.delete_document = AsyncMock(return_value=True)
             
             response = await image_service.delete_image(TEST_IMAGE_ID, soft_delete=False)
             
@@ -657,7 +657,7 @@ class TestImageServiceDeleteImage:
             
             # Verify storage and database deletion
             mock_storage.delete.assert_called_once_with(mock_image_document["storage_path"])
-            mock_delete.assert_called_once_with("images", TEST_IMAGE_ID)
+            mock_mongodb_instance.delete_document.assert_called_once_with("images", TEST_IMAGE_ID)
 
     @pytest.mark.asyncio
     async def test_delete_image_hard_delete_storage_failure(self, image_service: ImageService, mock_image_document: dict):
@@ -666,11 +666,11 @@ class TestImageServiceDeleteImage:
         mock_storage.delete = AsyncMock(side_effect=Exception("Storage error"))
         
         with patch("app.services.image.image_service.MongoDB") as mock_mongodb_class, \
-             patch("app.services.image.image_service.FirebaseStorageRepository", return_value=mock_storage), \
-             patch("app.services.image.image_service.delete_document"):
+             patch("app.services.image.image_service.FirebaseStorageRepository", return_value=mock_storage):
             mock_mongodb_instance = MagicMock()
             mock_mongodb_class.return_value = mock_mongodb_instance
             mock_mongodb_instance.get_document = AsyncMock(return_value=mock_image_document)
+            mock_mongodb_instance.delete_document = AsyncMock(return_value=True)
             
             response = await image_service.delete_image(TEST_IMAGE_ID, soft_delete=False)
             
@@ -685,11 +685,11 @@ class TestImageServiceDeleteImage:
         """Test hard delete with no storage path"""
         mock_document = {"_id": ObjectId(TEST_IMAGE_ID), "storage_path": ""}
         
-        with patch("app.services.image.image_service.MongoDB") as mock_mongodb_class, \
-             patch("app.services.image.image_service.delete_document"):
+        with patch("app.services.image.image_service.MongoDB") as mock_mongodb_class:
             mock_mongodb_instance = MagicMock()
             mock_mongodb_class.return_value = mock_mongodb_instance
             mock_mongodb_instance.get_document = AsyncMock(return_value=mock_document)
+            mock_mongodb_instance.delete_document = AsyncMock(return_value=True)
             
             response = await image_service.delete_image(TEST_IMAGE_ID, soft_delete=False)
             

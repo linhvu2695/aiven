@@ -694,11 +694,11 @@ class TestUserRepositoryDeleteUser:
             "disabled": False
         }
         
-        with patch("app.services.user.user_repository.MongoDB") as mock_mongodb_class, \
-             patch("app.services.user.user_repository.delete_document", new_callable=AsyncMock, return_value=True) as mock_delete:
+        with patch("app.services.user.user_repository.MongoDB") as mock_mongodb_class:
             mock_mongodb_instance = MagicMock()
             mock_mongodb_class.return_value = mock_mongodb_instance
             mock_mongodb_instance.get_document = AsyncMock(return_value=mock_user_data)
+            mock_mongodb_instance.delete_document = AsyncMock(return_value=True)
             
             response = await user_repository.delete_user(valid_id)
             
@@ -711,7 +711,7 @@ class TestUserRepositoryDeleteUser:
             mock_mongodb_instance.get_document.assert_called_once_with("users", valid_id)
             
             # Verify delete_document was called
-            mock_delete.assert_called_once_with("users", valid_id)
+            mock_mongodb_instance.delete_document.assert_called_once_with("users", valid_id)
 
     @pytest.mark.asyncio
     async def test_delete_user_not_found(self, user_repository: UserRepository):
@@ -721,11 +721,11 @@ class TestUserRepositoryDeleteUser:
         # Use a valid ObjectId format
         valid_id = str(ObjectId())
         
-        with patch("app.services.user.user_repository.MongoDB") as mock_mongodb_class, \
-             patch("app.services.user.user_repository.delete_document", new_callable=AsyncMock) as mock_delete:
+        with patch("app.services.user.user_repository.MongoDB") as mock_mongodb_class:
             mock_mongodb_instance = MagicMock()
             mock_mongodb_class.return_value = mock_mongodb_instance
             mock_mongodb_instance.get_document = AsyncMock(return_value=None)
+            mock_mongodb_instance.delete_document = AsyncMock()
             
             response = await user_repository.delete_user(valid_id)
             
@@ -738,16 +738,16 @@ class TestUserRepositoryDeleteUser:
             mock_mongodb_instance.get_document.assert_called_once_with("users", valid_id)
             
             # Verify delete_document was NOT called since user doesn't exist
-            mock_delete.assert_not_called()
+            mock_mongodb_instance.delete_document.assert_not_called()
 
     @pytest.mark.asyncio
     async def test_delete_user_invalid_id_format(self, user_repository: UserRepository):
         """Test deleting a user with invalid ID format"""
-        with patch("app.services.user.user_repository.MongoDB") as mock_mongodb_class, \
-             patch("app.services.user.user_repository.delete_document", new_callable=AsyncMock) as mock_delete:
+        with patch("app.services.user.user_repository.MongoDB") as mock_mongodb_class:
             mock_mongodb_instance = MagicMock()
             mock_mongodb_class.return_value = mock_mongodb_instance
             mock_mongodb_instance.get_document = AsyncMock()
+            mock_mongodb_instance.delete_document = AsyncMock()
             
             response = await user_repository.delete_user("invalid_id_format")
             
@@ -758,7 +758,7 @@ class TestUserRepositoryDeleteUser:
             
             # Verify neither get_document nor delete_document were called
             mock_mongodb_instance.get_document.assert_not_called()
-            mock_delete.assert_not_called()
+            mock_mongodb_instance.delete_document.assert_not_called()
 
     @pytest.mark.asyncio
     async def test_delete_user_delete_failure(self, user_repository: UserRepository):
@@ -780,11 +780,11 @@ class TestUserRepositoryDeleteUser:
             "disabled": False
         }
         
-        with patch("app.services.user.user_repository.MongoDB") as mock_mongodb_class, \
-             patch("app.services.user.user_repository.delete_document", new_callable=AsyncMock, return_value=False) as mock_delete:
+        with patch("app.services.user.user_repository.MongoDB") as mock_mongodb_class:
             mock_mongodb_instance = MagicMock()
             mock_mongodb_class.return_value = mock_mongodb_instance
             mock_mongodb_instance.get_document = AsyncMock(return_value=mock_user_data)
+            mock_mongodb_instance.delete_document = AsyncMock(return_value=False)
             
             response = await user_repository.delete_user(valid_id)
             
@@ -795,7 +795,7 @@ class TestUserRepositoryDeleteUser:
             
             # Verify both functions were called
             mock_mongodb_instance.get_document.assert_called_once_with("users", valid_id)
-            mock_delete.assert_called_once_with("users", valid_id)
+            mock_mongodb_instance.delete_document.assert_called_once_with("users", valid_id)
 
     @pytest.mark.asyncio
     async def test_delete_user_database_exception_on_get(self, user_repository: UserRepository):
@@ -805,11 +805,11 @@ class TestUserRepositoryDeleteUser:
         # Use a valid ObjectId format
         valid_id = str(ObjectId())
         
-        with patch("app.services.user.user_repository.MongoDB") as mock_mongodb_class, \
-             patch("app.services.user.user_repository.delete_document", new_callable=AsyncMock) as mock_delete:
+        with patch("app.services.user.user_repository.MongoDB") as mock_mongodb_class:
             mock_mongodb_instance = MagicMock()
             mock_mongodb_class.return_value = mock_mongodb_instance
             mock_mongodb_instance.get_document = AsyncMock(side_effect=Exception("Database connection error"))
+            mock_mongodb_instance.delete_document = AsyncMock()
             
             response = await user_repository.delete_user(valid_id)
             
@@ -823,7 +823,7 @@ class TestUserRepositoryDeleteUser:
             mock_mongodb_instance.get_document.assert_called_once_with("users", valid_id)
             
             # Verify delete_document was NOT called due to exception
-            mock_delete.assert_not_called()
+            mock_mongodb_instance.delete_document.assert_not_called()
 
     @pytest.mark.asyncio
     async def test_delete_user_database_exception_on_delete(self, user_repository: UserRepository):
@@ -845,11 +845,11 @@ class TestUserRepositoryDeleteUser:
             "disabled": False
         }
         
-        with patch("app.services.user.user_repository.MongoDB") as mock_mongodb_class, \
-             patch("app.services.user.user_repository.delete_document", new_callable=AsyncMock, side_effect=Exception("Delete operation failed")) as mock_delete:
+        with patch("app.services.user.user_repository.MongoDB") as mock_mongodb_class:
             mock_mongodb_instance = MagicMock()
             mock_mongodb_class.return_value = mock_mongodb_instance
             mock_mongodb_instance.get_document = AsyncMock(return_value=mock_user_data)
+            mock_mongodb_instance.delete_document = AsyncMock(side_effect=Exception("Delete operation failed"))
             
             response = await user_repository.delete_user(valid_id)
             
@@ -861,7 +861,7 @@ class TestUserRepositoryDeleteUser:
             
             # Verify both functions were called
             mock_mongodb_instance.get_document.assert_called_once_with("users", valid_id)
-            mock_delete.assert_called_once_with("users", valid_id)
+            mock_mongodb_instance.delete_document.assert_called_once_with("users", valid_id)
 
     @pytest.mark.asyncio
     async def test_delete_user_deletes_disabled_user(self, user_repository: UserRepository):
@@ -883,11 +883,11 @@ class TestUserRepositoryDeleteUser:
             "disabled": True
         }
         
-        with patch("app.services.user.user_repository.MongoDB") as mock_mongodb_class, \
-             patch("app.services.user.user_repository.delete_document", new_callable=AsyncMock, return_value=True) as mock_delete:
+        with patch("app.services.user.user_repository.MongoDB") as mock_mongodb_class:
             mock_mongodb_instance = MagicMock()
             mock_mongodb_class.return_value = mock_mongodb_instance
             mock_mongodb_instance.get_document = AsyncMock(return_value=mock_user_data)
+            mock_mongodb_instance.delete_document = AsyncMock(return_value=True)
             
             response = await user_repository.delete_user(valid_id)
             
@@ -898,16 +898,16 @@ class TestUserRepositoryDeleteUser:
             
             # Verify both functions were called
             mock_mongodb_instance.get_document.assert_called_once_with("users", valid_id)
-            mock_delete.assert_called_once_with("users", valid_id)
+            mock_mongodb_instance.delete_document.assert_called_once_with("users", valid_id)
 
     @pytest.mark.asyncio
     async def test_delete_user_empty_id(self, user_repository: UserRepository):
         """Test deleting a user with empty ID string"""
-        with patch("app.services.user.user_repository.MongoDB") as mock_mongodb_class, \
-             patch("app.services.user.user_repository.delete_document", new_callable=AsyncMock) as mock_delete:
+        with patch("app.services.user.user_repository.MongoDB") as mock_mongodb_class:
             mock_mongodb_instance = MagicMock()
             mock_mongodb_class.return_value = mock_mongodb_instance
             mock_mongodb_instance.get_document = AsyncMock()
+            mock_mongodb_instance.delete_document = AsyncMock()
             
             response = await user_repository.delete_user("")
             
@@ -918,4 +918,4 @@ class TestUserRepositoryDeleteUser:
             
             # Verify neither function was called
             mock_mongodb_instance.get_document.assert_not_called()
-            mock_delete.assert_not_called()
+            mock_mongodb_instance.delete_document.assert_not_called()
