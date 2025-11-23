@@ -91,11 +91,14 @@ async def _video_poll_async(task: Task, job_id: str, operation_id: str):
             # Update job as completed
             await JobService().update_job(job_id, UpdateJobRequest(
                 status=JobStatus.SUCCESS,
+                progress=JobProgress(
+                    current=100,
+                    total=100,
+                ),
                 result=JobResult(
                     success=True,
                     data={
                         "video_id": create_video_response.video_id,
-                        "presigned_url": create_video_response.presigned_url,
                         "operation_id": operation_id,
                     }
                 )

@@ -18,7 +18,7 @@ import type {
     VideoWithUrl,
 } from "@/types/video";
 import { FaArrowLeft, FaArrowRight, FaMagic } from "react-icons/fa";
-import { VideoCard, VideoDetailDialog, VideoGenDialog } from "@/components/video";
+import { VideoCard, VideoDetailDialog, VideoGenDialog, VideoJobsPanel } from "@/components/video";
 import { useVideo } from "@/context/video-ctx";
 import { Tooltip } from "@/components/ui";
 
@@ -136,7 +136,7 @@ export const VideoPage = () => {
             </HStack>
 
             {/* Main Content */}
-            <Flex h="calc(100vh - 150px)" p={4} direction="column">
+            <Flex h="calc(100vh - 220px)" p={4} direction="column">
                 <Box flex={1} overflow="auto">
                     {loading ? (
                         <Center h="100%">
@@ -205,6 +205,7 @@ export const VideoPage = () => {
                 onClose={() => setIsGenDialogOpen(false)}
                 onSuccess={() => fetchVideos(currentPage)}
             />
+            <VideoJobsPanel />
         </Box>
     );
 };
