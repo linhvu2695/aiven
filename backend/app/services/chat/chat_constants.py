@@ -21,6 +21,7 @@ class LLMModel(str, Enum):
     GEMINI_2_0_FLASH = "gemini-2.0-flash"
     GEMINI_2_5_FLASH = "gemini-2.5-flash"
     GEMINI_2_5_PRO = "gemini-2.5-pro"
+    GEMINI_3 = "gemini-3-pro-preview"
 
     # https://docs.anthropic.com/en/docs/about-claude/models/overview
     CLAUDE_OPUS_4_0 = "claude-opus-4-0"
@@ -71,6 +72,7 @@ GEMINI_MODELS = {
     LLMModel.GEMINI_2_0_FLASH,
     LLMModel.GEMINI_2_5_FLASH,
     LLMModel.GEMINI_2_5_PRO,
+    LLMModel.GEMINI_3,
 }
 
 CLAUDE_MODELS = {
