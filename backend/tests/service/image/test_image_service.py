@@ -471,10 +471,10 @@ class TestImageServiceListImages:
         """Test successful image listing"""
         mock_documents = [mock_image_document, mock_image_document.copy()]
         
-        with patch("app.services.image.image_service.count_documents_with_filters", return_value=2), \
-             patch("app.services.image.image_service.MongoDB") as mock_mongodb_class:
+        with patch("app.services.image.image_service.MongoDB") as mock_mongodb_class:
             mock_mongodb_instance = MagicMock()
             mock_mongodb_class.return_value = mock_mongodb_instance
+            mock_mongodb_instance.count_documents_with_filters = AsyncMock(return_value=2)
             mock_mongodb_instance.find_documents_with_filters = AsyncMock(return_value=mock_documents)
             
             response = await image_service.list_images(ImageListRequest(page=1, page_size=10))
@@ -488,10 +488,10 @@ class TestImageServiceListImages:
     @pytest.mark.asyncio
     async def test_list_images_with_filters(self, image_service: ImageService, mock_image_document):
         """Test image listing with filters"""
-        with patch("app.services.image.image_service.count_documents_with_filters", return_value=1) as mock_count, \
-             patch("app.services.image.image_service.MongoDB") as mock_mongodb_class:
+        with patch("app.services.image.image_service.MongoDB") as mock_mongodb_class:
             mock_mongodb_instance = MagicMock()
             mock_mongodb_class.return_value = mock_mongodb_instance
+            mock_mongodb_instance.count_documents_with_filters = AsyncMock(return_value=1)
             mock_mongodb_instance.find_documents_with_filters = AsyncMock(return_value=[mock_image_document])
             mock_find = mock_mongodb_instance.find_documents_with_filters
             
@@ -504,7 +504,7 @@ class TestImageServiceListImages:
                 ))
             
             # Verify filters were applied
-            filters = mock_count.call_args[0][1]
+            filters = mock_mongodb_instance.count_documents_with_filters.call_args[0][1]
             assert filters["image_type"] == "plant_photo"
             assert filters["entity_id"] == "plant_123"
             assert filters["entity_type"] == "plant"
@@ -513,38 +513,42 @@ class TestImageServiceListImages:
     @pytest.mark.asyncio
     async def test_list_images_include_deleted(self, image_service: ImageService):
         """Test image listing includes deleted when requested"""
-        with patch("app.services.image.image_service.count_documents_with_filters") as mock_count, \
-             patch("app.services.image.image_service.MongoDB") as mock_mongodb_class:
+        with patch("app.services.image.image_service.MongoDB") as mock_mongodb_class:
             mock_mongodb_instance = MagicMock()
             mock_mongodb_class.return_value = mock_mongodb_instance
+            mock_mongodb_instance.count_documents_with_filters = AsyncMock(return_value=0)
             mock_mongodb_instance.find_documents_with_filters = AsyncMock(return_value=[])
 
             await image_service.list_images(ImageListRequest(include_deleted=True))
             
             # Verify is_deleted filter is not present (returns all images)
-            filters = mock_count.call_args[0][1]
+            filters = mock_mongodb_instance.count_documents_with_filters.call_args[0][1]
             assert "is_deleted" not in filters
 
     @pytest.mark.asyncio
     async def test_list_images_exclude_deleted(self, image_service: ImageService):
         """Test image listing includes deleted when requested"""
-        with patch("app.services.image.image_service.count_documents_with_filters") as mock_count, \
-             patch("app.services.image.image_service.MongoDB") as mock_mongodb_class:
+        with patch("app.services.image.image_service.MongoDB") as mock_mongodb_class:
             mock_mongodb_instance = MagicMock()
             mock_mongodb_class.return_value = mock_mongodb_instance
+            mock_mongodb_instance.count_documents_with_filters = AsyncMock(return_value=0)
             mock_mongodb_instance.find_documents_with_filters = AsyncMock(return_value=[])
 
             await image_service.list_images(ImageListRequest())
             
             # Verify is_deleted filter is not present (returns all images)
-            filters = mock_count.call_args[0][1]
+            filters = mock_mongodb_instance.count_documents_with_filters.call_args[0][1]
             assert "is_deleted" in filters
             assert filters["is_deleted"] is False
 
     @pytest.mark.asyncio
     async def test_list_images_exception(self, image_service: ImageService):
         """Test image listing with exception"""
-        with patch("app.services.image.image_service.count_documents_with_filters", side_effect=Exception("Database error")):
+        with patch("app.services.image.image_service.MongoDB") as mock_mongodb_class:
+            mock_mongodb_instance = MagicMock()
+            mock_mongodb_class.return_value = mock_mongodb_instance
+            mock_mongodb_instance.count_documents_with_filters = AsyncMock(side_effect=Exception("Database error"))
+            
             response = await image_service.list_images(ImageListRequest(page=1, page_size=10))
             
             assert isinstance(response, ImageListResponse)

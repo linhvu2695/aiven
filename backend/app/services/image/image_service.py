@@ -31,7 +31,6 @@ from app.classes.image import (
 from app.core.database import (
     MongoDB,
     delete_document,
-    count_documents_with_filters,
 )
 from app.core.storage import FirebaseStorageRepository
 from app.utils.string.string_utils import (
@@ -289,7 +288,7 @@ class ImageService:
                 filters["entity_type"] = request.entity_type
 
             # Get total count for pagination
-            total_count = await count_documents_with_filters(
+            total_count = await MongoDB().count_documents_with_filters(
                 IMAGE_COLLECTION_NAME, filters
             )
 

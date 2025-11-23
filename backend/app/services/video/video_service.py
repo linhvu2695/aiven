@@ -16,7 +16,7 @@ from app.utils.string.string_utils import is_empty_string, validate_exactly_one_
 from app.utils.video.video_utils import generate_storage_path
 from app.core.storage import FirebaseStorageRepository
 from app.classes.media import MediaProcessingStatus
-from app.core.database import delete_document, count_documents_with_filters, MongoDB
+from app.core.database import delete_document, MongoDB
 from app.services.image.image_service import ImageService
 from app.utils.file.file_utils import create_temp_local_file
 from app.services.image.image_constants import IMAGE_COLLECTION_NAME
@@ -540,7 +540,7 @@ class VideoService:
                 filters["entity_type"] = request.entity_type
 
             # Get total count for pagination
-            total_count = await count_documents_with_filters(
+            total_count = await MongoDB().count_documents_with_filters(
                 VIDEO_COLLECTION_NAME, filters
             )
 

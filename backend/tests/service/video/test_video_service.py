@@ -1336,10 +1336,10 @@ class TestVideoServiceListVideos:
         
         mock_docs = [mock_video_document]
         
-        with patch("app.services.video.video_service.count_documents_with_filters", return_value=1), \
-             patch("app.services.video.video_service.MongoDB") as mock_mongodb_class:
+        with patch("app.services.video.video_service.MongoDB") as mock_mongodb_class:
             mock_mongodb_instance = MagicMock()
             mock_mongodb_class.return_value = mock_mongodb_instance
+            mock_mongodb_instance.count_documents_with_filters = AsyncMock(return_value=1)
             mock_mongodb_instance.find_documents_with_filters = AsyncMock(return_value=mock_docs)
             
             request = VideoListRequest()
@@ -1370,10 +1370,10 @@ class TestVideoServiceListVideos:
             doc["filename"] = f"video_{i}.mp4"
             mock_docs.append(doc)
         
-        with patch("app.services.video.video_service.count_documents_with_filters", return_value=25), \
-             patch("app.services.video.video_service.MongoDB") as mock_mongodb_class:
+        with patch("app.services.video.video_service.MongoDB") as mock_mongodb_class:
             mock_mongodb_instance = MagicMock()
             mock_mongodb_class.return_value = mock_mongodb_instance
+            mock_mongodb_instance.count_documents_with_filters = AsyncMock(return_value=25)
             mock_mongodb_instance.find_documents_with_filters = AsyncMock(return_value=mock_docs)
             
             request = VideoListRequest(page=2, page_size=5)
@@ -1392,10 +1392,10 @@ class TestVideoServiceListVideos:
         
         mock_docs = [mock_video_document]
         
-        with patch("app.services.video.video_service.count_documents_with_filters", return_value=1) as mock_count, \
-             patch("app.services.video.video_service.MongoDB") as mock_mongodb_class:
+        with patch("app.services.video.video_service.MongoDB") as mock_mongodb_class:
             mock_mongodb_instance = MagicMock()
             mock_mongodb_class.return_value = mock_mongodb_instance
+            mock_mongodb_instance.count_documents_with_filters = AsyncMock(return_value=1)
             mock_mongodb_instance.find_documents_with_filters = AsyncMock(return_value=mock_docs)
             
             request = VideoListRequest(video_type=VideoType.GENERAL)
@@ -1406,7 +1406,7 @@ class TestVideoServiceListVideos:
             assert response.videos[0].video_type == VideoType.GENERAL
             
             # Verify filters were passed correctly
-            filters = mock_count.call_args[0][1]
+            filters = mock_mongodb_instance.count_documents_with_filters.call_args[0][1]
             assert filters["video_type"] == VideoType.GENERAL.value
             assert filters["is_deleted"] is False
 
@@ -1417,10 +1417,10 @@ class TestVideoServiceListVideos:
         
         mock_docs = [mock_video_document]
         
-        with patch("app.services.video.video_service.count_documents_with_filters", return_value=1) as mock_count, \
-             patch("app.services.video.video_service.MongoDB") as mock_mongodb_class:
+        with patch("app.services.video.video_service.MongoDB") as mock_mongodb_class:
             mock_mongodb_instance = MagicMock()
             mock_mongodb_class.return_value = mock_mongodb_instance
+            mock_mongodb_instance.count_documents_with_filters = AsyncMock(return_value=1)
             mock_mongodb_instance.find_documents_with_filters = AsyncMock(return_value=mock_docs)
             
             request = VideoListRequest(entity_id="entity_123")
@@ -1431,7 +1431,7 @@ class TestVideoServiceListVideos:
             assert response.videos[0].entity_id == "entity_123"
             
             # Verify filters were passed correctly
-            filters = mock_count.call_args[0][1]
+            filters = mock_mongodb_instance.count_documents_with_filters.call_args[0][1]
             assert filters["entity_id"] == "entity_123"
             assert filters["is_deleted"] is False
 
@@ -1442,10 +1442,10 @@ class TestVideoServiceListVideos:
         
         mock_docs = [mock_video_document]
         
-        with patch("app.services.video.video_service.count_documents_with_filters", return_value=1) as mock_count, \
-             patch("app.services.video.video_service.MongoDB") as mock_mongodb_class:
+        with patch("app.services.video.video_service.MongoDB") as mock_mongodb_class:
             mock_mongodb_instance = MagicMock()
             mock_mongodb_class.return_value = mock_mongodb_instance
+            mock_mongodb_instance.count_documents_with_filters = AsyncMock(return_value=1)
             mock_mongodb_instance.find_documents_with_filters = AsyncMock(return_value=mock_docs)
             
             request = VideoListRequest(entity_type="test_entity")
@@ -1456,7 +1456,7 @@ class TestVideoServiceListVideos:
             assert response.videos[0].entity_type == "test_entity"
             
             # Verify filters were passed correctly
-            filters = mock_count.call_args[0][1]
+            filters = mock_mongodb_instance.count_documents_with_filters.call_args[0][1]
             assert filters["entity_type"] == "test_entity"
             assert filters["is_deleted"] is False
 
@@ -1467,10 +1467,10 @@ class TestVideoServiceListVideos:
         
         mock_docs = [mock_video_document]
         
-        with patch("app.services.video.video_service.count_documents_with_filters", return_value=1) as mock_count, \
-             patch("app.services.video.video_service.MongoDB") as mock_mongodb_class:
+        with patch("app.services.video.video_service.MongoDB") as mock_mongodb_class:
             mock_mongodb_instance = MagicMock()
             mock_mongodb_class.return_value = mock_mongodb_instance
+            mock_mongodb_instance.count_documents_with_filters = AsyncMock(return_value=1)
             mock_mongodb_instance.find_documents_with_filters = AsyncMock(return_value=mock_docs)
             
             request = VideoListRequest(
@@ -1484,7 +1484,7 @@ class TestVideoServiceListVideos:
             assert len(response.videos) == 1
             
             # Verify all filters were passed correctly
-            filters = mock_count.call_args[0][1]
+            filters = mock_mongodb_instance.count_documents_with_filters.call_args[0][1]
             assert filters["video_type"] == VideoType.GENERAL.value
             assert filters["entity_id"] == "entity_123"
             assert filters["entity_type"] == "test_entity"
@@ -1501,10 +1501,10 @@ class TestVideoServiceListVideos:
         mock_doc_deleted["is_deleted"] = True
         mock_docs = [mock_video_document, mock_doc_deleted]
         
-        with patch("app.services.video.video_service.count_documents_with_filters", return_value=2) as mock_count, \
-             patch("app.services.video.video_service.MongoDB") as mock_mongodb_class:
+        with patch("app.services.video.video_service.MongoDB") as mock_mongodb_class:
             mock_mongodb_instance = MagicMock()
             mock_mongodb_class.return_value = mock_mongodb_instance
+            mock_mongodb_instance.count_documents_with_filters = AsyncMock(return_value=2)
             mock_mongodb_instance.find_documents_with_filters = AsyncMock(return_value=mock_docs)
             
             request = VideoListRequest(include_deleted=True)
@@ -1515,7 +1515,7 @@ class TestVideoServiceListVideos:
             assert response.total == 2
             
             # Verify is_deleted filter was not applied
-            filters = mock_count.call_args[0][1]
+            filters = mock_mongodb_instance.count_documents_with_filters.call_args[0][1]
             assert "is_deleted" not in filters
 
     @pytest.mark.asyncio
@@ -1525,10 +1525,10 @@ class TestVideoServiceListVideos:
         
         mock_docs = [mock_video_document]
         
-        with patch("app.services.video.video_service.count_documents_with_filters", return_value=1) as mock_count, \
-             patch("app.services.video.video_service.MongoDB") as mock_mongodb_class:
+        with patch("app.services.video.video_service.MongoDB") as mock_mongodb_class:
             mock_mongodb_instance = MagicMock()
             mock_mongodb_class.return_value = mock_mongodb_instance
+            mock_mongodb_instance.count_documents_with_filters = AsyncMock(return_value=1)
             mock_mongodb_instance.find_documents_with_filters = AsyncMock(return_value=mock_docs)
             
             request = VideoListRequest(include_deleted=False)
@@ -1539,7 +1539,7 @@ class TestVideoServiceListVideos:
             assert response.videos[0].is_deleted is False
             
             # Verify is_deleted filter was applied
-            filters = mock_count.call_args[0][1]
+            filters = mock_mongodb_instance.count_documents_with_filters.call_args[0][1]
             assert filters["is_deleted"] is False
 
     @pytest.mark.asyncio
@@ -1547,10 +1547,10 @@ class TestVideoServiceListVideos:
         """Test listing videos when no videos exist"""
         from app.classes.video import VideoListRequest, VideoListResponse
         
-        with patch("app.services.video.video_service.count_documents_with_filters", return_value=0), \
-             patch("app.services.video.video_service.MongoDB") as mock_mongodb_class:
+        with patch("app.services.video.video_service.MongoDB") as mock_mongodb_class:
             mock_mongodb_instance = MagicMock()
             mock_mongodb_class.return_value = mock_mongodb_instance
+            mock_mongodb_instance.count_documents_with_filters = AsyncMock(return_value=0)
             mock_mongodb_instance.find_documents_with_filters = AsyncMock(return_value=[])
             
             request = VideoListRequest()
@@ -1574,10 +1574,10 @@ class TestVideoServiceListVideos:
             doc["_id"] = ObjectId(f"67206999f3949388f3a80{i:03d}")
             mock_docs.append(doc)
         
-        with patch("app.services.video.video_service.count_documents_with_filters", return_value=100), \
-             patch("app.services.video.video_service.MongoDB") as mock_mongodb_class:
+        with patch("app.services.video.video_service.MongoDB") as mock_mongodb_class:
             mock_mongodb_instance = MagicMock()
             mock_mongodb_class.return_value = mock_mongodb_instance
+            mock_mongodb_instance.count_documents_with_filters = AsyncMock(return_value=100)
             mock_mongodb_instance.find_documents_with_filters = AsyncMock(return_value=mock_docs)
             
             request = VideoListRequest(page=1, page_size=100)
@@ -1596,10 +1596,10 @@ class TestVideoServiceListVideos:
         
         mock_docs = [mock_video_document]
         
-        with patch("app.services.video.video_service.count_documents_with_filters", return_value=50), \
-             patch("app.services.video.video_service.MongoDB") as mock_mongodb_class:
+        with patch("app.services.video.video_service.MongoDB") as mock_mongodb_class:
             mock_mongodb_instance = MagicMock()
             mock_mongodb_class.return_value = mock_mongodb_instance
+            mock_mongodb_instance.count_documents_with_filters = AsyncMock(return_value=50)
             mock_mongodb_instance.find_documents_with_filters = AsyncMock(return_value=mock_docs)
             
             # Request page 3 with page_size 10
@@ -1620,10 +1620,10 @@ class TestVideoServiceListVideos:
         
         mock_docs = [mock_video_document]
         
-        with patch("app.services.video.video_service.count_documents_with_filters", return_value=1), \
-             patch("app.services.video.video_service.MongoDB") as mock_mongodb_class:
+        with patch("app.services.video.video_service.MongoDB") as mock_mongodb_class:
             mock_mongodb_instance = MagicMock()
             mock_mongodb_class.return_value = mock_mongodb_instance
+            mock_mongodb_instance.count_documents_with_filters = AsyncMock(return_value=1)
             mock_mongodb_instance.find_documents_with_filters = AsyncMock(return_value=mock_docs)
             
             request = VideoListRequest()
@@ -1641,7 +1641,10 @@ class TestVideoServiceListVideos:
         """Test that exceptions are handled gracefully"""
         from app.classes.video import VideoListRequest, VideoListResponse
         
-        with patch("app.services.video.video_service.count_documents_with_filters", side_effect=Exception("Database error")):
+        with patch("app.services.video.video_service.MongoDB") as mock_mongodb_class:
+            mock_mongodb_instance = MagicMock()
+            mock_mongodb_class.return_value = mock_mongodb_instance
+            mock_mongodb_instance.count_documents_with_filters = AsyncMock(side_effect=Exception("Database error"))
             
             request = VideoListRequest()
             response = await video_service.list_videos(request)
@@ -1667,10 +1670,10 @@ class TestVideoServiceListVideos:
             "processing_status": MediaProcessingStatus.COMPLETED.value,
         }
         
-        with patch("app.services.video.video_service.count_documents_with_filters", return_value=1), \
-             patch("app.services.video.video_service.MongoDB") as mock_mongodb_class:
+        with patch("app.services.video.video_service.MongoDB") as mock_mongodb_class:
             mock_mongodb_instance = MagicMock()
             mock_mongodb_class.return_value = mock_mongodb_instance
+            mock_mongodb_instance.count_documents_with_filters = AsyncMock(return_value=1)
             mock_mongodb_instance.find_documents_with_filters = AsyncMock(return_value=[minimal_doc])
             
             request = VideoListRequest()
@@ -1692,10 +1695,10 @@ class TestVideoServiceListVideos:
         """Test that all VideoInfo fields are correctly mapped from document"""
         from app.classes.video import VideoListRequest, VideoListResponse
         
-        with patch("app.services.video.video_service.count_documents_with_filters", return_value=1), \
-             patch("app.services.video.video_service.MongoDB") as mock_mongodb_class:
+        with patch("app.services.video.video_service.MongoDB") as mock_mongodb_class:
             mock_mongodb_instance = MagicMock()
             mock_mongodb_class.return_value = mock_mongodb_instance
+            mock_mongodb_instance.count_documents_with_filters = AsyncMock(return_value=1)
             mock_mongodb_instance.find_documents_with_filters = AsyncMock(return_value=[mock_video_document])
             
             request = VideoListRequest()
@@ -1734,10 +1737,10 @@ class TestVideoServiceListVideos:
         
         mock_docs = [mock_video_document]
         
-        with patch("app.services.video.video_service.count_documents_with_filters", return_value=30), \
-             patch("app.services.video.video_service.MongoDB") as mock_mongodb_class:
+        with patch("app.services.video.video_service.MongoDB") as mock_mongodb_class:
             mock_mongodb_instance = MagicMock()
             mock_mongodb_class.return_value = mock_mongodb_instance
+            mock_mongodb_instance.count_documents_with_filters = AsyncMock(return_value=30)
             mock_mongodb_instance.find_documents_with_filters = AsyncMock(return_value=mock_docs)
             
             request = VideoListRequest(page=1, page_size=10)
@@ -1763,10 +1766,10 @@ class TestVideoServiceListVideos:
             doc["_id"] = ObjectId(f"67206999f3949388f3a8090{i}")
             mock_docs.append(doc)
         
-        with patch("app.services.video.video_service.count_documents_with_filters", return_value=23), \
-             patch("app.services.video.video_service.MongoDB") as mock_mongodb_class:
+        with patch("app.services.video.video_service.MongoDB") as mock_mongodb_class:
             mock_mongodb_instance = MagicMock()
             mock_mongodb_class.return_value = mock_mongodb_instance
+            mock_mongodb_instance.count_documents_with_filters = AsyncMock(return_value=23)
             mock_mongodb_instance.find_documents_with_filters = AsyncMock(return_value=mock_docs)
             
             # Request page 3 with page_size 10 (would skip 20, expecting 3 results)
