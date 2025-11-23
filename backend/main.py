@@ -1,14 +1,14 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.api import chat_api, agent_api, storage_api, article_api, health_api, tool_api, plant_api, image_api, user_api, video_api, job_api
-from app.core.database import check_mongodb_health
+from app.core.database import MongoDB
 from contextlib import asynccontextmanager
 from app.core.config import settings
 import os
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    await check_mongodb_health()
+    await MongoDB().check_health()
     yield
 
 app = FastAPI(

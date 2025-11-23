@@ -5,7 +5,6 @@ from bson.errors import InvalidId
 
 from app.core.database import (
     MongoDB,
-    check_mongodb_health,
     get_document,
     insert_document,
     update_document,
@@ -79,28 +78,28 @@ class TestMongoDBSingleton:
         mock_motor_client["client"].return_value.get_database.assert_called_once_with("testdb")
         assert result == mock_motor_client["db"]
 
-class TestCheckMongodbHealth:
+class TestMongoDBHealth:
     @pytest.mark.asyncio
-    async def test_check_mongodb_health_success(self, mock_motor_client):
+    async def test_mongodb_health_check_success(self, mock_motor_client):
         """Test successful MongoDB health check"""
         # Arrange
         mock_motor_client["db"].command.return_value = {"ok": 1}
         
         # Act
-        result = await check_mongodb_health()
+        result = await MongoDB().check_health()
         
         # Assert
         assert result is True
         mock_motor_client["db"].command.assert_awaited_once_with("ping")
 
     @pytest.mark.asyncio
-    async def test_check_mongodb_health_failure(self, mock_motor_client):
+    async def test_mongodb_health_check_failure(self, mock_motor_client):
         """Test MongoDB health check failure"""
         # Arrange
         mock_motor_client["db"].command.side_effect = Exception("Connection failed")
         
         # Act
-        result = await check_mongodb_health()
+        result = await MongoDB().check_health()
         
         # Assert
         assert result is False
