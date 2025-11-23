@@ -8,8 +8,11 @@ from app.classes.job import (
     CreateJobRequest,
     CreateJobResponse,
     GetJobResponse,
+    JobInfo,
     UpdateJobRequest,
     UpdateJobResponse,
+    JobListRequest,
+    JobListResponse,
     JobType,
     JobStatus,
     JobPriority,
@@ -686,3 +689,296 @@ class TestJobServiceUpdateJob:
             assert update_data["metadata"]["resolution"] == "4K"
             assert update_data["metadata"]["fps"] == 60
             assert update_data["metadata"]["codec"] == "h265"
+
+
+class TestJobServiceListJobs:
+
+    @pytest.mark.asyncio
+    async def test_list_jobs_success(self, job_service: JobService, mock_job_document: dict):
+        """Test successful job listing"""
+        mock_documents = [mock_job_document, mock_job_document.copy()]
+        
+        with patch("app.services.job.job_service.MongoDB") as mock_mongodb_class:
+            mock_mongodb_instance = MagicMock()
+            mock_mongodb_class.return_value = mock_mongodb_instance
+            mock_mongodb_instance.count_documents_with_filters = AsyncMock(return_value=2)
+            mock_mongodb_instance.find_documents_with_filters = AsyncMock(return_value=mock_documents)
+
+            response = await job_service.list_jobs(JobListRequest(page=1, page_size=20))
+            
+            assert isinstance(response, JobListResponse)
+            assert len(response.jobs) == 2
+            assert response.total == 2
+            assert response.page == 1
+            assert response.page_size == 20
+
+    @pytest.mark.asyncio
+    async def test_list_jobs_empty_result(self, job_service: JobService):
+        """Test job listing with no results"""
+        with patch("app.services.job.job_service.MongoDB") as mock_mongodb_class:
+            mock_mongodb_instance = MagicMock()
+            mock_mongodb_class.return_value = mock_mongodb_instance
+            mock_mongodb_instance.count_documents_with_filters = AsyncMock(return_value=0)
+            mock_mongodb_instance.find_documents_with_filters = AsyncMock(return_value=[])
+            
+            response = await job_service.list_jobs(JobListRequest(page=1, page_size=20))
+            
+            assert response.jobs == []
+            assert response.total == 0
+            assert response.page == 1
+            assert response.page_size == 20
+
+    @pytest.mark.asyncio
+    async def test_list_jobs_with_job_type_filter(self, job_service: JobService, mock_job_document: dict):
+        """Test job listing with job_type filter"""
+        with patch("app.services.job.job_service.MongoDB") as mock_mongodb_class:
+            mock_mongodb_instance = MagicMock()
+            mock_mongodb_class.return_value = mock_mongodb_instance
+            mock_mongodb_instance.count_documents_with_filters = AsyncMock(return_value=1)
+            mock_mongodb_instance.find_documents_with_filters = AsyncMock(return_value=[mock_job_document])
+            
+            await job_service.list_jobs(
+                JobListRequest(job_type=JobType.VIDEO_PROCESSING)
+            )
+            
+            # Verify filter was applied
+            filters = mock_mongodb_instance.count_documents_with_filters.call_args[0][1]
+            assert filters["job_type"] == JobType.VIDEO_PROCESSING.value
+
+    @pytest.mark.asyncio
+    async def test_list_jobs_with_status_filter(self, job_service: JobService, mock_job_document: dict):
+        """Test job listing with status filter"""
+        with patch("app.services.job.job_service.MongoDB") as mock_mongodb_class:
+            mock_mongodb_instance = MagicMock()
+            mock_mongodb_class.return_value = mock_mongodb_instance
+            mock_mongodb_instance.count_documents_with_filters = AsyncMock(return_value=1)
+            mock_mongodb_instance.find_documents_with_filters = AsyncMock(return_value=[mock_job_document])
+            
+            await job_service.list_jobs(
+                JobListRequest(status=JobStatus.PENDING)
+            )
+            
+            # Verify filter was applied
+            filters = mock_mongodb_instance.count_documents_with_filters.call_args[0][1]
+            assert filters["status"] == JobStatus.PENDING.value
+
+    @pytest.mark.asyncio
+    async def test_list_jobs_with_entity_filters(self, job_service: JobService, mock_job_document: dict):
+        """Test job listing with entity_id and entity_type filters"""
+        with patch("app.services.job.job_service.MongoDB") as mock_mongodb_class:
+            mock_mongodb_instance = MagicMock()
+            mock_mongodb_class.return_value = mock_mongodb_instance
+            mock_mongodb_instance.count_documents_with_filters = AsyncMock(return_value=1)
+            mock_mongodb_instance.find_documents_with_filters = AsyncMock(return_value=[mock_job_document])
+            
+            await job_service.list_jobs(
+                JobListRequest(
+                    entity_id="video_123",
+                    entity_type="video"
+                )
+            )
+            
+            # Verify filters were applied
+            filters = mock_mongodb_instance.count_documents_with_filters.call_args[0][1]
+            assert filters["entity_id"] == "video_123"
+            assert filters["entity_type"] == "video"
+
+    @pytest.mark.asyncio
+    async def test_list_jobs_with_priority_filter(self, job_service: JobService, mock_job_document: dict):
+        """Test job listing with priority filter"""
+        with patch("app.services.job.job_service.MongoDB") as mock_mongodb_class:
+            mock_mongodb_instance = MagicMock()
+            mock_mongodb_class.return_value = mock_mongodb_instance
+            mock_mongodb_instance.count_documents_with_filters = AsyncMock(return_value=1)
+            mock_mongodb_instance.find_documents_with_filters = AsyncMock(return_value=[mock_job_document])
+            
+            await job_service.list_jobs(
+                JobListRequest(priority=JobPriority.HIGH)
+            )
+            
+            # Verify filter was applied
+            filters = mock_mongodb_instance.count_documents_with_filters.call_args[0][1]
+            assert filters["priority"] == JobPriority.HIGH.value
+
+    @pytest.mark.asyncio
+    async def test_list_jobs_with_all_filters(self, job_service: JobService, mock_job_document: dict):
+        """Test job listing with all filters combined"""
+        with patch("app.services.job.job_service.MongoDB") as mock_mongodb_class:
+            mock_mongodb_instance = MagicMock()
+            mock_mongodb_class.return_value = mock_mongodb_instance
+            mock_mongodb_instance.count_documents_with_filters = AsyncMock(return_value=1)
+            mock_mongodb_instance.find_documents_with_filters = AsyncMock(return_value=[mock_job_document])
+            
+            await job_service.list_jobs(
+                JobListRequest(
+                    job_type=JobType.VIDEO_PROCESSING,
+                    status=JobStatus.PENDING,
+                    entity_id="video_123",
+                    entity_type="video",
+                    priority=JobPriority.NORMAL
+                )
+            )
+            
+            # Verify all filters were applied
+            filters = mock_mongodb_instance.count_documents_with_filters.call_args[0][1]
+            assert filters["job_type"] == JobType.VIDEO_PROCESSING.value
+            assert filters["status"] == JobStatus.PENDING.value
+            assert filters["entity_id"] == "video_123"
+            assert filters["entity_type"] == "video"
+            assert filters["priority"] == JobPriority.NORMAL.value
+
+    @pytest.mark.asyncio
+    async def test_list_jobs_pagination(self, job_service: JobService, mock_job_document: dict):
+        """Test job listing pagination"""
+        with patch("app.services.job.job_service.MongoDB") as mock_mongodb_class:
+            mock_mongodb_instance = MagicMock()
+            mock_mongodb_class.return_value = mock_mongodb_instance
+            mock_mongodb_instance.count_documents_with_filters = AsyncMock(return_value=50)
+            mock_mongodb_instance.find_documents_with_filters = AsyncMock(return_value=[mock_job_document])
+            
+            response = await job_service.list_jobs(
+                JobListRequest(page=3, page_size=20)
+            )
+            
+            # Verify pagination was applied
+            find_call = mock_mongodb_instance.find_documents_with_filters.call_args
+            assert find_call[1]["skip"] == 40  # (page 3 - 1) * 20
+            assert find_call[1]["limit"] == 20
+            assert find_call[1]["sort_by"] == "created_at"
+            assert find_call[1]["asc"] is False  # Most recent first
+            
+            assert response.total == 50
+            assert response.page == 3
+            assert response.page_size == 20
+
+    @pytest.mark.asyncio
+    async def test_list_jobs_default_pagination(self, job_service: JobService):
+        """Test job listing with default pagination values"""
+        with patch("app.services.job.job_service.MongoDB") as mock_mongodb_class:
+            mock_mongodb_instance = MagicMock()
+            mock_mongodb_class.return_value = mock_mongodb_instance
+            mock_mongodb_instance.count_documents_with_filters = AsyncMock(return_value=0)
+            mock_mongodb_instance.find_documents_with_filters = AsyncMock(return_value=[])
+            
+            response = await job_service.list_jobs(JobListRequest())
+            
+            # Verify default values
+            assert response.page == 1
+            assert response.page_size == 20
+
+    @pytest.mark.asyncio
+    async def test_list_jobs_sorting(self, job_service: JobService):
+        """Test that jobs are sorted by created_at descending (most recent first)"""
+        with patch("app.services.job.job_service.MongoDB") as mock_mongodb_class:
+            mock_mongodb_instance = MagicMock()
+            mock_mongodb_class.return_value = mock_mongodb_instance
+            mock_mongodb_instance.count_documents_with_filters = AsyncMock(return_value=0)
+            mock_mongodb_instance.find_documents_with_filters = AsyncMock(return_value=[])
+            
+            await job_service.list_jobs(JobListRequest())
+            
+            # Verify sorting
+            find_call = mock_mongodb_instance.find_documents_with_filters.call_args
+            assert find_call[1]["sort_by"] == "created_at"
+            assert find_call[1]["asc"] is False
+
+    @pytest.mark.asyncio
+    async def test_list_jobs_exception(self, job_service: JobService):
+        """Test job listing with exception"""
+        with patch("app.services.job.job_service.MongoDB") as mock_mongodb_class:
+            mock_mongodb_instance = MagicMock()
+            mock_mongodb_class.return_value = mock_mongodb_instance
+            mock_mongodb_instance.count_documents_with_filters = AsyncMock(side_effect=Exception("Database error"))
+            
+            response = await job_service.list_jobs(JobListRequest(page=1, page_size=20))
+            
+            assert response.jobs == []
+            assert response.total == 0
+            assert response.page == 1
+            assert response.page_size == 20
+
+    @pytest.mark.asyncio
+    async def test_list_jobs_converts_documents_to_job_info(self, job_service: JobService):
+        """Test that list_jobs properly converts MongoDB documents to JobInfo objects"""
+        mock_doc = {
+            "_id": ObjectId(TEST_JOB_ID),
+            "job_type": JobType.VIDEO_PROCESSING.value,
+            "job_name": "process_video",
+            "status": JobStatus.SUCCESS.value,
+            "priority": JobPriority.HIGH.value,
+            "metadata": {"resolution": "1080p"},
+            "entity_id": "video_123",
+            "entity_type": "video",
+            "created_at": datetime.now(timezone.utc),
+            "started_at": datetime.now(timezone.utc),
+            "completed_at": datetime.now(timezone.utc),
+            "expires_at": datetime.now(timezone.utc),
+            "retries": 2,
+            "max_retries": 3,
+            "retry_delay": 60,
+            "progress": {"current": 100, "total": 100},
+            "result": {"success": True, "message": "Done"},
+        }
+        
+        with patch("app.services.job.job_service.MongoDB") as mock_mongodb_class:
+            mock_mongodb_instance = MagicMock()
+            mock_mongodb_class.return_value = mock_mongodb_instance
+            mock_mongodb_instance.count_documents_with_filters = AsyncMock(return_value=1)
+            mock_mongodb_instance.find_documents_with_filters = AsyncMock(return_value=[mock_doc])
+            
+            response = await job_service.list_jobs(JobListRequest())
+            
+            assert len(response.jobs) == 1
+            job = response.jobs[0]
+            assert isinstance(job, JobInfo)
+            assert job.id == TEST_JOB_ID
+            assert job.job_type == JobType.VIDEO_PROCESSING
+            assert job.job_name == "process_video"
+            assert job.status == JobStatus.SUCCESS
+            assert job.priority == JobPriority.HIGH
+            assert job.metadata["resolution"] == "1080p"
+            assert job.entity_id == "video_123"
+            assert job.entity_type == "video"
+            assert job.retries == 2
+            assert job.max_retries == 3
+            assert job.retry_delay == 60
+
+    @pytest.mark.asyncio
+    async def test_list_jobs_multiple_pages(self, job_service: JobService, mock_job_document: dict):
+        """Test listing jobs across multiple pages"""
+        # Simulate 45 total jobs, viewing page 2 with page_size 20
+        with patch("app.services.job.job_service.MongoDB") as mock_mongodb_class:
+            mock_mongodb_instance = MagicMock()
+            mock_mongodb_class.return_value = mock_mongodb_instance
+            mock_mongodb_instance.count_documents_with_filters = AsyncMock(return_value=45)
+            mock_mongodb_instance.find_documents_with_filters = AsyncMock(
+                return_value=[mock_job_document] * 20
+            )
+            
+            response = await job_service.list_jobs(
+                JobListRequest(page=2, page_size=20)
+            )
+            
+            assert len(response.jobs) == 20
+            assert response.total == 45
+            assert response.page == 2
+            assert response.page_size == 20
+            
+            # Verify skip calculation
+            find_call = mock_mongodb_instance.find_documents_with_filters.call_args
+            assert find_call[1]["skip"] == 20  # (page 2 - 1) * 20
+
+    @pytest.mark.asyncio
+    async def test_list_jobs_no_filters_returns_all(self, job_service: JobService, mock_job_document: dict):
+        """Test that list_jobs with no filters returns all jobs"""
+        with patch("app.services.job.job_service.MongoDB") as mock_mongodb_class:
+            mock_mongodb_instance = MagicMock()
+            mock_mongodb_class.return_value = mock_mongodb_instance
+            mock_mongodb_instance.count_documents_with_filters = AsyncMock(return_value=1)
+            mock_mongodb_instance.find_documents_with_filters = AsyncMock(return_value=[mock_job_document])
+            
+            await job_service.list_jobs(JobListRequest())
+            
+            # Verify filters dictionary is empty when no filters provided
+            filters = mock_mongodb_instance.count_documents_with_filters.call_args[0][1]
+            assert filters == {}

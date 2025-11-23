@@ -156,3 +156,22 @@ class UpdateJobResponse(BaseModel):
     success: bool
     job_id: str
     message: str
+
+
+class JobListRequest(BaseModel):
+    """Request model for listing jobs"""
+    page: int = 1
+    page_size: int = 20
+    job_type: Optional[JobType] = None
+    status: Optional[JobStatus] = None
+    entity_id: Optional[str] = None
+    entity_type: Optional[str] = None
+    priority: Optional[JobPriority] = None
+
+
+class JobListResponse(BaseModel):
+    """Response model for listing jobs"""
+    jobs: list[JobInfo]
+    total: int
+    page: int = 1
+    page_size: int = 10

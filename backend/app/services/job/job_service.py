@@ -8,6 +8,8 @@ from app.classes.job import (
     GetJobResponse,
     UpdateJobRequest,
     UpdateJobResponse,
+    JobListRequest,
+    JobListResponse,
     JobInfo,
     JobStatus,
     JobPriority,
@@ -255,5 +257,87 @@ class JobService:
                 success=False,
                 job_id=job_id,
                 message=error_msg
+            )
+
+    async def list_jobs(self, request: JobListRequest) -> JobListResponse:
+        """
+        List jobs with optional filtering and pagination.
+        """
+        try:
+            # Build filters dictionary for multi-field filtering
+            filters = {}
+            
+            if request.job_type:
+                filters["job_type"] = request.job_type.value
+            
+            if request.status:
+                filters["status"] = request.status.value
+            
+            if request.entity_id:
+                filters["entity_id"] = request.entity_id
+            
+            if request.entity_type:
+                filters["entity_type"] = request.entity_type
+            
+            if request.priority:
+                filters["priority"] = request.priority.value
+
+            # Get total count for pagination
+            total_count = await MongoDB().count_documents_with_filters(
+                JOB_COLLECTION_NAME, filters
+            )
+
+            # Calculate pagination
+            skip = (request.page - 1) * request.page_size
+
+            # Get paginated documents
+            documents = await MongoDB().find_documents_with_filters(
+                JOB_COLLECTION_NAME,
+                filters,
+                skip=skip,
+                limit=request.page_size,
+                sort_by="created_at",
+                asc=False,  # Most recent first
+            )
+
+            # Convert to JobInfo objects
+            jobs = []
+            for doc in documents:
+                job_info = JobInfo(
+                    id=str(doc.get("_id", "")),
+                    job_type=JobType(doc["job_type"]),
+                    job_name=doc.get("job_name", ""),
+                    status=JobStatus(doc["status"]),
+                    priority=JobPriority(doc["priority"]),
+                    metadata=doc.get("metadata", {}),
+                    entity_id=doc.get("entity_id"),
+                    entity_type=doc.get("entity_type"),
+                    created_at=doc["created_at"],
+                    started_at=doc.get("started_at"),
+                    completed_at=doc.get("completed_at"),
+                    expires_at=doc.get("expires_at"),
+                    retries=doc.get("retries", 0),
+                    max_retries=doc.get("max_retries", 3),
+                    retry_delay=doc.get("retry_delay"),
+                    progress=doc.get("progress"),
+                    result=doc.get("result"),
+                )
+                jobs.append(job_info)
+
+            return JobListResponse(
+                jobs=jobs,
+                total=total_count,
+                page=request.page,
+                page_size=request.page_size
+            )
+
+        except Exception as e:
+            error_msg = f"Failed to list jobs: {e}"
+            logging.getLogger("uvicorn.error").error(error_msg)
+            return JobListResponse(
+                jobs=[],
+                total=0,
+                page=request.page,
+                page_size=request.page_size
             )
 

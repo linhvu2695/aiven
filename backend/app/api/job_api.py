@@ -1,8 +1,11 @@
+import logging
 from fastapi import APIRouter, HTTPException
 from app.classes.job import (
     CreateJobRequest,
     CreateJobResponse,
     GetJobResponse,
+    JobListRequest,
+    JobListResponse,
     UpdateJobRequest,
     UpdateJobResponse,
 )
@@ -24,6 +27,19 @@ async def create_job(request: CreateJobRequest):
         return response
     else:
         raise HTTPException(status_code=500, detail=response.message)
+
+
+@router.post("/list", response_model=JobListResponse)
+async def list_jobs(request: JobListRequest):
+    """
+    List jobs with optional filtering and pagination.
+    """
+    try:
+        return await JobService().list_jobs(request)
+    except Exception as e:
+        message = f"Error listing jobs: {str(e)}"
+        logging.getLogger("uvicorn.error").error(message)
+        raise HTTPException(status_code=400, detail=message)
 
 
 @router.get("/{job_id}", response_model=GetJobResponse)
