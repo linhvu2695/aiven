@@ -208,9 +208,12 @@ class TestPlantServiceCreateOrUpdatePlant:
     @pytest.mark.asyncio
     async def test_update_plant_success(self, plant_service, update_plant_request, mock_plant_data):
         """Test successful plant update"""
-        with patch("app.services.plant.plant_service.get_document", return_value=mock_plant_data), \
+        with patch("app.services.plant.plant_service.MongoDB") as mock_mongodb_class, \
              patch("app.services.plant.plant_service.update_document") as mock_update, \
              patch("app.services.plant.plant_service.build_update_data", return_value={"name": "Updated Plant"}):
+            mock_mongodb_instance = MagicMock()
+            mock_mongodb_class.return_value = mock_mongodb_instance
+            mock_mongodb_instance.get_document = AsyncMock(return_value=mock_plant_data)
             
             response = await plant_service.create_or_update_plant(update_plant_request)
             
@@ -223,7 +226,10 @@ class TestPlantServiceCreateOrUpdatePlant:
     @pytest.mark.asyncio
     async def test_update_plant_not_found(self, plant_service, update_plant_request):
         """Test plant update when plant doesn't exist"""
-        with patch("app.services.plant.plant_service.get_document", return_value=None):
+        with patch("app.services.plant.plant_service.MongoDB") as mock_mongodb_class:
+            mock_mongodb_instance = MagicMock()
+            mock_mongodb_class.return_value = mock_mongodb_instance
+            mock_mongodb_instance.get_document = AsyncMock(return_value=None)
             response = await plant_service.create_or_update_plant(update_plant_request)
             
             assert isinstance(response, CreateOrUpdatePlantResponse)
@@ -259,8 +265,11 @@ class TestPlantServiceCreateOrUpdatePlant:
     @pytest.mark.asyncio
     async def test_update_plant_exception(self, plant_service, update_plant_request, mock_plant_data):
         """Test plant update with database exception"""
-        with patch("app.services.plant.plant_service.get_document", return_value=mock_plant_data), \
+        with patch("app.services.plant.plant_service.MongoDB") as mock_mongodb_class, \
              patch("app.services.plant.plant_service.update_document", side_effect=Exception("Database error")):
+            mock_mongodb_instance = MagicMock()
+            mock_mongodb_class.return_value = mock_mongodb_instance
+            mock_mongodb_instance.get_document = AsyncMock(return_value=mock_plant_data)
             
             response = await plant_service.create_or_update_plant(update_plant_request)
             
@@ -274,7 +283,11 @@ class TestPlantServiceGetPlant:
     @pytest.mark.asyncio
     async def test_get_plant_success(self, plant_service, mock_plant_data):
         """Test successful plant retrieval"""
-        with patch("app.services.plant.plant_service.get_document", return_value=mock_plant_data):
+        with patch("app.services.plant.plant_service.MongoDB") as mock_mongodb_class:
+            mock_mongodb_instance = MagicMock()
+            mock_mongodb_class.return_value = mock_mongodb_instance
+            mock_mongodb_instance.get_document = AsyncMock(return_value=mock_plant_data)
+            
             response = await plant_service.get_plant("test_plant_123")
             
             assert isinstance(response, PlantResponse)
@@ -288,7 +301,11 @@ class TestPlantServiceGetPlant:
     @pytest.mark.asyncio
     async def test_get_plant_not_found(self, plant_service):
         """Test plant retrieval when plant doesn't exist"""
-        with patch("app.services.plant.plant_service.get_document", return_value=None):
+        with patch("app.services.plant.plant_service.MongoDB") as mock_mongodb_class:
+            mock_mongodb_instance = MagicMock()
+            mock_mongodb_class.return_value = mock_mongodb_instance
+            mock_mongodb_instance.get_document = AsyncMock(return_value=None)
+            
             response = await plant_service.get_plant("nonexistent_id")
             
             assert isinstance(response, PlantResponse)
@@ -299,7 +316,11 @@ class TestPlantServiceGetPlant:
     @pytest.mark.asyncio
     async def test_get_plant_exception(self, plant_service):
         """Test plant retrieval with database exception"""
-        with patch("app.services.plant.plant_service.get_document", side_effect=Exception("Database error")):
+        with patch("app.services.plant.plant_service.MongoDB") as mock_mongodb_class:
+            mock_mongodb_instance = MagicMock()
+            mock_mongodb_class.return_value = mock_mongodb_instance
+            mock_mongodb_instance.get_document = AsyncMock(side_effect=Exception("Database error"))
+            
             response = await plant_service.get_plant("test_plant_123")
             
             assert isinstance(response, PlantResponse)
@@ -355,9 +376,12 @@ class TestPlantServiceAddPlantPhoto:
         )
         mock_image_service.create_image = AsyncMock(return_value=mock_image_response)
         
-        with patch("app.services.plant.plant_service.get_document", return_value=mock_plant_data), \
+        with patch("app.services.plant.plant_service.MongoDB") as mock_mongodb_class, \
              patch("app.services.plant.plant_service.ImageService", return_value=mock_image_service), \
              patch("app.services.plant.plant_service.update_document") as mock_update:
+            mock_mongodb_instance = MagicMock()
+            mock_mongodb_class.return_value = mock_mongodb_instance
+            mock_mongodb_instance.get_document = AsyncMock(return_value=mock_plant_data)
             
             response = await plant_service.add_plant_photo("test_plant_123", add_photo_request)
             
@@ -383,7 +407,11 @@ class TestPlantServiceAddPlantPhoto:
     @pytest.mark.asyncio
     async def test_add_plant_photo_plant_not_found(self, plant_service, add_photo_request):
         """Test photo addition when plant doesn't exist"""
-        with patch("app.services.plant.plant_service.get_document", return_value=None):
+        with patch("app.services.plant.plant_service.MongoDB") as mock_mongodb_class:
+            mock_mongodb_instance = MagicMock()
+            mock_mongodb_class.return_value = mock_mongodb_instance
+            mock_mongodb_instance.get_document = AsyncMock(return_value=None)
+            
             response = await plant_service.add_plant_photo("nonexistent_id", add_photo_request)
             
             assert isinstance(response, PlantPhotoResponse)
@@ -404,8 +432,11 @@ class TestPlantServiceAddPlantPhoto:
         )
         mock_image_service.create_image = AsyncMock(return_value=mock_image_response)
         
-        with patch("app.services.plant.plant_service.get_document", return_value=mock_plant_data), \
+        with patch("app.services.plant.plant_service.MongoDB") as mock_mongodb_class, \
              patch("app.services.plant.plant_service.ImageService", return_value=mock_image_service):
+            mock_mongodb_instance = MagicMock()
+            mock_mongodb_class.return_value = mock_mongodb_instance
+            mock_mongodb_instance.get_document = AsyncMock(return_value=mock_plant_data)
             
             response = await plant_service.add_plant_photo("test_plant_123", add_photo_request)
             
@@ -417,7 +448,11 @@ class TestPlantServiceAddPlantPhoto:
     @pytest.mark.asyncio
     async def test_add_plant_photo_exception(self, plant_service, add_photo_request):
         """Test photo addition with exception"""
-        with patch("app.services.plant.plant_service.get_document", side_effect=Exception("Database error")):
+        with patch("app.services.plant.plant_service.MongoDB") as mock_mongodb_class:
+            mock_mongodb_instance = MagicMock()
+            mock_mongodb_class.return_value = mock_mongodb_instance
+            mock_mongodb_instance.get_document = AsyncMock(side_effect=Exception("Database error"))
+            
             response = await plant_service.add_plant_photo("test_plant_123", add_photo_request)
             
             assert isinstance(response, PlantPhotoResponse)

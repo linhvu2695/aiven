@@ -1581,11 +1581,11 @@ class TestConversationNaming:
         return ChatService()
     
     @pytest.mark.asyncio
-    @patch('app.services.chat.chat_history.get_document')
+    @patch('app.services.chat.chat_history.MongoDB')
     @patch('app.services.chat.chat_service.update_document')
     @patch('app.services.agent.agent_service.AgentService.get_agent')
     async def test_generate_conversation_name_if_needed_for_new_conversation(
-        self, mock_get_agent, mock_update_document, mock_get_document, chat_service
+        self, mock_get_agent, mock_update_document, mock_mongodb_class, chat_service
     ):
         """Test that conversation names are generated for new conversations."""
         from app.classes.conversation import Conversation
@@ -1618,7 +1618,9 @@ class TestConversationNaming:
             "updated_at": datetime.now(timezone.utc)
         }
         
-        mock_get_document.return_value = mock_conversation_data
+        mock_mongodb_instance = MagicMock()
+        mock_mongodb_class.return_value = mock_mongodb_instance
+        mock_mongodb_instance.get_document = AsyncMock(return_value=mock_conversation_data)
         
         # Mock the chat model and AI response
         mock_ai_response = MagicMock()
@@ -1653,10 +1655,10 @@ class TestConversationNaming:
         assert args[2]["name"] == "Python Help Session"
     
     @pytest.mark.asyncio
-    @patch('app.services.chat.chat_history.get_document')
+    @patch('app.services.chat.chat_history.MongoDB')
     @patch('app.services.chat.chat_service.update_document')
     async def test_generate_conversation_name_if_needed_skips_existing_name(
-        self, mock_update_document, mock_get_document, chat_service
+        self, mock_update_document, mock_mongodb_class, chat_service
     ):
         """Test that naming is skipped for conversations that already have names."""
         from app.classes.conversation import Conversation
@@ -1675,7 +1677,9 @@ class TestConversationNaming:
             "updated_at": datetime.now(timezone.utc)
         }
         
-        mock_get_document.return_value = mock_conversation_data
+        mock_mongodb_instance = MagicMock()
+        mock_mongodb_class.return_value = mock_mongodb_instance
+        mock_mongodb_instance.get_document = AsyncMock(return_value=mock_conversation_data)
         
         # Create mock history and call the naming method
         mock_history = AsyncMock()
@@ -1695,10 +1699,10 @@ class TestConversationNaming:
         mock_update_document.assert_not_called()
     
     @pytest.mark.asyncio
-    @patch('app.services.chat.chat_history.get_document')
+    @patch('app.services.chat.chat_history.MongoDB')
     @patch('app.services.chat.chat_service.update_document')
     async def test_generate_conversation_name_if_needed_skips_too_few_messages(
-        self, mock_update_document, mock_get_document, chat_service
+        self, mock_update_document, mock_mongodb_class, chat_service
     ):
         """Test that naming is skipped for conversations with too few messages."""
         from app.classes.conversation import Conversation
@@ -1716,7 +1720,9 @@ class TestConversationNaming:
             "updated_at": datetime.now(timezone.utc)
         }
         
-        mock_get_document.return_value = mock_conversation_data
+        mock_mongodb_instance = MagicMock()
+        mock_mongodb_class.return_value = mock_mongodb_instance
+        mock_mongodb_instance.get_document = AsyncMock(return_value=mock_conversation_data)
         
         # Create mock history and call the naming method
         mock_history = AsyncMock()

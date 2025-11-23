@@ -15,7 +15,7 @@ from app.classes.job import (
 )
 from app.core.database import (
     insert_document,
-    get_document,
+    MongoDB,
     update_document,
     delete_document,
 )
@@ -114,7 +114,7 @@ class JobService:
         Retrieve job information by job ID.
         """
         try:
-            data = await get_document(JOB_COLLECTION_NAME, job_id)
+            data = await MongoDB().get_document(JOB_COLLECTION_NAME, job_id)
             
             if not data:
                 return GetJobResponse(
@@ -174,7 +174,7 @@ class JobService:
 
         try:
             # Check if the job exists
-            existing_job = await get_document(JOB_COLLECTION_NAME, job_id)
+            existing_job = await MongoDB().get_document(JOB_COLLECTION_NAME, job_id)
             if not existing_job:
                 return UpdateJobResponse(
                     success=False,

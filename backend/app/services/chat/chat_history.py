@@ -5,7 +5,7 @@ from bson import ObjectId
 from langchain_core.messages import HumanMessage, AIMessage, SystemMessage
 from langchain_core.chat_history import BaseChatMessageHistory
 from langchain_core.messages.base import BaseMessage
-from app.core.database import delete_document, get_document, update_document, insert_document, MongoDB
+from app.core.database import delete_document, update_document, insert_document, MongoDB
 from app.classes.conversation import Conversation, ConversationDeleteRequest, ConversationInfo
 
 CONVERSATION_COLLECTION = "conversation"
@@ -19,7 +19,7 @@ class MongoDBChatHistory(BaseChatMessageHistory):
         if self._session_id == "":
             await self._acreate_new_conversation()
         
-        data = await get_document(CONVERSATION_COLLECTION, self._session_id)
+        data = await MongoDB().get_document(CONVERSATION_COLLECTION, self._session_id)
         if not data:
             return None
         
@@ -173,7 +173,7 @@ class ConversationRepository:
             Conversation object if found, None otherwise
         """
         try:
-            data = await get_document(CONVERSATION_COLLECTION, id)
+            data = await MongoDB().get_document(CONVERSATION_COLLECTION, id)
             if not data:
                 return None
             

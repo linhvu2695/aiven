@@ -349,7 +349,11 @@ class TestImageServiceGetImage:
     @pytest.mark.asyncio
     async def test_get_image_success(self, image_service: ImageService, mock_image_document: dict):
         """Test successful image retrieval"""
-        with patch("app.services.image.image_service.get_document", return_value=mock_image_document):
+        with patch("app.services.image.image_service.MongoDB") as mock_mongodb_class:
+            mock_mongodb_instance = MagicMock()
+            mock_mongodb_class.return_value = mock_mongodb_instance
+            mock_mongodb_instance.get_document = AsyncMock(return_value=mock_image_document)
+            
             response = await image_service.get_image(TEST_IMAGE_ID)
             
             assert isinstance(response, ImageResponse)
@@ -379,7 +383,10 @@ class TestImageServiceGetImage:
     @pytest.mark.asyncio
     async def test_get_image_not_found(self, image_service: ImageService):
         """Test image retrieval when not found"""
-        with patch("app.services.image.image_service.get_document", side_effect=ValueError("Document not found")):
+        with patch("app.services.image.image_service.MongoDB") as mock_mongodb_class:
+            mock_mongodb_instance = MagicMock()
+            mock_mongodb_class.return_value = mock_mongodb_instance
+            mock_mongodb_instance.get_document = AsyncMock(side_effect=ValueError("Document not found"))
             response = await image_service.get_image(TEST_IMAGE_ID)
             
             assert isinstance(response, ImageResponse)
@@ -390,7 +397,10 @@ class TestImageServiceGetImage:
     @pytest.mark.asyncio
     async def test_get_image_exception(self, image_service: ImageService):
         """Test image retrieval with exception"""
-        with patch("app.services.image.image_service.get_document", side_effect=Exception("Database error")):
+        with patch("app.services.image.image_service.MongoDB") as mock_mongodb_class:
+            mock_mongodb_instance = MagicMock()
+            mock_mongodb_class.return_value = mock_mongodb_instance
+            mock_mongodb_instance.get_document = AsyncMock(side_effect=Exception("Database error"))
             response = await image_service.get_image(TEST_IMAGE_ID)
             
             assert isinstance(response, ImageResponse)
@@ -404,7 +414,10 @@ class TestImageServiceUpdateImage:
     async def test_update_image_success(self, image_service: ImageService, update_image_request: UpdateImageRequest, mock_image_document: dict):
         """Test successful image update"""
         with patch("app.services.image.image_service.update_document"), \
-             patch("app.services.image.image_service.get_document", return_value=mock_image_document):
+             patch("app.services.image.image_service.MongoDB") as mock_mongodb_class:
+            mock_mongodb_instance = MagicMock()
+            mock_mongodb_class.return_value = mock_mongodb_instance
+            mock_mongodb_instance.get_document = AsyncMock(return_value=mock_image_document)
             
             response = await image_service.update_image(TEST_IMAGE_ID, update_image_request)
             
@@ -418,7 +431,10 @@ class TestImageServiceUpdateImage:
         partial_request = UpdateImageRequest(title="New Title Only")
         
         with patch("app.services.image.image_service.update_document") as mock_update, \
-             patch("app.services.image.image_service.get_document", return_value=mock_image_document):
+             patch("app.services.image.image_service.MongoDB") as mock_mongodb_class:
+            mock_mongodb_instance = MagicMock()
+            mock_mongodb_class.return_value = mock_mongodb_instance
+            mock_mongodb_instance.get_document = AsyncMock(return_value=mock_image_document)
             
             await image_service.update_image(TEST_IMAGE_ID, partial_request)
             
@@ -523,8 +539,11 @@ class TestImageServicePresignedUrl:
         mock_storage = MagicMock()
         mock_storage.get_presigned_url = AsyncMock(return_value="https://presigned.url")
         
-        with patch("app.services.image.image_service.get_document", return_value=mock_image_document), \
+        with patch("app.services.image.image_service.MongoDB") as mock_mongodb_class, \
              patch("app.services.image.image_service.FirebaseStorageRepository", return_value=mock_storage):
+            mock_mongodb_instance = MagicMock()
+            mock_mongodb_class.return_value = mock_mongodb_instance
+            mock_mongodb_instance.get_document = AsyncMock(return_value=mock_image_document)
             
             response = await image_service.get_image_presigned_url(TEST_IMAGE_ID)
             
@@ -537,7 +556,10 @@ class TestImageServicePresignedUrl:
     @pytest.mark.asyncio
     async def test_get_image_presigned_url_image_not_found(self, image_service: ImageService):
         """Test presigned URL generation when image not found"""
-        with patch("app.services.image.image_service.get_document", side_effect=ValueError("Not found")):
+        with patch("app.services.image.image_service.MongoDB") as mock_mongodb_class:
+            mock_mongodb_instance = MagicMock()
+            mock_mongodb_class.return_value = mock_mongodb_instance
+            mock_mongodb_instance.get_document = AsyncMock(side_effect=ValueError("Not found"))
             response = await image_service.get_image_presigned_url(TEST_IMAGE_ID)
             
             assert isinstance(response, ImageUrlInfo)
@@ -552,8 +574,11 @@ class TestImageServicePresignedUrl:
         mock_storage = MagicMock()
         mock_storage.get_presigned_url = AsyncMock(side_effect=Exception("Storage error"))
         
-        with patch("app.services.image.image_service.get_document", return_value=mock_image_document), \
+        with patch("app.services.image.image_service.MongoDB") as mock_mongodb_class, \
              patch("app.services.image.image_service.FirebaseStorageRepository", return_value=mock_storage):
+            mock_mongodb_instance = MagicMock()
+            mock_mongodb_class.return_value = mock_mongodb_instance
+            mock_mongodb_instance.get_document = AsyncMock(return_value=mock_image_document)
             
             response = await image_service.get_image_presigned_url(TEST_IMAGE_ID)
             
@@ -588,9 +613,12 @@ class TestImageServiceDeleteImage:
         mock_storage = MagicMock()
         mock_storage.delete = AsyncMock()
         
-        with patch("app.services.image.image_service.get_document", return_value=mock_image_document), \
+        with patch("app.services.image.image_service.MongoDB") as mock_mongodb_class, \
              patch("app.services.image.image_service.FirebaseStorageRepository", return_value=mock_storage), \
              patch("app.services.image.image_service.delete_document") as mock_delete:
+            mock_mongodb_instance = MagicMock()
+            mock_mongodb_class.return_value = mock_mongodb_instance
+            mock_mongodb_instance.get_document = AsyncMock(return_value=mock_image_document)
             
             response = await image_service.delete_image(TEST_IMAGE_ID, soft_delete=False)
             
@@ -609,9 +637,12 @@ class TestImageServiceDeleteImage:
         mock_storage = MagicMock()
         mock_storage.delete = AsyncMock(side_effect=Exception("Storage error"))
         
-        with patch("app.services.image.image_service.get_document", return_value=mock_image_document), \
+        with patch("app.services.image.image_service.MongoDB") as mock_mongodb_class, \
              patch("app.services.image.image_service.FirebaseStorageRepository", return_value=mock_storage), \
              patch("app.services.image.image_service.delete_document"):
+            mock_mongodb_instance = MagicMock()
+            mock_mongodb_class.return_value = mock_mongodb_instance
+            mock_mongodb_instance.get_document = AsyncMock(return_value=mock_image_document)
             
             response = await image_service.delete_image(TEST_IMAGE_ID, soft_delete=False)
             
@@ -626,8 +657,11 @@ class TestImageServiceDeleteImage:
         """Test hard delete with no storage path"""
         mock_document = {"_id": ObjectId(TEST_IMAGE_ID), "storage_path": ""}
         
-        with patch("app.services.image.image_service.get_document", return_value=mock_document), \
+        with patch("app.services.image.image_service.MongoDB") as mock_mongodb_class, \
              patch("app.services.image.image_service.delete_document"):
+            mock_mongodb_instance = MagicMock()
+            mock_mongodb_class.return_value = mock_mongodb_instance
+            mock_mongodb_instance.get_document = AsyncMock(return_value=mock_document)
             
             response = await image_service.delete_image(TEST_IMAGE_ID, soft_delete=False)
             
@@ -656,8 +690,11 @@ class TestImageServiceBatchPresignedUrls:
         
         image_ids = [TEST_IMAGE_ID, TEST_IMAGE_ID_2, TEST_IMAGE_ID_3]
         
-        with patch("app.services.image.image_service.get_document", return_value=mock_image_document), \
+        with patch("app.services.image.image_service.MongoDB") as mock_mongodb_class, \
              patch("app.services.image.image_service.FirebaseStorageRepository", return_value=mock_storage):
+            mock_mongodb_instance = MagicMock()
+            mock_mongodb_class.return_value = mock_mongodb_instance
+            mock_mongodb_instance.get_document = AsyncMock(return_value=mock_image_document)
             
             response = await image_service.get_images_presigned_urls(image_ids)
             
@@ -690,8 +727,11 @@ class TestImageServiceBatchPresignedUrls:
                 raise ValueError("Document not found")
             return mock_image_document
         
-        with patch("app.services.image.image_service.get_document", side_effect=mock_get_document), \
+        with patch("app.services.image.image_service.MongoDB") as mock_mongodb_class, \
              patch("app.services.image.image_service.FirebaseStorageRepository", return_value=mock_storage):
+            mock_mongodb_instance = MagicMock()
+            mock_mongodb_class.return_value = mock_mongodb_instance
+            mock_mongodb_instance.get_document = AsyncMock(side_effect=mock_get_document)
             
             response = await image_service.get_images_presigned_urls(image_ids)
             
@@ -723,7 +763,10 @@ class TestImageServiceBatchPresignedUrls:
         """Test batch presigned URL generation when all requests fail"""
         image_ids = [TEST_IMAGE_ID_2, TEST_IMAGE_ID_3]
         
-        with patch("app.services.image.image_service.get_document", side_effect=ValueError("Not found")):
+        with patch("app.services.image.image_service.MongoDB") as mock_mongodb_class:
+            mock_mongodb_instance = MagicMock()
+            mock_mongodb_class.return_value = mock_mongodb_instance
+            mock_mongodb_instance.get_document = AsyncMock(side_effect=ValueError("Not found"))
             response = await image_service.get_images_presigned_urls(image_ids)
             
             assert isinstance(response, ImageUrlsResponse)
@@ -759,8 +802,11 @@ class TestImageServiceBatchPresignedUrls:
         
         image_ids = [TEST_IMAGE_ID_2, TEST_IMAGE_ID_3]
         
-        with patch("app.services.image.image_service.get_document", return_value=mock_image_document), \
+        with patch("app.services.image.image_service.MongoDB") as mock_mongodb_class, \
              patch("app.services.image.image_service.FirebaseStorageRepository", return_value=mock_storage):
+            mock_mongodb_instance = MagicMock()
+            mock_mongodb_class.return_value = mock_mongodb_instance
+            mock_mongodb_instance.get_document = AsyncMock(return_value=mock_image_document)
             
             response = await image_service.get_images_presigned_urls(image_ids)
             
@@ -818,8 +864,11 @@ class TestImageServiceBatchPresignedUrls:
         
         image_ids = [TEST_IMAGE_ID, TEST_IMAGE_ID_2, TEST_IMAGE_ID_3]
         
-        with patch("app.services.image.image_service.get_document", side_effect=mock_get_document), \
+        with patch("app.services.image.image_service.MongoDB") as mock_mongodb_class, \
              patch("app.services.image.image_service.FirebaseStorageRepository", return_value=mock_storage):
+            mock_mongodb_instance = MagicMock()
+            mock_mongodb_class.return_value = mock_mongodb_instance
+            mock_mongodb_instance.get_document = AsyncMock(side_effect=mock_get_document)
             
             response = await image_service.get_images_presigned_urls(image_ids)
             
@@ -855,8 +904,11 @@ class TestImageServiceBatchPresignedUrls:
         
         image_ids = [TEST_IMAGE_ID_2, TEST_IMAGE_ID_3]
         
-        with patch("app.services.image.image_service.get_document", return_value=mock_image_document), \
+        with patch("app.services.image.image_service.MongoDB") as mock_mongodb_class, \
              patch("app.services.image.image_service.FirebaseStorageRepository", return_value=mock_storage):
+            mock_mongodb_instance = MagicMock()
+            mock_mongodb_class.return_value = mock_mongodb_instance
+            mock_mongodb_instance.get_document = AsyncMock(return_value=mock_image_document)
             
             start_time = datetime.now()
             response = await image_service.get_images_presigned_urls(image_ids)

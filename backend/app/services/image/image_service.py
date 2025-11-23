@@ -30,7 +30,7 @@ from app.classes.image import (
 )
 from app.core.database import (
     insert_document,
-    get_document,
+    MongoDB,
     update_document,
     delete_document,
     find_documents_with_filters,
@@ -205,7 +205,7 @@ class ImageService:
             return ImageResponse(success=False, image=None, message="Invalid document ID format")
             
         try:
-            data = await get_document(IMAGE_COLLECTION_NAME, image_id)
+            data = await MongoDB().get_document(IMAGE_COLLECTION_NAME, image_id)
 
             # Convert document to ImageInfo
             image_info = ImageInfo(
@@ -402,7 +402,7 @@ class ImageService:
                 await update_document(IMAGE_COLLECTION_NAME, image_id, update_doc)
             else:
                 # Hard delete - remove from storage and database
-                data = await get_document(IMAGE_COLLECTION_NAME, image_id)
+                data = await MongoDB().get_document(IMAGE_COLLECTION_NAME, image_id)
                 storage_path = data.get("storage_path", "")
 
                 # Delete from Firebase Storage

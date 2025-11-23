@@ -84,15 +84,17 @@ class TestGetConversation:
     """Test _aget_conversation method."""
     
     @pytest.mark.asyncio
-    @patch('app.services.chat.chat_history.get_document')
-    async def test_aget_conversation_exists(self, mock_get_document, sample_conversation_data):
+    @patch('app.services.chat.chat_history.MongoDB')
+    async def test_aget_conversation_exists(self, mock_mongodb_class, sample_conversation_data):
         """Test getting an existing conversation."""
-        mock_get_document.return_value = sample_conversation_data
+        mock_mongodb_instance = MagicMock()
+        mock_mongodb_class.return_value = mock_mongodb_instance
+        mock_mongodb_instance.get_document = AsyncMock(return_value=sample_conversation_data)
         
         chat_history = MongoDBChatHistory(TEST_SESSION_ID)
         conversation = await chat_history._aget_conversation()
         
-        mock_get_document.assert_called_once_with(CONVERSATION_COLLECTION, TEST_SESSION_ID)
+        mock_mongodb_instance.get_document.assert_called_once_with(CONVERSATION_COLLECTION, TEST_SESSION_ID)
         assert conversation is not None
         assert conversation.id == str(sample_conversation_data["_id"])
         assert len(conversation.messages) == 2
@@ -100,22 +102,26 @@ class TestGetConversation:
         assert conversation.updated_at == sample_conversation_data["updated_at"]
     
     @pytest.mark.asyncio
-    @patch('app.services.chat.chat_history.get_document')
-    async def test_aget_conversation_not_exists(self, mock_get_document):
+    @patch('app.services.chat.chat_history.MongoDB')
+    async def test_aget_conversation_not_exists(self, mock_mongodb_class):
         """Test getting a non-existent conversation."""
-        mock_get_document.return_value = None
+        mock_mongodb_instance = MagicMock()
+        mock_mongodb_class.return_value = mock_mongodb_instance
+        mock_mongodb_instance.get_document = AsyncMock(return_value=None)
         
         chat_history = MongoDBChatHistory("nonexistent_session")
         conversation = await chat_history._aget_conversation()
         
-        mock_get_document.assert_called_once_with(CONVERSATION_COLLECTION, "nonexistent_session")
+        mock_mongodb_instance.get_document.assert_called_once_with(CONVERSATION_COLLECTION, "nonexistent_session")
         assert conversation is None
     
     @pytest.mark.asyncio
-    @patch('app.services.chat.chat_history.get_document')
-    async def test_aget_conversation_empty_data(self, mock_get_document):
+    @patch('app.services.chat.chat_history.MongoDB')
+    async def test_aget_conversation_empty_data(self, mock_mongodb_class):
         """Test getting conversation with minimal data."""
-        mock_get_document.return_value = {"_id": TEST_OBJECT_ID}
+        mock_mongodb_instance = MagicMock()
+        mock_mongodb_class.return_value = mock_mongodb_instance
+        mock_mongodb_instance.get_document = AsyncMock(return_value={"_id": TEST_OBJECT_ID})
         
         chat_history = MongoDBChatHistory(TEST_SESSION_ID)
         conversation = await chat_history._aget_conversation()
@@ -130,10 +136,12 @@ class TestGetMessages:
     """Test aget_messages and messages methods."""
     
     @pytest.mark.asyncio
-    @patch('app.services.chat.chat_history.get_document')
-    async def test_aget_messages_with_conversation(self, mock_get_document, sample_conversation_data):
+    @patch('app.services.chat.chat_history.MongoDB')
+    async def test_aget_messages_with_conversation(self, mock_mongodb_class, sample_conversation_data):
         """Test getting messages from existing conversation."""
-        mock_get_document.return_value = sample_conversation_data
+        mock_mongodb_instance = MagicMock()
+        mock_mongodb_class.return_value = mock_mongodb_instance
+        mock_mongodb_instance.get_document = AsyncMock(return_value=sample_conversation_data)
         
         chat_history = MongoDBChatHistory(TEST_SESSION_ID)
         messages = await chat_history.aget_messages()
@@ -143,20 +151,24 @@ class TestGetMessages:
         assert all(hasattr(msg, 'content') for msg in messages)
     
     @pytest.mark.asyncio
-    @patch('app.services.chat.chat_history.get_document')
-    async def test_aget_messages_no_conversation(self, mock_get_document):
+    @patch('app.services.chat.chat_history.MongoDB')
+    async def test_aget_messages_no_conversation(self, mock_mongodb_class):
         """Test getting messages when no conversation exists."""
-        mock_get_document.return_value = None
+        mock_mongodb_instance = MagicMock()
+        mock_mongodb_class.return_value = mock_mongodb_instance
+        mock_mongodb_instance.get_document = AsyncMock(return_value=None)
         
         chat_history = MongoDBChatHistory(TEST_SESSION_ID)
         messages = await chat_history.aget_messages()
         
         assert messages == []
     
-    @patch('app.services.chat.chat_history.get_document')
-    def test_messages_property(self, mock_get_document, sample_conversation_data):
+    @patch('app.services.chat.chat_history.MongoDB')
+    def test_messages_property(self, mock_mongodb_class, sample_conversation_data):
         """Test the synchronous messages property."""
-        mock_get_document.return_value = sample_conversation_data
+        mock_mongodb_instance = MagicMock()
+        mock_mongodb_class.return_value = mock_mongodb_instance
+        mock_mongodb_instance.get_document = AsyncMock(return_value=sample_conversation_data)
         
         chat_history = MongoDBChatHistory(TEST_SESSION_ID)
         messages = chat_history.messages
@@ -170,12 +182,14 @@ class TestAddMessages:
     
     @pytest.mark.asyncio
     @patch('app.services.chat.chat_history.update_document')
-    @patch('app.services.chat.chat_history.get_document')
+    @patch('app.services.chat.chat_history.MongoDB')
     async def test_aadd_messages_existing_conversation(
-        self, mock_get_document, mock_update_document, sample_conversation_data, sample_messages
+        self, mock_mongodb_class, mock_update_document, sample_conversation_data, sample_messages
     ):
         """Test adding messages to existing conversation."""
-        mock_get_document.return_value = sample_conversation_data
+        mock_mongodb_instance = MagicMock()
+        mock_mongodb_class.return_value = mock_mongodb_instance
+        mock_mongodb_instance.get_document = AsyncMock(return_value=sample_conversation_data)
         
         chat_history = MongoDBChatHistory(TEST_SESSION_ID)
         await chat_history.aadd_messages([sample_messages[2]])  # Add third message
@@ -194,12 +208,14 @@ class TestAddMessages:
     @pytest.mark.asyncio
     @patch('app.services.chat.chat_history.update_document')
     @patch('app.services.chat.chat_history.insert_document')
-    @patch('app.services.chat.chat_history.get_document')
+    @patch('app.services.chat.chat_history.MongoDB')
     async def test_aadd_messages_new_conversation(
-        self, mock_get_document, mock_insert_document, mock_update_document, sample_messages
+        self, mock_mongodb_class, mock_insert_document, mock_update_document, sample_messages
     ):
         """Test adding messages when creating new conversation."""
-        mock_get_document.return_value = None
+        mock_mongodb_instance = MagicMock()
+        mock_mongodb_class.return_value = mock_mongodb_instance
+        mock_mongodb_instance.get_document = AsyncMock(return_value=None)
         mock_insert_document.return_value = TEST_NEW_SESSION_ID
         
         chat_history = MongoDBChatHistory("", TEST_AGENT_ID)  # Empty session ID with agent ID
@@ -222,12 +238,14 @@ class TestAddMessages:
     
     @pytest.mark.asyncio
     @patch('app.services.chat.chat_history.update_document')
-    @patch('app.services.chat.chat_history.get_document')
+    @patch('app.services.chat.chat_history.MongoDB')
     async def test_aadd_messages_multiple(
-        self, mock_get_document, mock_update_document, sample_messages
+        self, mock_mongodb_class, mock_update_document, sample_messages
     ):
         """Test adding multiple messages at once."""
-        mock_get_document.return_value = {"_id": TEST_OBJECT_ID, "messages": []}
+        mock_mongodb_instance = MagicMock()
+        mock_mongodb_class.return_value = mock_mongodb_instance
+        mock_mongodb_instance.get_document = AsyncMock(return_value={"_id": TEST_OBJECT_ID, "messages": []})
         
         chat_history = MongoDBChatHistory(TEST_SESSION_ID)
         await chat_history.aadd_messages(sample_messages[:2])  # Add first two messages
@@ -238,10 +256,12 @@ class TestAddMessages:
         assert len(update_data["messages"]) == 2
     
     @patch('app.services.chat.chat_history.update_document')
-    @patch('app.services.chat.chat_history.get_document')
-    def test_add_messages_sync(self, mock_get_document, mock_update_document, sample_messages):
+    @patch('app.services.chat.chat_history.MongoDB')
+    def test_add_messages_sync(self, mock_mongodb_class, mock_update_document, sample_messages):
         """Test the synchronous add_messages method."""
-        mock_get_document.return_value = {"_id": TEST_OBJECT_ID, "messages": []}
+        mock_mongodb_instance = MagicMock()
+        mock_mongodb_class.return_value = mock_mongodb_instance
+        mock_mongodb_instance.get_document = AsyncMock(return_value={"_id": TEST_OBJECT_ID, "messages": []})
         
         chat_history = MongoDBChatHistory(TEST_SESSION_ID)
         chat_history.add_messages([sample_messages[0]])
@@ -283,10 +303,12 @@ class TestEdgeCases:
     """Test edge cases and error scenarios."""
     
     @pytest.mark.asyncio
-    @patch('app.services.chat.chat_history.get_document')
-    async def test_empty_messages_list(self, mock_get_document):
+    @patch('app.services.chat.chat_history.MongoDB')
+    async def test_empty_messages_list(self, mock_mongodb_class):
         """Test handling empty messages list."""
-        mock_get_document.return_value = {"_id": TEST_OBJECT_ID, "messages": []}
+        mock_mongodb_instance = MagicMock()
+        mock_mongodb_class.return_value = mock_mongodb_instance
+        mock_mongodb_instance.get_document = AsyncMock(return_value={"_id": TEST_OBJECT_ID, "messages": []})
         
         chat_history = MongoDBChatHistory(TEST_SESSION_ID)
         messages = await chat_history.aget_messages()
@@ -295,10 +317,12 @@ class TestEdgeCases:
     
     @pytest.mark.asyncio
     @patch('app.services.chat.chat_history.update_document')
-    @patch('app.services.chat.chat_history.get_document')
-    async def test_add_empty_messages_list(self, mock_get_document, mock_update_document):
+    @patch('app.services.chat.chat_history.MongoDB')
+    async def test_add_empty_messages_list(self, mock_mongodb_class, mock_update_document):
         """Test adding empty list of messages."""
-        mock_get_document.return_value = {"_id": TEST_OBJECT_ID, "messages": []}
+        mock_mongodb_instance = MagicMock()
+        mock_mongodb_class.return_value = mock_mongodb_instance
+        mock_mongodb_instance.get_document = AsyncMock(return_value={"_id": TEST_OBJECT_ID, "messages": []})
         
         chat_history = MongoDBChatHistory(TEST_SESSION_ID)
         await chat_history.aadd_messages([])
@@ -310,11 +334,13 @@ class TestEdgeCases:
         assert update_data["messages"] == []
     
     @pytest.mark.asyncio
-    @patch('app.services.chat.chat_history.get_document')
-    async def test_malformed_conversation_data(self, mock_get_document):
+    @patch('app.services.chat.chat_history.MongoDB')
+    async def test_malformed_conversation_data(self, mock_mongodb_class):
         """Test handling malformed conversation data."""
+        mock_mongodb_instance = MagicMock()
+        mock_mongodb_class.return_value = mock_mongodb_instance
         # Missing required fields
-        mock_get_document.return_value = {"some_field": "some_value"}
+        mock_mongodb_instance.get_document = AsyncMock(return_value={"some_field": "some_value"})
         
         chat_history = MongoDBChatHistory(TEST_SESSION_ID)
         conversation = await chat_history._aget_conversation()
@@ -339,13 +365,16 @@ class TestIntegration:
     
     @pytest.mark.asyncio
     @patch('app.services.chat.chat_history.update_document')
-    @patch('app.services.chat.chat_history.get_document')
+    @patch('app.services.chat.chat_history.MongoDB')
     async def test_full_conversation_flow(
-        self, mock_get_document, mock_update_document, sample_messages
+        self, mock_mongodb_class, mock_update_document, sample_messages
     ):
         """Test a complete conversation flow: create, add messages, get messages, clear."""
+        mock_mongodb_instance = MagicMock()
+        mock_mongodb_class.return_value = mock_mongodb_instance
+        
         # Start with empty conversation
-        mock_get_document.return_value = {"_id": TEST_OBJECT_ID, "messages": []}
+        mock_mongodb_instance.get_document = AsyncMock(return_value={"_id": TEST_OBJECT_ID, "messages": []})
         
         chat_history = MongoDBChatHistory(TEST_SESSION_ID)
         
@@ -353,10 +382,10 @@ class TestIntegration:
         await chat_history.aadd_messages([sample_messages[0]])
         
         # Simulate database now has the message
-        mock_get_document.return_value = {
+        mock_mongodb_instance.get_document = AsyncMock(return_value={
             "_id": TEST_OBJECT_ID,
             "messages": [sample_messages[0].model_dump()]
-        }
+        })
         
         # Get messages
         messages = await chat_history.aget_messages()

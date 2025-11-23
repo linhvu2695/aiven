@@ -334,15 +334,17 @@ class TestGetConversation:
     """Test get_conversation method."""
     
     @pytest.mark.asyncio
-    @patch('app.services.chat.chat_history.get_document')
-    async def test_get_conversation_success(self, mock_get_document, sample_conversation_data):
+    @patch('app.services.chat.chat_history.MongoDB')
+    async def test_get_conversation_success(self, mock_mongodb_class, sample_conversation_data):
         """Test successful retrieval of a specific conversation."""
-        mock_get_document.return_value = sample_conversation_data
+        mock_mongodb_instance = MagicMock()
+        mock_mongodb_class.return_value = mock_mongodb_instance
+        mock_mongodb_instance.get_document = AsyncMock(return_value=sample_conversation_data)
         
         repo = ConversationRepository()
         conversation = await repo.get_conversation(TEST_SESSION_ID_1)
         
-        mock_get_document.assert_called_once_with(CONVERSATION_COLLECTION, TEST_SESSION_ID_1)
+        mock_mongodb_instance.get_document.assert_called_once_with(CONVERSATION_COLLECTION, TEST_SESSION_ID_1)
         
         assert conversation is not None
         assert isinstance(conversation, Conversation)
@@ -353,23 +355,27 @@ class TestGetConversation:
         assert conversation.updated_at == sample_conversation_data["updated_at"]
     
     @pytest.mark.asyncio
-    @patch('app.services.chat.chat_history.get_document')
-    async def test_get_conversation_not_found(self, mock_get_document):
+    @patch('app.services.chat.chat_history.MongoDB')
+    async def test_get_conversation_not_found(self, mock_mongodb_class):
         """Test retrieval of non-existent conversation."""
-        mock_get_document.return_value = None
+        mock_mongodb_instance = MagicMock()
+        mock_mongodb_class.return_value = mock_mongodb_instance
+        mock_mongodb_instance.get_document = AsyncMock(return_value=None)
         
         repo = ConversationRepository()
         conversation = await repo.get_conversation("nonexistent-id")
         
-        mock_get_document.assert_called_once_with(CONVERSATION_COLLECTION, "nonexistent-id")
+        mock_mongodb_instance.get_document.assert_called_once_with(CONVERSATION_COLLECTION, "nonexistent-id")
         assert conversation is None
     
     @pytest.mark.asyncio
-    @patch('app.services.chat.chat_history.get_document')
-    async def test_get_conversation_minimal_data(self, mock_get_document):
+    @patch('app.services.chat.chat_history.MongoDB')
+    async def test_get_conversation_minimal_data(self, mock_mongodb_class):
         """Test handling of conversation with minimal data."""
         minimal_data = {"_id": TEST_SESSION_ID_1}
-        mock_get_document.return_value = minimal_data
+        mock_mongodb_instance = MagicMock()
+        mock_mongodb_class.return_value = mock_mongodb_instance
+        mock_mongodb_instance.get_document = AsyncMock(return_value=minimal_data)
         
         repo = ConversationRepository()
         conversation = await repo.get_conversation(TEST_SESSION_ID_1)
@@ -382,14 +388,16 @@ class TestGetConversation:
         assert isinstance(conversation.updated_at, datetime)
     
     @pytest.mark.asyncio
-    @patch('app.services.chat.chat_history.get_document')
+    @patch('app.services.chat.chat_history.MongoDB')
     @patch('logging.getLogger')
-    async def test_get_conversation_database_error(self, mock_get_logger, mock_get_document):
-        """Test error handling when get_document fails."""
+    async def test_get_conversation_database_error(self, mock_get_logger, mock_mongodb_class):
+        """Test error handling when MongoDB get_document fails."""
+        mock_mongodb_instance = MagicMock()
+        mock_mongodb_class.return_value = mock_mongodb_instance
         mock_logger = MagicMock()
         mock_get_logger.return_value = mock_logger
         
-        mock_get_document.side_effect = Exception("Database error")
+        mock_mongodb_instance.get_document = AsyncMock(side_effect=Exception("Database error"))
         
         repo = ConversationRepository()
         conversation = await repo.get_conversation(TEST_SESSION_ID_1)
@@ -402,14 +410,17 @@ class TestGetConversation:
         assert "Error retrieving conversation" in mock_logger.error.call_args[0][0]
     
     @pytest.mark.asyncio
-    @patch('app.services.chat.chat_history.get_document')
-    async def test_get_conversation_missing_fields(self, mock_get_document):
+    @patch('app.services.chat.chat_history.MongoDB')
+    async def test_get_conversation_missing_fields(self, mock_mongodb_class):
         """Test handling of conversation data with missing optional fields."""
+        mock_mongodb_instance = MagicMock()
+        mock_mongodb_class.return_value = mock_mongodb_instance
+        
         data_missing_fields = {
             "_id": TEST_SESSION_ID_1,
             # Missing name, messages, created_at, updated_at
         }
-        mock_get_document.return_value = data_missing_fields
+        mock_mongodb_instance.get_document = AsyncMock(return_value=data_missing_fields)
         
         repo = ConversationRepository()
         conversation = await repo.get_conversation(TEST_SESSION_ID_1)

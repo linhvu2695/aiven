@@ -5,7 +5,6 @@ from bson.errors import InvalidId
 
 from app.core.database import (
     MongoDB,
-    get_document,
     insert_document,
     update_document,
     list_documents,
@@ -115,7 +114,7 @@ class TestGetDocument:
         mock_motor_client["collection"].find_one.return_value = expected_doc
         
         # Act
-        result = await get_document("test_collection", doc_id)
+        result = await MongoDB().get_document("test_collection", doc_id)
         
         # Assert
         assert result == expected_doc
@@ -130,7 +129,7 @@ class TestGetDocument:
         
         # Act & Assert
         with pytest.raises(ValueError, match=f"Document {doc_id} not found in collection test_collection"):
-            await get_document("test_collection", doc_id)
+            await MongoDB().get_document("test_collection", doc_id)
 
     @pytest.mark.asyncio
     async def test_get_document_invalid_id(self, mock_motor_client):
@@ -140,7 +139,7 @@ class TestGetDocument:
         
         # Act & Assert
         with pytest.raises(ValueError, match="Invalid document id format"):
-            await get_document("test_collection", invalid_id)
+            await MongoDB().get_document("test_collection", invalid_id)
 
 class TestInsertDocument:
     @pytest.mark.asyncio
@@ -704,7 +703,7 @@ class TestIntegrationScenarios:
         assert result_id == doc_id
         
         # Read
-        retrieved_doc = await get_document(collection_name, doc_id)
+        retrieved_doc = await MongoDB().get_document(collection_name, doc_id)
         assert retrieved_doc == stored_doc
         
         # Update
@@ -781,11 +780,11 @@ class TestIntegrationScenarios:
         
         # Test invalid ID error propagation
         with pytest.raises(ValueError, match="Invalid document id format"):
-            await get_document(collection_name, "invalid_id")
+            await MongoDB().get_document(collection_name, "invalid_id")
         
         # Test document not found
         doc_id = str(ObjectId())
         mock_motor_client["collection"].find_one.return_value = None
         
         with pytest.raises(ValueError, match=f"Document {doc_id} not found in collection {collection_name}"):
-            await get_document(collection_name, doc_id) 
+            await MongoDB().get_document(collection_name, doc_id) 

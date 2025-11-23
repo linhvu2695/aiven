@@ -16,7 +16,7 @@ from app.utils.string.string_utils import is_empty_string, validate_exactly_one_
 from app.utils.video.video_utils import generate_storage_path
 from app.core.storage import FirebaseStorageRepository
 from app.classes.media import MediaProcessingStatus
-from app.core.database import delete_document, get_document, insert_document, find_documents_with_filters, count_documents_with_filters, update_document
+from app.core.database import delete_document, insert_document, find_documents_with_filters, count_documents_with_filters, update_document, MongoDB
 from app.services.image.image_service import ImageService
 from app.utils.file.file_utils import create_temp_local_file
 from app.services.image.image_constants import IMAGE_COLLECTION_NAME
@@ -436,7 +436,7 @@ class VideoService:
             return GetVideoResponse(success=False, video=None, message="Invalid document ID format")
 
         try:
-            data = await get_document(VIDEO_COLLECTION_NAME, video_id)
+            data = await MongoDB().get_document(VIDEO_COLLECTION_NAME, video_id)
             if not data:
                 return GetVideoResponse(success=False, video=None, message="Video not found")
 
@@ -607,7 +607,7 @@ class VideoService:
             return DeleteVideoResponse(success=False, message="Invalid document ID format")
 
         try:
-            data = await get_document(VIDEO_COLLECTION_NAME, request.video_id)
+            data = await MongoDB().get_document(VIDEO_COLLECTION_NAME, request.video_id)
             if not data:
                 return DeleteVideoResponse(success=False, message="Video not found")
 

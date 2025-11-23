@@ -869,7 +869,11 @@ class TestVideoServiceGetVideo:
         mock_storage.upload = AsyncMock(return_value="https://storage.url")
         mock_storage.get_presigned_url = AsyncMock(return_value="https://presigned.url")
         
-        with patch("app.services.video.video_service.get_document", return_value=mock_video_document):
+        with patch("app.services.video.video_service.MongoDB") as mock_mongodb_class:
+            mock_mongodb_instance = MagicMock()
+            mock_mongodb_class.return_value = mock_mongodb_instance
+            mock_mongodb_instance.get_document = AsyncMock(return_value=mock_video_document)
+            
             response = await video_service.get_video(TEST_VIDEO_ID)
             
             assert isinstance(response, GetVideoResponse)
@@ -898,7 +902,11 @@ class TestVideoServiceGetVideo:
     @pytest.mark.asyncio
     async def test_get_video_not_found(self, video_service: VideoService):
         """Test video retrieval when video is not found"""
-        with patch("app.services.video.video_service.get_document", return_value=None):
+        with patch("app.services.video.video_service.MongoDB") as mock_mongodb_class:
+            mock_mongodb_instance = MagicMock()
+            mock_mongodb_class.return_value = mock_mongodb_instance
+            mock_mongodb_instance.get_document = AsyncMock(return_value=None)
+            
             response = await video_service.get_video(TEST_VIDEO_ID)
             
             assert isinstance(response, GetVideoResponse)
@@ -909,7 +917,11 @@ class TestVideoServiceGetVideo:
     @pytest.mark.asyncio
     async def test_get_video_exception(self, video_service: VideoService):
         """Test video retrieval with exception"""
-        with patch("app.services.video.video_service.get_document", side_effect=Exception("Database error")):
+        with patch("app.services.video.video_service.MongoDB") as mock_mongodb_class:
+            mock_mongodb_instance = MagicMock()
+            mock_mongodb_class.return_value = mock_mongodb_instance
+            mock_mongodb_instance.get_document = AsyncMock(side_effect=Exception("Database error"))
+            
             response = await video_service.get_video(TEST_VIDEO_ID)
             
             assert isinstance(response, GetVideoResponse)
@@ -946,8 +958,12 @@ class TestVideoServicePresignedUrl:
         mock_storage = MagicMock()
         mock_storage.get_presigned_url = AsyncMock(return_value="https://presigned.url/video.mp4")
         
-        with patch("app.services.video.video_service.get_document", return_value=mock_video_document), \
+        with patch("app.services.video.video_service.MongoDB") as mock_mongodb_class, \
              patch("app.services.video.video_service.FirebaseStorageRepository", return_value=mock_storage):
+            mock_mongodb_instance = MagicMock()
+            mock_mongodb_class.return_value = mock_mongodb_instance
+            mock_mongodb_instance.get_document = AsyncMock(return_value=mock_video_document)
+            
             response = await video_service._get_video_presigned_url(TEST_VIDEO_ID)
             
             assert isinstance(response, VideoUrlInfo)
@@ -966,7 +982,11 @@ class TestVideoServicePresignedUrl:
     @pytest.mark.asyncio
     async def test_get_video_presigned_url_video_not_found(self, video_service: VideoService):
         """Test presigned URL generation when video is not found"""
-        with patch("app.services.video.video_service.get_document", return_value=None):
+        with patch("app.services.video.video_service.MongoDB") as mock_mongodb_class:
+            mock_mongodb_instance = MagicMock()
+            mock_mongodb_class.return_value = mock_mongodb_instance
+            mock_mongodb_instance.get_document = AsyncMock(return_value=None)
+            
             response = await video_service._get_video_presigned_url(TEST_VIDEO_ID)
             
             assert isinstance(response, VideoUrlInfo)
@@ -994,8 +1014,12 @@ class TestVideoServicePresignedUrl:
         mock_storage = MagicMock()
         mock_storage.get_presigned_url = AsyncMock(side_effect=Exception("Storage error"))
         
-        with patch("app.services.video.video_service.get_document", return_value=mock_video_document), \
+        with patch("app.services.video.video_service.MongoDB") as mock_mongodb_class, \
              patch("app.services.video.video_service.FirebaseStorageRepository", return_value=mock_storage):
+            mock_mongodb_instance = MagicMock()
+            mock_mongodb_class.return_value = mock_mongodb_instance
+            mock_mongodb_instance.get_document = AsyncMock(return_value=mock_video_document)
+            
             response = await video_service._get_video_presigned_url(TEST_VIDEO_ID)
             
             assert isinstance(response, VideoUrlInfo)
@@ -1043,8 +1067,11 @@ class TestVideoServicePresignedUrls:
         mock_storage = MagicMock()
         mock_storage.get_presigned_url = AsyncMock(side_effect=lambda path, exp: f"https://presigned.url/{path}")
         
-        with patch("app.services.video.video_service.get_document", side_effect=mock_get_document), \
+        with patch("app.services.video.video_service.MongoDB") as mock_mongodb_class, \
              patch("app.services.video.video_service.FirebaseStorageRepository", return_value=mock_storage):
+            mock_mongodb_instance = MagicMock()
+            mock_mongodb_class.return_value = mock_mongodb_instance
+            mock_mongodb_instance.get_document = AsyncMock(side_effect=mock_get_document)
             
             from app.classes.video import VideoUrlsResponse
             response = await video_service.get_videos_presigned_urls(
@@ -1091,8 +1118,11 @@ class TestVideoServicePresignedUrls:
         mock_storage = MagicMock()
         mock_storage.get_presigned_url = AsyncMock(side_effect=lambda path, exp: f"https://presigned.url/{path}")
         
-        with patch("app.services.video.video_service.get_document", side_effect=mock_get_document), \
+        with patch("app.services.video.video_service.MongoDB") as mock_mongodb_class, \
              patch("app.services.video.video_service.FirebaseStorageRepository", return_value=mock_storage):
+            mock_mongodb_instance = MagicMock()
+            mock_mongodb_class.return_value = mock_mongodb_instance
+            mock_mongodb_instance.get_document = AsyncMock(side_effect=mock_get_document)
             
             from app.classes.video import VideoUrlsResponse
             response = await video_service.get_videos_presigned_urls(
@@ -1124,7 +1154,11 @@ class TestVideoServicePresignedUrls:
     @pytest.mark.asyncio
     async def test_get_videos_presigned_urls_all_failures(self, video_service: VideoService):
         """Test presigned URLs generation when all videos fail"""
-        with patch("app.services.video.video_service.get_document", return_value=None):
+        with patch("app.services.video.video_service.MongoDB") as mock_mongodb_class:
+            mock_mongodb_instance = MagicMock()
+            mock_mongodb_class.return_value = mock_mongodb_instance
+            mock_mongodb_instance.get_document = AsyncMock(return_value=None)
+            
             from app.classes.video import VideoUrlsResponse
             response = await video_service.get_videos_presigned_urls(
                 VideoUrlsRequest(video_ids=[TEST_VIDEO_ID_2, TEST_VIDEO_ID_3])
@@ -1161,8 +1195,11 @@ class TestVideoServicePresignedUrls:
         mock_storage = MagicMock()
         mock_storage.get_presigned_url = AsyncMock(return_value="https://presigned.url/video.mp4")
         
-        with patch("app.services.video.video_service.get_document", return_value=mock_video_document), \
+        with patch("app.services.video.video_service.MongoDB") as mock_mongodb_class, \
              patch("app.services.video.video_service.FirebaseStorageRepository", return_value=mock_storage):
+            mock_mongodb_instance = MagicMock()
+            mock_mongodb_class.return_value = mock_mongodb_instance
+            mock_mongodb_instance.get_document = AsyncMock(return_value=mock_video_document)
             
             from app.classes.video import VideoUrlsResponse
             response = await video_service.get_videos_presigned_urls(
@@ -1182,7 +1219,11 @@ class TestVideoServicePresignedUrls:
     async def test_get_videos_presigned_urls_exception_handling(self, video_service: VideoService):
         """Test presigned URLs generation handles exceptions gracefully"""
         # Mock get_document to raise an exception
-        with patch("app.services.video.video_service.get_document", side_effect=Exception("Database connection lost")):
+        with patch("app.services.video.video_service.MongoDB") as mock_mongodb_class:
+            mock_mongodb_instance = MagicMock()
+            mock_mongodb_class.return_value = mock_mongodb_instance
+            mock_mongodb_instance.get_document = AsyncMock(side_effect=Exception("Database connection lost"))
+            
             from app.classes.video import VideoUrlsResponse
             response = await video_service.get_videos_presigned_urls(
                 VideoUrlsRequest(video_ids=[TEST_VIDEO_ID])
@@ -1212,8 +1253,12 @@ class TestVideoServicePresignedUrls:
         mock_storage = MagicMock()
         mock_storage.get_presigned_url = AsyncMock(side_effect=lambda path, exp: f"https://presigned.url/{path}")
         
-        with patch("app.services.video.video_service.get_document", side_effect=mock_get_document), \
+        with patch("app.services.video.video_service.MongoDB") as mock_mongodb_class, \
              patch("app.services.video.video_service.FirebaseStorageRepository", return_value=mock_storage):
+            mock_mongodb_instance = MagicMock()
+            mock_mongodb_class.return_value = mock_mongodb_instance
+            mock_mongodb_instance.get_document = AsyncMock(side_effect=mock_get_document)
+            
             # Request in specific order
             input_ids = [TEST_VIDEO_ID_3, TEST_VIDEO_ID, TEST_VIDEO_ID_2]
             response = await video_service.get_videos_presigned_urls(
@@ -1234,8 +1279,12 @@ class TestVideoServicePresignedUrls:
         mock_storage = MagicMock()
         mock_storage.get_presigned_url = AsyncMock(return_value="https://presigned.url/video.mp4")
         
-        with patch("app.services.video.video_service.get_document", return_value=mock_video_document), \
+        with patch("app.services.video.video_service.MongoDB") as mock_mongodb_class, \
              patch("app.services.video.video_service.FirebaseStorageRepository", return_value=mock_storage):
+            mock_mongodb_instance = MagicMock()
+            mock_mongodb_class.return_value = mock_mongodb_instance
+            mock_mongodb_instance.get_document = AsyncMock(return_value=mock_video_document)
+            
             # Request same ID multiple times
             response = await video_service.get_videos_presigned_urls(
                 VideoUrlsRequest(video_ids=[TEST_VIDEO_ID, TEST_VIDEO_ID, TEST_VIDEO_ID])

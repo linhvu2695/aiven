@@ -12,7 +12,7 @@ from app.classes.agent import (
 from app.classes.image import ImageType, ImageSourceType, CreateImageRequest
 from app.core.database import (
     insert_document,
-    get_document,
+    MongoDB,
     update_document,
     list_documents,
     delete_document,
@@ -54,7 +54,7 @@ class AgentService:
         return (await ImageService().get_image_presigned_url(avatar_image_id)).url or ""
     
     async def get_agent(self, id: str) -> AgentInfo:
-        data = await get_document(AGENT_COLLECTION_NAME, id)
+        data = await MongoDB().get_document(AGENT_COLLECTION_NAME, id)
 
         return AgentInfo(
             id=str(data.get("_id", "")),
@@ -135,7 +135,7 @@ class AgentService:
                 )
 
             # Retrieve agent document to get avatar image ID
-            data = await get_document(AGENT_COLLECTION_NAME, id)
+            data = await MongoDB().get_document(AGENT_COLLECTION_NAME, id)
             if not data:
                 return DeleteAgentResponse(
                     success=False,

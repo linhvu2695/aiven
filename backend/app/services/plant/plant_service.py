@@ -22,7 +22,7 @@ from app.classes.plant import (
 from app.classes.image import ImageType, CreateImageRequest
 from app.core.database import (
     insert_document,
-    get_document,
+    MongoDB,
     update_document,
     list_documents,
 )
@@ -78,7 +78,7 @@ class PlantService:
                     )
 
                 # Check if plant exists before updating
-                existing_plant = await get_document(
+                existing_plant = await MongoDB().get_document(
                     PLANT_COLLECTION_NAME, str(request.id)
                 )
                 if not existing_plant:
@@ -157,7 +157,7 @@ class PlantService:
     async def get_plant(self, plant_id: str) -> PlantResponse:
         """Get a plant by ID"""
         try:
-            plant_data = await get_document(PLANT_COLLECTION_NAME, str(plant_id), True)
+            plant_data = await MongoDB().get_document(PLANT_COLLECTION_NAME, str(plant_id), True)
             if not plant_data:
                 return PlantResponse(
                     success=False, plant=None, message="Plant not found"
@@ -194,7 +194,7 @@ class PlantService:
         """Add a photo to a plant"""
         try:
             # Check if plant exists
-            plant_data = await get_document(PLANT_COLLECTION_NAME, plant_id)
+            plant_data = await MongoDB().get_document(PLANT_COLLECTION_NAME, plant_id)
             if not plant_data:
                 return PlantPhotoResponse(
                     success=False, photo_id="", message="Plant not found"

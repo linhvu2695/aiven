@@ -9,7 +9,7 @@ from app.classes.article import (
     DeleteArticleResponse,
     SearchArticlesResponse,
 )
-from app.core.database import insert_document, get_document, update_document, list_documents, delete_document, find_documents_by_field
+from app.core.database import insert_document, update_document, list_documents, delete_document, find_documents_by_field, MongoDB
 
 ARTICLE_COLLECTION_NAME = "articles"
 
@@ -47,7 +47,7 @@ class ArticleService:
         return True, warning
     
     async def get_article(self, id: str) -> ArticleInfo | None:
-        data = await get_document(ARTICLE_COLLECTION_NAME, id)
+        data = await MongoDB().get_document(ARTICLE_COLLECTION_NAME, id)
         if not data:
             return None
 

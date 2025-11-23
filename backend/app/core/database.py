@@ -168,10 +168,6 @@ class MongoDB:
 
 
 # Backward compatibility functions - delegate to MongoDB singleton
-async def get_document(collection_name: str, id: str, convert_object_id: bool = False) -> dict:
-    """Deprecated: Use MongoDB().get_document() instead"""
-    return await MongoDB().get_document(collection_name, id, convert_object_id)
-
 async def insert_document(collection_name: str, document: dict) -> str:
     """Deprecated: Use MongoDB().insert_document() instead"""
     return await MongoDB().insert_document(collection_name, document)

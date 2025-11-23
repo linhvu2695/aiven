@@ -243,7 +243,11 @@ class TestJobServiceGetJob:
     @pytest.mark.asyncio
     async def test_get_job_success(self, job_service: JobService, mock_job_document: dict):
         """Test successful job retrieval"""
-        with patch("app.services.job.job_service.get_document", return_value=mock_job_document):
+        with patch("app.services.job.job_service.MongoDB") as mock_mongodb_class:
+            mock_mongodb_instance = MagicMock()
+            mock_mongodb_class.return_value = mock_mongodb_instance
+            mock_mongodb_instance.get_document = AsyncMock(return_value=mock_job_document)
+            
             response = await job_service.get_job(TEST_JOB_ID)
             
             assert isinstance(response, GetJobResponse)
@@ -265,7 +269,10 @@ class TestJobServiceGetJob:
     @pytest.mark.asyncio
     async def test_get_job_not_found(self, job_service: JobService):
         """Test job retrieval when job is not found"""
-        with patch("app.services.job.job_service.get_document", return_value=None):
+        with patch("app.services.job.job_service.MongoDB") as mock_mongodb_class:
+            mock_mongodb_instance = MagicMock()
+            mock_mongodb_class.return_value = mock_mongodb_instance
+            mock_mongodb_instance.get_document = AsyncMock(return_value=None)
             response = await job_service.get_job(TEST_JOB_ID)
             
             assert isinstance(response, GetJobResponse)
@@ -276,7 +283,10 @@ class TestJobServiceGetJob:
     @pytest.mark.asyncio
     async def test_get_job_exception(self, job_service: JobService):
         """Test job retrieval with exception"""
-        with patch("app.services.job.job_service.get_document", side_effect=Exception("Database error")):
+        with patch("app.services.job.job_service.MongoDB") as mock_mongodb_class:
+            mock_mongodb_instance = MagicMock()
+            mock_mongodb_class.return_value = mock_mongodb_instance
+            mock_mongodb_instance.get_document = AsyncMock(side_effect=Exception("Database error"))
             response = await job_service.get_job(TEST_JOB_ID)
             
             assert isinstance(response, GetJobResponse)
@@ -287,7 +297,10 @@ class TestJobServiceGetJob:
     @pytest.mark.asyncio
     async def test_get_job_invalid_id(self, job_service: JobService):
         """Test job retrieval with invalid ID"""
-        with patch("app.services.job.job_service.get_document", side_effect=ValueError("Invalid document id format")):
+        with patch("app.services.job.job_service.MongoDB") as mock_mongodb_class:
+            mock_mongodb_instance = MagicMock()
+            mock_mongodb_class.return_value = mock_mongodb_instance
+            mock_mongodb_instance.get_document = AsyncMock(side_effect=ValueError("Invalid document id format"))
             response = await job_service.get_job("invalid_id")
             
             assert isinstance(response, GetJobResponse)
@@ -298,7 +311,10 @@ class TestJobServiceGetJob:
     @pytest.mark.asyncio
     async def test_get_job_empty_id(self, job_service: JobService):
         """Test job retrieval with empty ID"""
-        with patch("app.services.job.job_service.get_document", side_effect=ValueError("Invalid document id format")):
+        with patch("app.services.job.job_service.MongoDB") as mock_mongodb_class:
+            mock_mongodb_instance = MagicMock()
+            mock_mongodb_class.return_value = mock_mongodb_instance
+            mock_mongodb_instance.get_document = AsyncMock(side_effect=ValueError("Invalid document id format"))
             response = await job_service.get_job("")
             
             assert isinstance(response, GetJobResponse)
@@ -320,8 +336,12 @@ class TestJobServiceUpdateJob:
             result=JobResult(success=True, message="Job completed successfully")
         )
         
-        with patch("app.services.job.job_service.get_document", return_value=mock_job_document), \
+        with patch("app.services.job.job_service.MongoDB") as mock_mongodb_class, \
              patch("app.services.job.job_service.update_document", return_value=True) as mock_update:
+            mock_mongodb_instance = MagicMock()
+            mock_mongodb_class.return_value = mock_mongodb_instance
+            mock_mongodb_instance.get_document = AsyncMock(return_value=mock_job_document)
+            
             response = await job_service.update_job(TEST_JOB_ID, update_request)
             
             assert isinstance(response, UpdateJobResponse)
@@ -343,8 +363,12 @@ class TestJobServiceUpdateJob:
         """Test updating only a single field"""
         update_request = UpdateJobRequest(job_name="new_name_only")
         
-        with patch("app.services.job.job_service.get_document", return_value=mock_job_document), \
+        with patch("app.services.job.job_service.MongoDB") as mock_mongodb_class, \
              patch("app.services.job.job_service.update_document", return_value=True) as mock_update:
+            mock_mongodb_instance = MagicMock()
+            mock_mongodb_class.return_value = mock_mongodb_instance
+            mock_mongodb_instance.get_document = AsyncMock(return_value=mock_job_document)
+            
             response = await job_service.update_job(TEST_JOB_ID, update_request)
             
             assert response.success is True
@@ -361,8 +385,12 @@ class TestJobServiceUpdateJob:
         """Test that changing status to STARTED sets started_at timestamp"""
         update_request = UpdateJobRequest(status=JobStatus.STARTED)
         
-        with patch("app.services.job.job_service.get_document", return_value=mock_job_document), \
+        with patch("app.services.job.job_service.MongoDB") as mock_mongodb_class, \
              patch("app.services.job.job_service.update_document", return_value=True) as mock_update:
+            mock_mongodb_instance = MagicMock()
+            mock_mongodb_class.return_value = mock_mongodb_instance
+            mock_mongodb_instance.get_document = AsyncMock(return_value=mock_job_document)
+            
             response = await job_service.update_job(TEST_JOB_ID, update_request)
             
             assert response.success is True
@@ -382,8 +410,12 @@ class TestJobServiceUpdateJob:
         for status in terminal_statuses:
             update_request = UpdateJobRequest(status=status)
             
-            with patch("app.services.job.job_service.get_document", return_value=mock_job_document), \
+            with patch("app.services.job.job_service.MongoDB") as mock_mongodb_class, \
                  patch("app.services.job.job_service.update_document", return_value=True) as mock_update:
+                mock_mongodb_instance = MagicMock()
+                mock_mongodb_class.return_value = mock_mongodb_instance
+                mock_mongodb_instance.get_document = AsyncMock(return_value=mock_job_document)
+                
                 response = await job_service.update_job(TEST_JOB_ID, update_request)
                 
                 assert response.success is True
@@ -406,8 +438,12 @@ class TestJobServiceUpdateJob:
         
         update_request = UpdateJobRequest(status=JobStatus.SUCCESS)
         
-        with patch("app.services.job.job_service.get_document", return_value=mock_started_document), \
+        with patch("app.services.job.job_service.MongoDB") as mock_mongodb_class, \
              patch("app.services.job.job_service.update_document", return_value=True) as mock_update:
+            mock_mongodb_instance = MagicMock()
+            mock_mongodb_class.return_value = mock_mongodb_instance
+            mock_mongodb_instance.get_document = AsyncMock(return_value=mock_started_document)
+            
             response = await job_service.update_job(TEST_JOB_ID, update_request)
             
             assert response.success is True
@@ -433,7 +469,10 @@ class TestJobServiceUpdateJob:
         """Test update when job does not exist"""
         update_request = UpdateJobRequest(job_name="test")
         
-        with patch("app.services.job.job_service.get_document", return_value=None):
+        with patch("app.services.job.job_service.MongoDB") as mock_mongodb_class:
+            mock_mongodb_instance = MagicMock()
+            mock_mongodb_class.return_value = mock_mongodb_instance
+            mock_mongodb_instance.get_document = AsyncMock(return_value=None)
             response = await job_service.update_job(TEST_JOB_ID, update_request)
             
             assert isinstance(response, UpdateJobResponse)
@@ -446,7 +485,11 @@ class TestJobServiceUpdateJob:
         """Test update with empty job_name is rejected"""
         update_request = UpdateJobRequest(job_name="")
         
-        with patch("app.services.job.job_service.get_document", return_value=mock_job_document):
+        with patch("app.services.job.job_service.MongoDB") as mock_mongodb_class:
+            mock_mongodb_instance = MagicMock()
+            mock_mongodb_class.return_value = mock_mongodb_instance
+            mock_mongodb_instance.get_document = AsyncMock(return_value=mock_job_document)
+            
             response = await job_service.update_job(TEST_JOB_ID, update_request)
             
             assert isinstance(response, UpdateJobResponse)
@@ -458,7 +501,11 @@ class TestJobServiceUpdateJob:
         """Test update with whitespace-only job_name is rejected"""
         update_request = UpdateJobRequest(job_name="   ")
         
-        with patch("app.services.job.job_service.get_document", return_value=mock_job_document):
+        with patch("app.services.job.job_service.MongoDB") as mock_mongodb_class:
+            mock_mongodb_instance = MagicMock()
+            mock_mongodb_class.return_value = mock_mongodb_instance
+            mock_mongodb_instance.get_document = AsyncMock(return_value=mock_job_document)
+            
             response = await job_service.update_job(TEST_JOB_ID, update_request)
             
             assert isinstance(response, UpdateJobResponse)
@@ -470,7 +517,11 @@ class TestJobServiceUpdateJob:
         """Test update with no fields returns success with no changes"""
         update_request = UpdateJobRequest()  # All fields are None
         
-        with patch("app.services.job.job_service.get_document", return_value=mock_job_document):
+        with patch("app.services.job.job_service.MongoDB") as mock_mongodb_class:
+            mock_mongodb_instance = MagicMock()
+            mock_mongodb_class.return_value = mock_mongodb_instance
+            mock_mongodb_instance.get_document = AsyncMock(return_value=mock_job_document)
+            
             response = await job_service.update_job(TEST_JOB_ID, update_request)
             
             assert isinstance(response, UpdateJobResponse)
@@ -482,8 +533,12 @@ class TestJobServiceUpdateJob:
         """Test update when database update fails"""
         update_request = UpdateJobRequest(job_name="new_name")
         
-        with patch("app.services.job.job_service.get_document", return_value=mock_job_document), \
+        with patch("app.services.job.job_service.MongoDB") as mock_mongodb_class, \
              patch("app.services.job.job_service.update_document", return_value=False):
+            mock_mongodb_instance = MagicMock()
+            mock_mongodb_class.return_value = mock_mongodb_instance
+            mock_mongodb_instance.get_document = AsyncMock(return_value=mock_job_document)
+            
             response = await job_service.update_job(TEST_JOB_ID, update_request)
             
             assert isinstance(response, UpdateJobResponse)
@@ -495,7 +550,10 @@ class TestJobServiceUpdateJob:
         """Test update with exception"""
         update_request = UpdateJobRequest(job_name="test")
         
-        with patch("app.services.job.job_service.get_document", side_effect=Exception("Database error")):
+        with patch("app.services.job.job_service.MongoDB") as mock_mongodb_class:
+            mock_mongodb_instance = MagicMock()
+            mock_mongodb_class.return_value = mock_mongodb_instance
+            mock_mongodb_instance.get_document = AsyncMock(side_effect=Exception("Database error"))
             response = await job_service.update_job(TEST_JOB_ID, update_request)
             
             assert isinstance(response, UpdateJobResponse)
@@ -511,8 +569,12 @@ class TestJobServiceUpdateJob:
         for priority in priorities:
             update_request = UpdateJobRequest(priority=priority)
             
-            with patch("app.services.job.job_service.get_document", return_value=mock_job_document), \
+            with patch("app.services.job.job_service.MongoDB") as mock_mongodb_class, \
                  patch("app.services.job.job_service.update_document", return_value=True) as mock_update:
+                mock_mongodb_instance = MagicMock()
+                mock_mongodb_class.return_value = mock_mongodb_instance
+                mock_mongodb_instance.get_document = AsyncMock(return_value=mock_job_document)
+                
                 response = await job_service.update_job(TEST_JOB_ID, update_request)
                 
                 assert response.success is True
@@ -528,8 +590,12 @@ class TestJobServiceUpdateJob:
             progress=JobProgress(current=50, total=100, message="Processing...")
         )
         
-        with patch("app.services.job.job_service.get_document", return_value=mock_job_document), \
+        with patch("app.services.job.job_service.MongoDB") as mock_mongodb_class, \
              patch("app.services.job.job_service.update_document", return_value=True) as mock_update:
+            mock_mongodb_instance = MagicMock()
+            mock_mongodb_class.return_value = mock_mongodb_instance
+            mock_mongodb_instance.get_document = AsyncMock(return_value=mock_job_document)
+            
             response = await job_service.update_job(TEST_JOB_ID, update_request)
             
             assert response.success is True
@@ -552,8 +618,12 @@ class TestJobServiceUpdateJob:
             )
         )
         
-        with patch("app.services.job.job_service.get_document", return_value=mock_job_document), \
+        with patch("app.services.job.job_service.MongoDB") as mock_mongodb_class, \
              patch("app.services.job.job_service.update_document", return_value=True) as mock_update:
+            mock_mongodb_instance = MagicMock()
+            mock_mongodb_class.return_value = mock_mongodb_instance
+            mock_mongodb_instance.get_document = AsyncMock(return_value=mock_job_document)
+            
             response = await job_service.update_job(TEST_JOB_ID, update_request)
             
             assert response.success is True
@@ -572,8 +642,12 @@ class TestJobServiceUpdateJob:
             metadata={"resolution": "4K", "fps": 60, "codec": "h265"}
         )
         
-        with patch("app.services.job.job_service.get_document", return_value=mock_job_document), \
+        with patch("app.services.job.job_service.MongoDB") as mock_mongodb_class, \
              patch("app.services.job.job_service.update_document", return_value=True) as mock_update:
+            mock_mongodb_instance = MagicMock()
+            mock_mongodb_class.return_value = mock_mongodb_instance
+            mock_mongodb_instance.get_document = AsyncMock(return_value=mock_job_document)
+            
             response = await job_service.update_job(TEST_JOB_ID, update_request)
             
             assert response.success is True

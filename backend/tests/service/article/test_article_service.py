@@ -75,7 +75,11 @@ class TestArticleService:
     @pytest.mark.asyncio
     async def test_get_article_success(self, article_service: ArticleService, mock_article_data):
         """Test successful article retrieval"""
-        with patch("app.services.article.article_service.get_document", return_value=mock_article_data):
+        with patch("app.services.article.article_service.MongoDB") as mock_mongodb_class:
+            mock_mongodb_instance = MagicMock()
+            mock_mongodb_class.return_value = mock_mongodb_instance
+            mock_mongodb_instance.get_document = AsyncMock(return_value=mock_article_data)
+            
             article = await article_service.get_article("test_id_123")
             
             assert isinstance(article, ArticleInfo)
@@ -92,7 +96,11 @@ class TestArticleService:
     @pytest.mark.asyncio
     async def test_get_article_nonexistent(self, article_service: ArticleService):
         """Test article retrieval with nonexistent article"""
-        with patch("app.services.article.article_service.get_document", return_value=None):
+        with patch("app.services.article.article_service.MongoDB") as mock_mongodb_class:
+            mock_mongodb_instance = MagicMock()
+            mock_mongodb_class.return_value = mock_mongodb_instance
+            mock_mongodb_instance.get_document = AsyncMock(return_value=None)
+            
             article = await article_service.get_article("test_id_123")
             assert article is None
         
@@ -104,7 +112,11 @@ class TestArticleService:
             "_id": "test_id_123",
         }
         
-        with patch("app.services.article.article_service.get_document", return_value=minimal_data):
+        with patch("app.services.article.article_service.MongoDB") as mock_mongodb_class:
+            mock_mongodb_instance = MagicMock()
+            mock_mongodb_class.return_value = mock_mongodb_instance
+            mock_mongodb_instance.get_document = AsyncMock(return_value=minimal_data)
+            
             article = await article_service.get_article("test_id_123")
             
             assert isinstance(article, ArticleInfo)
@@ -273,11 +285,13 @@ class TestArticleService:
     async def test_update_article_success(self, article_service: ArticleService, update_article_request):
         """Test successful article update"""
         # Mock parent validation - parent_id_456 should be valid
-        with patch("app.services.article.article_service.get_document") as mock_get_doc, \
+        with patch("app.services.article.article_service.MongoDB") as mock_mongodb_class, \
              patch("app.services.article.article_service.update_document", return_value="test_id_123"):
+            mock_mongodb_instance = MagicMock()
+            mock_mongodb_class.return_value = mock_mongodb_instance
             
             # Mock parent article exists
-            mock_get_doc.return_value = {"_id": "parent_id_456", "title": "Parent Article"}
+            mock_mongodb_instance.get_document = AsyncMock(return_value={"_id": "parent_id_456", "title": "Parent Article"})
             
             response = await article_service.create_or_update_article(update_article_request)
             
@@ -291,7 +305,11 @@ class TestArticleService:
     async def test_update_article_invalid_parent(self, article_service: ArticleService, update_article_request):
         """Test article update failure when parent doesn't exist"""
         # Mock parent validation - parent_id_456 does not exist
-        with patch("app.services.article.article_service.get_document", return_value=None):
+        with patch("app.services.article.article_service.MongoDB") as mock_mongodb_class:
+            mock_mongodb_instance = MagicMock()
+            mock_mongodb_class.return_value = mock_mongodb_instance
+            mock_mongodb_instance.get_document = AsyncMock(return_value=None)
+            
             response = await article_service.create_or_update_article(update_article_request)
             
             assert isinstance(response, CreateOrUpdateArticleResponse)
@@ -304,11 +322,13 @@ class TestArticleService:
     async def test_update_article_exception(self, article_service: ArticleService, update_article_request):
         """Test article update with database exception"""
         # Mock parent validation - parent_id_456 should be valid
-        with patch("app.services.article.article_service.get_document") as mock_get_doc, \
+        with patch("app.services.article.article_service.MongoDB") as mock_mongodb_class, \
              patch("app.services.article.article_service.update_document", side_effect=Exception("Update error")):
+            mock_mongodb_instance = MagicMock()
+            mock_mongodb_class.return_value = mock_mongodb_instance
             
             # Mock parent article exists
-            mock_get_doc.return_value = {"_id": "parent_id_456", "title": "Parent Article"}
+            mock_mongodb_instance.get_document = AsyncMock(return_value={"_id": "parent_id_456", "title": "Parent Article"})
             
             response = await article_service.create_or_update_article(update_article_request)
             
