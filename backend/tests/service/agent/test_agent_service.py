@@ -88,8 +88,11 @@ class TestAgentService:
             },
         ]
         
-        with patch("app.services.agent.agent_service.list_documents", return_value=mock_agents), \
+        with patch("app.services.agent.agent_service.MongoDB") as mock_mongodb_class, \
              patch.object(agent_service, "_get_avatar_url", side_effect=["http://test.com/image_1.jpg", ""]):
+            mock_mongodb_instance = MagicMock()
+            mock_mongodb_class.return_value = mock_mongodb_instance
+            mock_mongodb_instance.list_documents = AsyncMock(return_value=mock_agents)
             
             response = await agent_service.search_agents()
             assert isinstance(response, SearchAgentsResponse)

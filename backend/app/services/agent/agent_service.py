@@ -12,7 +12,6 @@ from app.classes.agent import (
 from app.classes.image import ImageType, ImageSourceType, CreateImageRequest
 from app.core.database import (
     MongoDB,
-    list_documents,
     delete_document,
 )
 from app.services.image.image_service import ImageService
@@ -105,7 +104,7 @@ class AgentService:
             return CreateOrUpdateAgentResponse(success=False, id="", message=str(e))
 
     async def search_agents(self) -> SearchAgentsResponse:
-        documents = await list_documents(AGENT_COLLECTION_NAME)
+        documents = await MongoDB().list_documents(AGENT_COLLECTION_NAME)
         agents = [
             AgentInfo(
                 id=str(doc.get("_id", "")),

@@ -20,10 +20,7 @@ from app.classes.plant import (
     PlantSpecies,
 )
 from app.classes.image import ImageType, CreateImageRequest
-from app.core.database import (
-    MongoDB,
-    list_documents,
-)
+from app.core.database import MongoDB
 from app.services.image.image_service import ImageService
 from app.utils.string.string_utils import is_empty_string
 from app.utils.request.request_utils import build_update_data
@@ -177,7 +174,7 @@ class PlantService:
     async def list_plants(self) -> PlantListResponse:
         """List all plants"""
         try:
-            plants_data = await list_documents(PLANT_COLLECTION_NAME, True)
+            plants_data = await MongoDB().list_documents(PLANT_COLLECTION_NAME, True)
             plants = [PlantInfo(**plant_data) for plant_data in plants_data]
 
             return PlantListResponse(plants=plants)

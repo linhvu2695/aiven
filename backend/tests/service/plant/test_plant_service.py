@@ -348,7 +348,11 @@ class TestPlantServiceListPlants:
         """Test successful plants listing"""
         plants_data = [mock_plant_data, {**mock_plant_data, "_id": "plant_456", "name": "Plant 2"}]
         
-        with patch("app.services.plant.plant_service.list_documents", return_value=plants_data):
+        with patch("app.services.plant.plant_service.MongoDB") as mock_mongodb_class:
+            mock_mongodb_instance = MagicMock()
+            mock_mongodb_class.return_value = mock_mongodb_instance
+            mock_mongodb_instance.list_documents = AsyncMock(return_value=plants_data)
+            
             response = await plant_service.list_plants()
             
             assert isinstance(response, PlantListResponse)
@@ -359,7 +363,11 @@ class TestPlantServiceListPlants:
     @pytest.mark.asyncio
     async def test_list_plants_empty(self, plant_service):
         """Test plants listing with no plants"""
-        with patch("app.services.plant.plant_service.list_documents", return_value=[]):
+        with patch("app.services.plant.plant_service.MongoDB") as mock_mongodb_class:
+            mock_mongodb_instance = MagicMock()
+            mock_mongodb_class.return_value = mock_mongodb_instance
+            mock_mongodb_instance.list_documents = AsyncMock(return_value=[])
+            
             response = await plant_service.list_plants()
             
             assert isinstance(response, PlantListResponse)
@@ -368,7 +376,11 @@ class TestPlantServiceListPlants:
     @pytest.mark.asyncio
     async def test_list_plants_exception(self, plant_service):
         """Test plants listing with database exception"""
-        with patch("app.services.plant.plant_service.list_documents", side_effect=Exception("Database error")):
+        with patch("app.services.plant.plant_service.MongoDB") as mock_mongodb_class:
+            mock_mongodb_instance = MagicMock()
+            mock_mongodb_class.return_value = mock_mongodb_instance
+            mock_mongodb_instance.list_documents = AsyncMock(side_effect=Exception("Database error"))
+            
             response = await plant_service.list_plants()
             
             assert isinstance(response, PlantListResponse)

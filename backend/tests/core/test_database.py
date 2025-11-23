@@ -5,7 +5,6 @@ from bson.errors import InvalidId
 
 from app.core.database import (
     MongoDB,
-    list_documents,
     find_documents_by_field,
     find_documents_with_filters,
     delete_document

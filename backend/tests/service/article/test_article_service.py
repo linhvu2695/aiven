@@ -156,7 +156,11 @@ class TestArticleService:
             },
         ]
         
-        with patch("app.services.article.article_service.list_documents", return_value=mock_articles):
+        with patch("app.services.article.article_service.MongoDB") as mock_mongodb_class:
+            mock_mongodb_instance = MagicMock()
+            mock_mongodb_class.return_value = mock_mongodb_instance
+            mock_mongodb_instance.list_documents = AsyncMock(return_value=mock_articles)
+            
             response = await article_service.search_articles()
             
             assert isinstance(response, SearchArticlesResponse)
@@ -180,7 +184,11 @@ class TestArticleService:
     @pytest.mark.asyncio
     async def test_search_articles_empty_list(self, article_service: ArticleService):
         """Test search_articles with empty database"""
-        with patch("app.services.article.article_service.list_documents", return_value=[]):
+        with patch("app.services.article.article_service.MongoDB") as mock_mongodb_class:
+            mock_mongodb_instance = MagicMock()
+            mock_mongodb_class.return_value = mock_mongodb_instance
+            mock_mongodb_instance.list_documents = AsyncMock(return_value=[])
+            
             response = await article_service.search_articles()
             
             assert isinstance(response, SearchArticlesResponse)

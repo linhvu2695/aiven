@@ -169,10 +169,6 @@ class MongoDB:
 
 # Backward compatibility functions - delegate to MongoDB singleton
 
-async def list_documents(collection_name: str, convert_object_id: bool = False) -> list[dict]:
-    """Deprecated: Use MongoDB().list_documents() instead"""
-    return await MongoDB().list_documents(collection_name, convert_object_id)
-
 async def find_documents_by_field(collection_name: str, field_name: str, field_value: str) -> list[dict]:
     """Deprecated: Use MongoDB().find_documents_by_field() instead"""
     return await MongoDB().find_documents_by_field(collection_name, field_name, field_value)

@@ -9,7 +9,7 @@ from app.classes.article import (
     DeleteArticleResponse,
     SearchArticlesResponse,
 )
-from app.core.database import list_documents, delete_document, find_documents_by_field, MongoDB
+from app.core.database import delete_document, find_documents_by_field, MongoDB
 
 ARTICLE_COLLECTION_NAME = "articles"
 
@@ -101,7 +101,7 @@ class ArticleService:
             return CreateOrUpdateArticleResponse(success=False, id="", message=str(e))
 
     async def search_articles(self) -> SearchArticlesResponse:
-        documents = await list_documents(ARTICLE_COLLECTION_NAME)
+        documents = await MongoDB().list_documents(ARTICLE_COLLECTION_NAME)
         articles = [
             ArticleInfo(
                 id=str(doc.get("_id", "")),
