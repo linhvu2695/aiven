@@ -9,7 +9,7 @@ from app.classes.article import (
     DeleteArticleResponse,
     SearchArticlesResponse,
 )
-from app.core.database import update_document, list_documents, delete_document, find_documents_by_field, MongoDB
+from app.core.database import list_documents, delete_document, find_documents_by_field, MongoDB
 
 ARTICLE_COLLECTION_NAME = "articles"
 
@@ -82,7 +82,7 @@ class ArticleService:
             }
             
             if getattr(request, "id", None):  # Update if id is present
-                await update_document(
+                await MongoDB().update_document(
                     ARTICLE_COLLECTION_NAME, str(request.id), document
                 )
 

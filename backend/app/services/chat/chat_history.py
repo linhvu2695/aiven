@@ -5,7 +5,7 @@ from bson import ObjectId
 from langchain_core.messages import HumanMessage, AIMessage, SystemMessage
 from langchain_core.chat_history import BaseChatMessageHistory
 from langchain_core.messages.base import BaseMessage
-from app.core.database import delete_document, update_document, MongoDB
+from app.core.database import delete_document, MongoDB
 from app.classes.conversation import Conversation, ConversationDeleteRequest, ConversationInfo
 
 CONVERSATION_COLLECTION = "conversation"
@@ -90,7 +90,7 @@ class MongoDBChatHistory(BaseChatMessageHistory):
         for message in all_messages:
             serialized_messages.append(message.model_dump())
 
-        await update_document(CONVERSATION_COLLECTION, self._session_id, {
+        await MongoDB().update_document(CONVERSATION_COLLECTION, self._session_id, {
             "updated_at": datetime.now(timezone.utc),
             "messages": serialized_messages
         })
@@ -99,7 +99,7 @@ class MongoDBChatHistory(BaseChatMessageHistory):
         asyncio.run(self.aclear())
 
     async def aclear(self) -> None:
-        await update_document(CONVERSATION_COLLECTION, self._session_id, {
+        await MongoDB().update_document(CONVERSATION_COLLECTION, self._session_id, {
             "updated_at": datetime.now(timezone.utc),
             "messages": []
         })

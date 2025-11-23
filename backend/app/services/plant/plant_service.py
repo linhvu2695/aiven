@@ -22,7 +22,6 @@ from app.classes.plant import (
 from app.classes.image import ImageType, CreateImageRequest
 from app.core.database import (
     MongoDB,
-    update_document,
     list_documents,
 )
 from app.services.image.image_service import ImageService
@@ -103,7 +102,7 @@ class PlantService:
                     ],
                 )
                 update_data["updated_at"] = now.isoformat()
-                await update_document(
+                await MongoDB().update_document(
                     PLANT_COLLECTION_NAME, str(request.id), update_data
                 )
                 plant_id = str(request.id)
@@ -225,7 +224,7 @@ class PlantService:
                 "updated_at": datetime.now(timezone.utc),
             }
 
-            await update_document(PLANT_COLLECTION_NAME, plant_id, update_data)
+            await MongoDB().update_document(PLANT_COLLECTION_NAME, plant_id, update_data)
 
             return PlantPhotoResponse(
                 success=True, photo_id=image_response.image_id, message=""

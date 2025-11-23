@@ -181,22 +181,22 @@ class TestAddMessages:
     """Test aadd_messages and add_messages methods."""
     
     @pytest.mark.asyncio
-    @patch('app.services.chat.chat_history.update_document')
     @patch('app.services.chat.chat_history.MongoDB')
     async def test_aadd_messages_existing_conversation(
-        self, mock_mongodb_class, mock_update_document, sample_conversation_data, sample_messages
+        self, mock_mongodb_class, sample_conversation_data, sample_messages
     ):
         """Test adding messages to existing conversation."""
         mock_mongodb_instance = MagicMock()
         mock_mongodb_class.return_value = mock_mongodb_instance
         mock_mongodb_instance.get_document = AsyncMock(return_value=sample_conversation_data)
+        mock_mongodb_instance.update_document = AsyncMock()
         
         chat_history = MongoDBChatHistory(TEST_SESSION_ID)
         await chat_history.aadd_messages([sample_messages[2]])  # Add third message
         
         # Verify update_document was called with correct parameters
-        mock_update_document.assert_called_once()
-        call_args = mock_update_document.call_args
+        mock_mongodb_instance.update_document.assert_called_once()
+        call_args = mock_mongodb_instance.update_document.call_args
         assert call_args[0][0] == CONVERSATION_COLLECTION
         assert call_args[0][1] == TEST_SESSION_ID
         
@@ -206,16 +206,16 @@ class TestAddMessages:
         assert len(update_data["messages"]) == 3  # Original 2 + 1 new
     
     @pytest.mark.asyncio
-    @patch('app.services.chat.chat_history.update_document')
     @patch('app.services.chat.chat_history.MongoDB')
     async def test_aadd_messages_new_conversation(
-        self, mock_mongodb_class, mock_update_document, sample_messages
+        self, mock_mongodb_class, sample_messages
     ):
         """Test adding messages when creating new conversation."""
         mock_mongodb_instance = MagicMock()
         mock_mongodb_class.return_value = mock_mongodb_instance
         mock_mongodb_instance.get_document = AsyncMock(return_value=None)
         mock_mongodb_instance.insert_document = AsyncMock(return_value=TEST_NEW_SESSION_ID)
+        mock_mongodb_instance.update_document = AsyncMock()
         
         chat_history = MongoDBChatHistory("", TEST_AGENT_ID)  # Empty session ID with agent ID
         await chat_history.aadd_messages([sample_messages[0]])
@@ -233,53 +233,57 @@ class TestAddMessages:
         assert chat_history._session_id == TEST_NEW_SESSION_ID
         
         # Verify messages were updated
-        mock_update_document.assert_called_once()
+        mock_mongodb_instance.update_document.assert_called_once()
     
     @pytest.mark.asyncio
-    @patch('app.services.chat.chat_history.update_document')
     @patch('app.services.chat.chat_history.MongoDB')
     async def test_aadd_messages_multiple(
-        self, mock_mongodb_class, mock_update_document, sample_messages
+        self, mock_mongodb_class, sample_messages
     ):
         """Test adding multiple messages at once."""
         mock_mongodb_instance = MagicMock()
         mock_mongodb_class.return_value = mock_mongodb_instance
         mock_mongodb_instance.get_document = AsyncMock(return_value={"_id": TEST_OBJECT_ID, "messages": []})
+        mock_mongodb_instance.update_document = AsyncMock()
         
         chat_history = MongoDBChatHistory(TEST_SESSION_ID)
         await chat_history.aadd_messages(sample_messages[:2])  # Add first two messages
         
-        mock_update_document.assert_called_once()
-        call_args = mock_update_document.call_args
+        mock_mongodb_instance.update_document.assert_called_once()
+        call_args = mock_mongodb_instance.update_document.call_args
         update_data = call_args[0][2]
         assert len(update_data["messages"]) == 2
     
-    @patch('app.services.chat.chat_history.update_document')
     @patch('app.services.chat.chat_history.MongoDB')
-    def test_add_messages_sync(self, mock_mongodb_class, mock_update_document, sample_messages):
+    def test_add_messages_sync(self, mock_mongodb_class, sample_messages):
         """Test the synchronous add_messages method."""
         mock_mongodb_instance = MagicMock()
         mock_mongodb_class.return_value = mock_mongodb_instance
         mock_mongodb_instance.get_document = AsyncMock(return_value={"_id": TEST_OBJECT_ID, "messages": []})
+        mock_mongodb_instance.update_document = AsyncMock()
         
         chat_history = MongoDBChatHistory(TEST_SESSION_ID)
         chat_history.add_messages([sample_messages[0]])
         
         # Should have called the async version
-        mock_update_document.assert_called_once()
+        mock_mongodb_instance.update_document.assert_called_once()
 
 
 class TestClearMessages:
     """Test aclear and clear methods."""
     
     @pytest.mark.asyncio
-    @patch('app.services.chat.chat_history.update_document')
-    async def test_aclear(self, mock_update_document):
+    @patch('app.services.chat.chat_history.MongoDB')
+    async def test_aclear(self, mock_mongodb_class):
         """Test clearing messages asynchronously."""
+        mock_mongodb_instance = MagicMock()
+        mock_mongodb_class.return_value = mock_mongodb_instance
+        mock_mongodb_instance.update_document = AsyncMock()
+        
         chat_history = MongoDBChatHistory(TEST_SESSION_ID)
         await chat_history.aclear()
         
-        mock_update_document.assert_called_once_with(
+        mock_mongodb_instance.update_document.assert_called_once_with(
             CONVERSATION_COLLECTION,
             TEST_SESSION_ID,
             {
@@ -288,14 +292,18 @@ class TestClearMessages:
             }
         )
     
-    @patch('app.services.chat.chat_history.update_document')
-    def test_clear_sync(self, mock_update_document):
+    @patch('app.services.chat.chat_history.MongoDB')
+    def test_clear_sync(self, mock_mongodb_class):
         """Test clearing messages synchronously."""
+        mock_mongodb_instance = MagicMock()
+        mock_mongodb_class.return_value = mock_mongodb_instance
+        mock_mongodb_instance.update_document = AsyncMock()
+        
         chat_history = MongoDBChatHistory(TEST_SESSION_ID)
         chat_history.clear()
         
         # Should have called the async version
-        mock_update_document.assert_called_once()
+        mock_mongodb_instance.update_document.assert_called_once()
 
 
 class TestEdgeCases:
@@ -315,20 +323,20 @@ class TestEdgeCases:
         assert messages == []
     
     @pytest.mark.asyncio
-    @patch('app.services.chat.chat_history.update_document')
     @patch('app.services.chat.chat_history.MongoDB')
-    async def test_add_empty_messages_list(self, mock_mongodb_class, mock_update_document):
+    async def test_add_empty_messages_list(self, mock_mongodb_class):
         """Test adding empty list of messages."""
         mock_mongodb_instance = MagicMock()
         mock_mongodb_class.return_value = mock_mongodb_instance
         mock_mongodb_instance.get_document = AsyncMock(return_value={"_id": TEST_OBJECT_ID, "messages": []})
+        mock_mongodb_instance.update_document = AsyncMock()
         
         chat_history = MongoDBChatHistory(TEST_SESSION_ID)
         await chat_history.aadd_messages([])
         
         # Should still update the document
-        mock_update_document.assert_called_once()
-        call_args = mock_update_document.call_args
+        mock_mongodb_instance.update_document.assert_called_once()
+        call_args = mock_mongodb_instance.update_document.call_args
         update_data = call_args[0][2]
         assert update_data["messages"] == []
     
@@ -363,10 +371,9 @@ class TestIntegration:
     """Integration-style tests that test multiple methods together."""
     
     @pytest.mark.asyncio
-    @patch('app.services.chat.chat_history.update_document')
     @patch('app.services.chat.chat_history.MongoDB')
     async def test_full_conversation_flow(
-        self, mock_mongodb_class, mock_update_document, sample_messages
+        self, mock_mongodb_class, sample_messages
     ):
         """Test a complete conversation flow: create, add messages, get messages, clear."""
         mock_mongodb_instance = MagicMock()
@@ -374,6 +381,7 @@ class TestIntegration:
         
         # Start with empty conversation
         mock_mongodb_instance.get_document = AsyncMock(return_value={"_id": TEST_OBJECT_ID, "messages": []})
+        mock_mongodb_instance.update_document = AsyncMock()
         
         chat_history = MongoDBChatHistory(TEST_SESSION_ID)
         
@@ -394,4 +402,4 @@ class TestIntegration:
         await chat_history.aclear()
         
         # Verify all operations called update_document
-        assert mock_update_document.call_count == 2  # Once for add, once for clear
+        assert mock_mongodb_instance.update_document.call_count == 2  # Once for add, once for clear

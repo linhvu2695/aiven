@@ -15,7 +15,6 @@ from app.classes.job import (
 )
 from app.core.database import (
     MongoDB,
-    update_document,
     delete_document,
 )
 
@@ -231,7 +230,7 @@ class JobService:
                 )
 
             # Perform the update
-            success = await update_document(
+            success = await MongoDB().update_document(
                 JOB_COLLECTION_NAME,
                 job_id,
                 update_data

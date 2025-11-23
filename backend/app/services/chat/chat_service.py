@@ -30,7 +30,7 @@ from app.services.chat.chat_constants import (
 from app.services.agent.agent_service import AgentService
 from app.services.tool.tool_service import ToolService
 from app.services.chat.chat_history import MongoDBChatHistory
-from app.core.database import update_document
+from app.core.database import MongoDB
 from app.utils.string.string_utils import is_empty_string
 
 GPT_DEFAULT_MODEL = LLMModel.GPT_4O_MINI
@@ -181,7 +181,7 @@ class ChatService:
                 generated_name = generated_name[:50].strip()
             
             # Update the conversation with the generated name
-            await update_document("conversation", history._session_id, {
+            await MongoDB().update_document("conversation", history._session_id, {
                 "name": generated_name,
                 "updated_at": datetime.now(timezone.utc)
             })

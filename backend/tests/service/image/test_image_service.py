@@ -416,11 +416,11 @@ class TestImageServiceUpdateImage:
     @pytest.mark.asyncio
     async def test_update_image_success(self, image_service: ImageService, update_image_request: UpdateImageRequest, mock_image_document: dict):
         """Test successful image update"""
-        with patch("app.services.image.image_service.update_document"), \
-             patch("app.services.image.image_service.MongoDB") as mock_mongodb_class:
+        with patch("app.services.image.image_service.MongoDB") as mock_mongodb_class:
             mock_mongodb_instance = MagicMock()
             mock_mongodb_class.return_value = mock_mongodb_instance
             mock_mongodb_instance.get_document = AsyncMock(return_value=mock_image_document)
+            mock_mongodb_instance.update_document = AsyncMock()
             
             response = await image_service.update_image(TEST_IMAGE_ID, update_image_request)
             
@@ -433,17 +433,17 @@ class TestImageServiceUpdateImage:
         """Test partial image update"""
         partial_request = UpdateImageRequest(title="New Title Only")
         
-        with patch("app.services.image.image_service.update_document") as mock_update, \
-             patch("app.services.image.image_service.MongoDB") as mock_mongodb_class:
+        with patch("app.services.image.image_service.MongoDB") as mock_mongodb_class:
             mock_mongodb_instance = MagicMock()
             mock_mongodb_class.return_value = mock_mongodb_instance
             mock_mongodb_instance.get_document = AsyncMock(return_value=mock_image_document)
+            mock_mongodb_instance.update_document = AsyncMock()
             
             await image_service.update_image(TEST_IMAGE_ID, partial_request)
             
             # Verify only title was updated
-            mock_update.assert_called_once()
-            update_doc = mock_update.call_args[0][2]
+            mock_mongodb_instance.update_document.assert_called_once()
+            update_doc = mock_mongodb_instance.update_document.call_args[0][2]
             assert "title" in update_doc
             assert update_doc["title"] == "New Title Only"
             assert "description" not in update_doc
@@ -452,7 +452,11 @@ class TestImageServiceUpdateImage:
     @pytest.mark.asyncio
     async def test_update_image_exception(self, image_service: ImageService, update_image_request: UpdateImageRequest):
         """Test image update with exception"""
-        with patch("app.services.image.image_service.update_document", side_effect=Exception("Update error")):
+        with patch("app.services.image.image_service.MongoDB") as mock_mongodb_class:
+            mock_mongodb_instance = MagicMock()
+            mock_mongodb_class.return_value = mock_mongodb_instance
+            mock_mongodb_instance.update_document = AsyncMock(side_effect=Exception("Update error"))
+            
             response = await image_service.update_image(TEST_IMAGE_ID, update_image_request)
             
             assert isinstance(response, ImageResponse)
@@ -596,7 +600,11 @@ class TestImageServiceDeleteImage:
     @pytest.mark.asyncio
     async def test_delete_image_soft_delete_success(self, image_service: ImageService):
         """Test successful soft delete"""
-        with patch("app.services.image.image_service.update_document") as mock_update:
+        with patch("app.services.image.image_service.MongoDB") as mock_mongodb_class:
+            mock_mongodb_instance = MagicMock()
+            mock_mongodb_class.return_value = mock_mongodb_instance
+            mock_mongodb_instance.update_document = AsyncMock()
+            
             response = await image_service.delete_image(TEST_IMAGE_ID, soft_delete=True)
             
             assert isinstance(response, DeleteImageResponse)
@@ -605,8 +613,8 @@ class TestImageServiceDeleteImage:
             assert response.message == "Image deleted successfully"
             
             # Verify soft delete update
-            mock_update.assert_called_once()
-            update_doc = mock_update.call_args[0][2]
+            mock_mongodb_instance.update_document.assert_called_once()
+            update_doc = mock_mongodb_instance.update_document.call_args[0][2]
             assert update_doc["is_deleted"] is True
             assert "updated_at" in update_doc
 
@@ -675,7 +683,11 @@ class TestImageServiceDeleteImage:
     @pytest.mark.asyncio
     async def test_delete_image_exception(self, image_service: ImageService):
         """Test image deletion with exception"""
-        with patch("app.services.image.image_service.update_document", side_effect=Exception("Delete error")):
+        with patch("app.services.image.image_service.MongoDB") as mock_mongodb_class:
+            mock_mongodb_instance = MagicMock()
+            mock_mongodb_class.return_value = mock_mongodb_instance
+            mock_mongodb_instance.update_document = AsyncMock(side_effect=Exception("Delete error"))
+            
             response = await image_service.delete_image(TEST_IMAGE_ID)
             
             assert isinstance(response, DeleteImageResponse)

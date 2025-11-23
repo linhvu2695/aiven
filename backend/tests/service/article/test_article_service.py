@@ -293,13 +293,13 @@ class TestArticleService:
     async def test_update_article_success(self, article_service: ArticleService, update_article_request):
         """Test successful article update"""
         # Mock parent validation - parent_id_456 should be valid
-        with patch("app.services.article.article_service.MongoDB") as mock_mongodb_class, \
-             patch("app.services.article.article_service.update_document", return_value="test_id_123"):
+        with patch("app.services.article.article_service.MongoDB") as mock_mongodb_class:
             mock_mongodb_instance = MagicMock()
             mock_mongodb_class.return_value = mock_mongodb_instance
             
             # Mock parent article exists
             mock_mongodb_instance.get_document = AsyncMock(return_value={"_id": "parent_id_456", "title": "Parent Article"})
+            mock_mongodb_instance.update_document = AsyncMock(return_value="test_id_123")
             
             response = await article_service.create_or_update_article(update_article_request)
             
@@ -330,13 +330,13 @@ class TestArticleService:
     async def test_update_article_exception(self, article_service: ArticleService, update_article_request):
         """Test article update with database exception"""
         # Mock parent validation - parent_id_456 should be valid
-        with patch("app.services.article.article_service.MongoDB") as mock_mongodb_class, \
-             patch("app.services.article.article_service.update_document", side_effect=Exception("Update error")):
+        with patch("app.services.article.article_service.MongoDB") as mock_mongodb_class:
             mock_mongodb_instance = MagicMock()
             mock_mongodb_class.return_value = mock_mongodb_instance
             
             # Mock parent article exists
             mock_mongodb_instance.get_document = AsyncMock(return_value={"_id": "parent_id_456", "title": "Parent Article"})
+            mock_mongodb_instance.update_document = AsyncMock(side_effect=Exception("Update error"))
             
             response = await article_service.create_or_update_article(update_article_request)
             

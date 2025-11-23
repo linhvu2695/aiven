@@ -1582,10 +1582,10 @@ class TestConversationNaming:
     
     @pytest.mark.asyncio
     @patch('app.services.chat.chat_history.MongoDB')
-    @patch('app.services.chat.chat_service.update_document')
+    @patch('app.services.chat.chat_service.MongoDB')
     @patch('app.services.agent.agent_service.AgentService.get_agent')
     async def test_generate_conversation_name_if_needed_for_new_conversation(
-        self, mock_get_agent, mock_update_document, mock_mongodb_class, chat_service
+        self, mock_get_agent, mock_mongodb_class_chat_service, mock_mongodb_class, chat_service
     ):
         """Test that conversation names are generated for new conversations."""
         from app.classes.conversation import Conversation
@@ -1622,6 +1622,11 @@ class TestConversationNaming:
         mock_mongodb_class.return_value = mock_mongodb_instance
         mock_mongodb_instance.get_document = AsyncMock(return_value=mock_conversation_data)
         
+        # Mock the update_document for chat_service
+        mock_mongodb_instance_chat_service = MagicMock()
+        mock_mongodb_class_chat_service.return_value = mock_mongodb_instance_chat_service
+        mock_mongodb_instance_chat_service.update_document = AsyncMock()
+        
         # Mock the chat model and AI response
         mock_ai_response = MagicMock()
         mock_ai_response.content = "Python Help Session"
@@ -1647,8 +1652,8 @@ class TestConversationNaming:
             await chat_service._generate_conversation_name_if_needed(mock_history, TEST_AGENT_ID)
         
         # Verify that the update was called with the generated name
-        mock_update_document.assert_called_once()
-        args, kwargs = mock_update_document.call_args
+        mock_mongodb_instance_chat_service.update_document.assert_called_once()
+        args, kwargs = mock_mongodb_instance_chat_service.update_document.call_args
         assert args[0] == "conversation"
         assert args[1] == TEST_SESSION_ID
         assert "name" in args[2]
@@ -1656,9 +1661,9 @@ class TestConversationNaming:
     
     @pytest.mark.asyncio
     @patch('app.services.chat.chat_history.MongoDB')
-    @patch('app.services.chat.chat_service.update_document')
+    @patch('app.services.chat.chat_service.MongoDB')
     async def test_generate_conversation_name_if_needed_skips_existing_name(
-        self, mock_update_document, mock_mongodb_class, chat_service
+        self, mock_mongodb_class_chat_service, mock_mongodb_class, chat_service
     ):
         """Test that naming is skipped for conversations that already have names."""
         from app.classes.conversation import Conversation
@@ -1681,6 +1686,11 @@ class TestConversationNaming:
         mock_mongodb_class.return_value = mock_mongodb_instance
         mock_mongodb_instance.get_document = AsyncMock(return_value=mock_conversation_data)
         
+        # Mock the update_document for chat_service
+        mock_mongodb_instance_chat_service = MagicMock()
+        mock_mongodb_class_chat_service.return_value = mock_mongodb_instance_chat_service
+        mock_mongodb_instance_chat_service.update_document = AsyncMock()
+        
         # Create mock history and call the naming method
         mock_history = AsyncMock()
         mock_history._session_id = TEST_SESSION_ID
@@ -1696,13 +1706,13 @@ class TestConversationNaming:
         await chat_service._generate_conversation_name_if_needed(mock_history, TEST_AGENT_ID)
         
         # Verify that update was NOT called
-        mock_update_document.assert_not_called()
+        mock_mongodb_instance_chat_service.update_document.assert_not_called()
     
     @pytest.mark.asyncio
     @patch('app.services.chat.chat_history.MongoDB')
-    @patch('app.services.chat.chat_service.update_document')
+    @patch('app.services.chat.chat_service.MongoDB')
     async def test_generate_conversation_name_if_needed_skips_too_few_messages(
-        self, mock_update_document, mock_mongodb_class, chat_service
+        self, mock_mongodb_class_chat_service, mock_mongodb_class, chat_service
     ):
         """Test that naming is skipped for conversations with too few messages."""
         from app.classes.conversation import Conversation
@@ -1724,6 +1734,11 @@ class TestConversationNaming:
         mock_mongodb_class.return_value = mock_mongodb_instance
         mock_mongodb_instance.get_document = AsyncMock(return_value=mock_conversation_data)
         
+        # Mock the update_document for chat_service
+        mock_mongodb_instance_chat_service = MagicMock()
+        mock_mongodb_class_chat_service.return_value = mock_mongodb_instance_chat_service
+        mock_mongodb_instance_chat_service.update_document = AsyncMock()
+        
         # Create mock history and call the naming method
         mock_history = AsyncMock()
         mock_history._session_id = TEST_SESSION_ID
@@ -1739,4 +1754,4 @@ class TestConversationNaming:
         await chat_service._generate_conversation_name_if_needed(mock_history, TEST_AGENT_ID)
         
         # Verify that update was NOT called
-        mock_update_document.assert_not_called() 
+        mock_mongodb_instance_chat_service.update_document.assert_not_called() 

@@ -12,7 +12,6 @@ from app.classes.agent import (
 from app.classes.image import ImageType, ImageSourceType, CreateImageRequest
 from app.core.database import (
     MongoDB,
-    update_document,
     list_documents,
     delete_document,
 )
@@ -87,7 +86,7 @@ class AgentService:
             }
 
             if getattr(request, "id", None):  # Update if id is present
-                await update_document(
+                await MongoDB().update_document(
                     AGENT_COLLECTION_NAME, str(request.id), document
                 )
 
@@ -252,7 +251,7 @@ class AgentService:
                 )
 
             # Update agent document with new image ID
-            await update_document(
+            await MongoDB().update_document(
                 AGENT_COLLECTION_NAME,
                 agent_id,
                 {"avatar_image_id": image_response.image_id},

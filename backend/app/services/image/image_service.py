@@ -30,7 +30,6 @@ from app.classes.image import (
 )
 from app.core.database import (
     MongoDB,
-    update_document,
     delete_document,
     find_documents_with_filters,
     count_documents_with_filters,
@@ -265,7 +264,7 @@ class ImageService:
                 update_doc["notes"] = request.notes
 
             # Update document
-            await update_document(IMAGE_COLLECTION_NAME, image_id, update_doc)
+            await MongoDB().update_document(IMAGE_COLLECTION_NAME, image_id, update_doc)
 
             # Return updated image
             return await self.get_image(image_id)
@@ -398,7 +397,7 @@ class ImageService:
                     "is_deleted": True,
                     "updated_at": datetime.now(timezone.utc),
                 }
-                await update_document(IMAGE_COLLECTION_NAME, image_id, update_doc)
+                await MongoDB().update_document(IMAGE_COLLECTION_NAME, image_id, update_doc)
             else:
                 # Hard delete - remove from storage and database
                 data = await MongoDB().get_document(IMAGE_COLLECTION_NAME, image_id)

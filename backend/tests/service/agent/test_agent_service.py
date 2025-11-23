@@ -255,7 +255,11 @@ class TestAgentService:
     @pytest.mark.asyncio
     async def test_update_agent_success(self, agent_service: AgentService, update_agent_request):
         """Test successful agent update"""
-        with patch("app.services.agent.agent_service.update_document", return_value="test_id_123"):
+        with patch("app.services.agent.agent_service.MongoDB") as mock_mongodb_class:
+            mock_mongodb_instance = MagicMock()
+            mock_mongodb_class.return_value = mock_mongodb_instance
+            mock_mongodb_instance.update_document = AsyncMock(return_value="test_id_123")
+            
             response = await agent_service.create_or_update_agent(update_agent_request)
             
             assert isinstance(response, CreateOrUpdateAgentResponse)
@@ -267,7 +271,11 @@ class TestAgentService:
     @pytest.mark.asyncio
     async def test_update_agent_failure(self, agent_service: AgentService, update_agent_request):
         """Test agent update failure"""
-        with patch("app.services.agent.agent_service.update_document", side_effect=Exception("Database error")):
+        with patch("app.services.agent.agent_service.MongoDB") as mock_mongodb_class:
+            mock_mongodb_instance = MagicMock()
+            mock_mongodb_class.return_value = mock_mongodb_instance
+            mock_mongodb_instance.update_document = AsyncMock(side_effect=Exception("Database error"))
+            
             response = await agent_service.create_or_update_agent(update_agent_request)
             
             assert isinstance(response, CreateOrUpdateAgentResponse)
@@ -469,7 +477,10 @@ class TestAgentService:
         
         with patch.object(agent_service, "get_agent", return_value=mock_agent), \
              patch("app.services.agent.agent_service.ImageService", return_value=mock_image_service), \
-             patch("app.services.agent.agent_service.update_document"):
+             patch("app.services.agent.agent_service.MongoDB") as mock_mongodb_class:
+            mock_mongodb_instance = MagicMock()
+            mock_mongodb_class.return_value = mock_mongodb_instance
+            mock_mongodb_instance.update_document = AsyncMock()
             
             result = await agent_service.update_agent_avatar("test_id", mock_file, "avatar.jpg")
             

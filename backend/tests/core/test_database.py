@@ -5,7 +5,6 @@ from bson.errors import InvalidId
 
 from app.core.database import (
     MongoDB,
-    update_document,
     list_documents,
     find_documents_by_field,
     find_documents_with_filters,
@@ -171,7 +170,7 @@ class TestUpdateDocument:
         mock_motor_client["collection"].update_one.return_value = mock_result
         
         # Act
-        result = await update_document("test_collection", doc_id, document)
+        result = await MongoDB().update_document("test_collection", doc_id, document)
         
         # Assert
         assert result is True
@@ -194,7 +193,7 @@ class TestUpdateDocument:
         mock_motor_client["collection"].update_one.return_value = mock_result
         
         # Act
-        result = await update_document("test_collection", doc_id, document)
+        result = await MongoDB().update_document("test_collection", doc_id, document)
         
         # Assert
         assert result is True
@@ -224,7 +223,7 @@ class TestListDocuments:
         mock_motor_client["collection"].find.return_value = mock_cursor
         
         # Act
-        result = await list_documents("test_collection")
+        result = await MongoDB().list_documents("test_collection")
         
         # Assert
         assert result == documents
@@ -243,7 +242,7 @@ class TestListDocuments:
         mock_motor_client["collection"].find.return_value = mock_cursor
         
         # Act
-        result = await list_documents("test_collection")
+        result = await MongoDB().list_documents("test_collection")
         
         # Assert
         assert result == []
@@ -271,7 +270,7 @@ class TestFindDocumentsByField:
         mock_motor_client["collection"].find.return_value = mock_cursor
         
         # Act
-        result = await find_documents_by_field("test_collection", field_name, field_value)
+        result = await MongoDB().find_documents_by_field("test_collection", field_name, field_value)
         
         # Assert
         assert result == matching_documents
@@ -293,7 +292,7 @@ class TestFindDocumentsByField:
         mock_motor_client["collection"].find.return_value = mock_cursor
         
         # Act
-        result = await find_documents_by_field("test_collection", field_name, field_value)
+        result = await MongoDB().find_documents_by_field("test_collection", field_name, field_value)
         
         # Assert
         assert result == []
@@ -318,7 +317,7 @@ class TestFindDocumentsByField:
         mock_motor_client["collection"].find.return_value = mock_cursor
         
         # Act
-        result = await find_documents_by_field("test_collection", field_name, field_value)
+        result = await MongoDB().find_documents_by_field("test_collection", field_name, field_value)
         
         # Assert
         assert result == matching_documents
@@ -340,7 +339,7 @@ class TestFindDocumentsByField:
         mock_motor_client["collection"].find.return_value = mock_cursor
         
         # Act
-        result = await find_documents_by_field("test_collection", field_name, field_value)
+        result = await MongoDB().find_documents_by_field("test_collection", field_name, field_value)
         
         # Assert
         assert result == [matching_document]
@@ -706,11 +705,11 @@ class TestIntegrationScenarios:
         assert retrieved_doc == stored_doc
         
         # Update
-        update_success = await update_document(collection_name, doc_id, updated_document)
+        update_success = await MongoDB().update_document(collection_name, doc_id, updated_document)
         assert update_success is True
         
         # Delete
-        deleted = await delete_document(collection_name, doc_id)
+        deleted = await MongoDB().delete_document(collection_name, doc_id)
         assert deleted is True
 
     @pytest.mark.asyncio
