@@ -5,7 +5,7 @@ from celery.signals import worker_process_init, worker_process_shutdown
 
 from app.core.config import settings
 from app.core.cache import RedisCache
-from app.core.database import close_mongodb_conn
+from app.core.database import MongoDB
 
 # Global event loop - one per worker process
 _worker_loop = None
@@ -88,6 +88,6 @@ async def _cleanup_async_clients():
     
     # Close MongoDB connection
     try:
-        await close_mongodb_conn()
+        await MongoDB().close()
     except Exception as e:
         logging.getLogger("celery").warning(f"Error closing MongoDB: {e}")

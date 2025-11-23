@@ -60,6 +60,9 @@ class TestMongoDBSingleton:
         mock_settings.mongodb_root_username = "admin"
         mock_settings.mongodb_root_password = "password"
         mock_settings.mongodb_db_name = "testdb"
+        mock_settings.mongodb_max_pool_size = 100
+        mock_settings.mongodb_min_pool_size = 10
+        mock_settings.mongodb_max_idle_time_ms = 45000
         
         # Act
         db_instance = MongoDB()
@@ -67,7 +70,12 @@ class TestMongoDBSingleton:
         
         # Assert
         expected_uri = "mongodb://admin:password@localhost:27017"
-        mock_motor_client["client"].assert_called_once_with(expected_uri)
+        mock_motor_client["client"].assert_called_once_with(
+            expected_uri,
+            maxPoolSize=100,
+            minPoolSize=10,
+            maxIdleTimeMS=45000
+        )
         mock_motor_client["client"].return_value.get_database.assert_called_once_with("testdb")
         assert result == mock_motor_client["db"]
 

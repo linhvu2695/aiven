@@ -168,10 +168,6 @@ class MongoDB:
 
 
 # Backward compatibility functions - delegate to MongoDB singleton
-async def close_mongodb_conn():
-    """Deprecated: Use MongoDB().close() instead"""
-    await MongoDB().close()
-
 async def check_mongodb_health():
     """Deprecated: Use MongoDB().check_health() instead"""
     return await MongoDB().check_health()
