@@ -17,6 +17,9 @@ class Settings(BaseSettings):
     mongodb_db_name: str
     mongodb_root_username: str
     mongodb_root_password: str
+    mongodb_max_pool_size: int
+    mongodb_min_pool_size: int
+    mongodb_max_idle_time_ms: int
 
     redis_host: str
     redis_port: str
@@ -24,6 +27,7 @@ class Settings(BaseSettings):
     redis_username: str
     redis_cache_database: str
     redis_background_database: str
+    redis_max_connections: int
 
     langchain_api_key: str
     langchain_project: str

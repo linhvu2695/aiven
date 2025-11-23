@@ -18,6 +18,7 @@ class RedisCache:
             db=int(settings.redis_cache_database),
             username=settings.redis_username,
             password=settings.redis_password,
+            max_connections=settings.redis_max_connections,
         )
         self._initialized = True
     

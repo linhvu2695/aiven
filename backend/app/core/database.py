@@ -24,7 +24,12 @@ class MongoDB:
         db_name = settings.mongodb_db_name
 
         mongodb_uri = f"mongodb://{user}:{password}@{host}:{port}"
-        self.client = AsyncIOMotorClient(mongodb_uri)
+        self.client = AsyncIOMotorClient(
+            mongodb_uri,
+            maxPoolSize=settings.mongodb_max_pool_size,
+            minPoolSize=settings.mongodb_min_pool_size,
+            maxIdleTimeMS=settings.mongodb_max_idle_time_ms
+        )
         self.database = self.client.get_database(db_name)
         self._initialized = True
 
