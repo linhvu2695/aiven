@@ -31,7 +31,6 @@ from app.classes.image import (
 from app.core.database import (
     MongoDB,
     delete_document,
-    find_documents_with_filters,
     count_documents_with_filters,
 )
 from app.core.storage import FirebaseStorageRepository
@@ -298,7 +297,7 @@ class ImageService:
             skip = (request.page - 1) * request.page_size
 
             # Get paginated documents
-            documents = await find_documents_with_filters(
+            documents = await MongoDB().find_documents_with_filters(
                 IMAGE_COLLECTION_NAME,
                 filters,
                 skip=skip,

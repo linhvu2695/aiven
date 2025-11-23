@@ -260,7 +260,10 @@ class TestUserRepositoryGetUserByEmail:
             "disabled": False
         }
         
-        with patch("app.services.user.user_repository.find_documents_with_filters", new_callable=AsyncMock, return_value=[mock_user_data]) as mock_find:
+        with patch("app.services.user.user_repository.MongoDB") as mock_mongodb_class:
+            mock_mongodb_instance = MagicMock()
+            mock_mongodb_class.return_value = mock_mongodb_instance
+            mock_mongodb_instance.find_documents_with_filters = AsyncMock(return_value=[mock_user_data])
             request = GetUserByEmailRequest(email="test@example.com", include_disabled=False)
             response = await user_repository.get_user_by_email(request)
             
@@ -274,8 +277,8 @@ class TestUserRepositoryGetUserByEmail:
             assert response.message == ""
             
             # Verify the correct filters were used
-            mock_find.assert_called_once()
-            call_args = mock_find.call_args
+            mock_mongodb_instance.find_documents_with_filters.assert_called_once()
+            call_args = mock_mongodb_instance.find_documents_with_filters.call_args
             collection_name = call_args[0][0]
             filters = call_args[0][1]
             
@@ -287,7 +290,10 @@ class TestUserRepositoryGetUserByEmail:
     @pytest.mark.asyncio
     async def test_get_user_by_email_not_found(self, user_repository: UserRepository):
         """Test user retrieval when user does not exist (successful query, no results)"""
-        with patch("app.services.user.user_repository.find_documents_with_filters", new_callable=AsyncMock, return_value=[]) as mock_find:
+        with patch("app.services.user.user_repository.MongoDB") as mock_mongodb_class:
+            mock_mongodb_instance = MagicMock()
+            mock_mongodb_class.return_value = mock_mongodb_instance
+            mock_mongodb_instance.find_documents_with_filters = AsyncMock(return_value=[])
             request = GetUserByEmailRequest(email="nonexistent@example.com", include_disabled=False)
             response = await user_repository.get_user_by_email(request)
             
@@ -296,7 +302,7 @@ class TestUserRepositoryGetUserByEmail:
             assert response.message == "User not found"
             
             # Verify find was called with correct parameters
-            mock_find.assert_called_once()
+            mock_mongodb_instance.find_documents_with_filters.assert_called_once()
 
     @pytest.mark.asyncio
     async def test_get_user_by_email_include_disabled_false(self, user_repository: UserRepository):
@@ -313,14 +319,17 @@ class TestUserRepositoryGetUserByEmail:
             "disabled": False
         }
         
-        with patch("app.services.user.user_repository.find_documents_with_filters", new_callable=AsyncMock, return_value=[mock_user_data]) as mock_find:
+        with patch("app.services.user.user_repository.MongoDB") as mock_mongodb_class:
+            mock_mongodb_instance = MagicMock()
+            mock_mongodb_class.return_value = mock_mongodb_instance
+            mock_mongodb_instance.find_documents_with_filters = AsyncMock(return_value=[mock_user_data])
             request = GetUserByEmailRequest(email="active@example.com", include_disabled=False)
             response = await user_repository.get_user_by_email(request)
             
             assert response.success is True
             
             # Verify the filter includes disabled=False
-            call_args = mock_find.call_args
+            call_args = mock_mongodb_instance.find_documents_with_filters.call_args
             filters = call_args[0][1]
             assert "disabled" in filters
             assert filters["disabled"] is False
@@ -340,7 +349,10 @@ class TestUserRepositoryGetUserByEmail:
             "disabled": True
         }
         
-        with patch("app.services.user.user_repository.find_documents_with_filters", new_callable=AsyncMock, return_value=[mock_user_data]) as mock_find:
+        with patch("app.services.user.user_repository.MongoDB") as mock_mongodb_class:
+            mock_mongodb_instance = MagicMock()
+            mock_mongodb_class.return_value = mock_mongodb_instance
+            mock_mongodb_instance.find_documents_with_filters = AsyncMock(return_value=[mock_user_data])
             request = GetUserByEmailRequest(email="disabled@example.com", include_disabled=True)
             response = await user_repository.get_user_by_email(request)
             
@@ -349,7 +361,7 @@ class TestUserRepositoryGetUserByEmail:
             assert response.user.disabled is True
             
             # Verify the filter does NOT include disabled field
-            call_args = mock_find.call_args
+            call_args = mock_mongodb_instance.find_documents_with_filters.call_args
             filters = call_args[0][1]
             assert "disabled" not in filters
             assert "email" in filters
@@ -357,7 +369,10 @@ class TestUserRepositoryGetUserByEmail:
     @pytest.mark.asyncio
     async def test_get_user_by_email_database_exception(self, user_repository: UserRepository):
         """Test user retrieval when database throws an exception"""
-        with patch("app.services.user.user_repository.find_documents_with_filters", new_callable=AsyncMock, side_effect=Exception("Database connection error")) as mock_find:
+        with patch("app.services.user.user_repository.MongoDB") as mock_mongodb_class:
+            mock_mongodb_instance = MagicMock()
+            mock_mongodb_class.return_value = mock_mongodb_instance
+            mock_mongodb_instance.find_documents_with_filters = AsyncMock(side_effect=Exception("Database connection error"))
             request = GetUserByEmailRequest(email="test@example.com", include_disabled=False)
             response = await user_repository.get_user_by_email(request)
             
@@ -369,7 +384,10 @@ class TestUserRepositoryGetUserByEmail:
     @pytest.mark.asyncio
     async def test_get_user_by_email_returns_none(self, user_repository: UserRepository):
         """Test user retrieval when find_documents_with_filters returns None (successful query, no results)"""
-        with patch("app.services.user.user_repository.find_documents_with_filters", new_callable=AsyncMock, return_value=None) as mock_find:
+        with patch("app.services.user.user_repository.MongoDB") as mock_mongodb_class:
+            mock_mongodb_instance = MagicMock()
+            mock_mongodb_class.return_value = mock_mongodb_instance
+            mock_mongodb_instance.find_documents_with_filters = AsyncMock(return_value=None)
             request = GetUserByEmailRequest(email="test@example.com", include_disabled=False)
             response = await user_repository.get_user_by_email(request)
             
@@ -395,7 +413,10 @@ class TestUserRepositoryGetUserByUsername:
             "disabled": False
         }
         
-        with patch("app.services.user.user_repository.find_documents_with_filters", new_callable=AsyncMock, return_value=[mock_user_data]) as mock_find:
+        with patch("app.services.user.user_repository.MongoDB") as mock_mongodb_class:
+            mock_mongodb_instance = MagicMock()
+            mock_mongodb_class.return_value = mock_mongodb_instance
+            mock_mongodb_instance.find_documents_with_filters = AsyncMock(return_value=[mock_user_data])
             request = GetUserByUsernameRequest(username="testuser", include_disabled=False)
             response = await user_repository.get_user_by_username(request)
             
@@ -409,8 +430,8 @@ class TestUserRepositoryGetUserByUsername:
             assert response.message == ""
             
             # Verify the correct filters were used
-            mock_find.assert_called_once()
-            call_args = mock_find.call_args
+            mock_mongodb_instance.find_documents_with_filters.assert_called_once()
+            call_args = mock_mongodb_instance.find_documents_with_filters.call_args
             collection_name = call_args[0][0]
             filters = call_args[0][1]
             
@@ -422,7 +443,10 @@ class TestUserRepositoryGetUserByUsername:
     @pytest.mark.asyncio
     async def test_get_user_by_username_not_found(self, user_repository: UserRepository):
         """Test user retrieval when user does not exist (successful query, no results)"""
-        with patch("app.services.user.user_repository.find_documents_with_filters", new_callable=AsyncMock, return_value=[]) as mock_find:
+        with patch("app.services.user.user_repository.MongoDB") as mock_mongodb_class:
+            mock_mongodb_instance = MagicMock()
+            mock_mongodb_class.return_value = mock_mongodb_instance
+            mock_mongodb_instance.find_documents_with_filters = AsyncMock(return_value=[])
             request = GetUserByUsernameRequest(username="nonexistent", include_disabled=False)
             response = await user_repository.get_user_by_username(request)
             
@@ -431,7 +455,7 @@ class TestUserRepositoryGetUserByUsername:
             assert response.message == "User not found"
             
             # Verify find was called with correct parameters
-            mock_find.assert_called_once()
+            mock_mongodb_instance.find_documents_with_filters.assert_called_once()
 
     @pytest.mark.asyncio
     async def test_get_user_by_username_include_disabled_false(self, user_repository: UserRepository):
@@ -448,14 +472,17 @@ class TestUserRepositoryGetUserByUsername:
             "disabled": False
         }
         
-        with patch("app.services.user.user_repository.find_documents_with_filters", new_callable=AsyncMock, return_value=[mock_user_data]) as mock_find:
+        with patch("app.services.user.user_repository.MongoDB") as mock_mongodb_class:
+            mock_mongodb_instance = MagicMock()
+            mock_mongodb_class.return_value = mock_mongodb_instance
+            mock_mongodb_instance.find_documents_with_filters = AsyncMock(return_value=[mock_user_data])
             request = GetUserByUsernameRequest(username="activeuser", include_disabled=False)
             response = await user_repository.get_user_by_username(request)
             
             assert response.success is True
             
             # Verify the filter includes disabled=False
-            call_args = mock_find.call_args
+            call_args = mock_mongodb_instance.find_documents_with_filters.call_args
             filters = call_args[0][1]
             assert "disabled" in filters
             assert filters["disabled"] is False
@@ -475,7 +502,10 @@ class TestUserRepositoryGetUserByUsername:
             "disabled": True
         }
         
-        with patch("app.services.user.user_repository.find_documents_with_filters", new_callable=AsyncMock, return_value=[mock_user_data]) as mock_find:
+        with patch("app.services.user.user_repository.MongoDB") as mock_mongodb_class:
+            mock_mongodb_instance = MagicMock()
+            mock_mongodb_class.return_value = mock_mongodb_instance
+            mock_mongodb_instance.find_documents_with_filters = AsyncMock(return_value=[mock_user_data])
             request = GetUserByUsernameRequest(username="disableduser", include_disabled=True)
             response = await user_repository.get_user_by_username(request)
             
@@ -484,7 +514,7 @@ class TestUserRepositoryGetUserByUsername:
             assert response.user.disabled is True
             
             # Verify the filter does NOT include disabled field
-            call_args = mock_find.call_args
+            call_args = mock_mongodb_instance.find_documents_with_filters.call_args
             filters = call_args[0][1]
             assert "disabled" not in filters
             assert "username" in filters
@@ -492,7 +522,10 @@ class TestUserRepositoryGetUserByUsername:
     @pytest.mark.asyncio
     async def test_get_user_by_username_database_exception(self, user_repository: UserRepository):
         """Test user retrieval when database throws an exception"""
-        with patch("app.services.user.user_repository.find_documents_with_filters", new_callable=AsyncMock, side_effect=Exception("Database connection error")) as mock_find:
+        with patch("app.services.user.user_repository.MongoDB") as mock_mongodb_class:
+            mock_mongodb_instance = MagicMock()
+            mock_mongodb_class.return_value = mock_mongodb_instance
+            mock_mongodb_instance.find_documents_with_filters = AsyncMock(side_effect=Exception("Database connection error"))
             request = GetUserByUsernameRequest(username="testuser", include_disabled=False)
             response = await user_repository.get_user_by_username(request)
             
@@ -504,7 +537,10 @@ class TestUserRepositoryGetUserByUsername:
     @pytest.mark.asyncio
     async def test_get_user_by_username_returns_none(self, user_repository: UserRepository):
         """Test user retrieval when find_documents_with_filters returns None (successful query, no results)"""
-        with patch("app.services.user.user_repository.find_documents_with_filters", new_callable=AsyncMock, return_value=None) as mock_find:
+        with patch("app.services.user.user_repository.MongoDB") as mock_mongodb_class:
+            mock_mongodb_instance = MagicMock()
+            mock_mongodb_class.return_value = mock_mongodb_instance
+            mock_mongodb_instance.find_documents_with_filters = AsyncMock(return_value=None)
             request = GetUserByUsernameRequest(username="testuser", include_disabled=False)
             response = await user_repository.get_user_by_username(request)
             

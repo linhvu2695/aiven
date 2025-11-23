@@ -16,7 +16,7 @@ from app.utils.string.string_utils import is_empty_string, validate_exactly_one_
 from app.utils.video.video_utils import generate_storage_path
 from app.core.storage import FirebaseStorageRepository
 from app.classes.media import MediaProcessingStatus
-from app.core.database import delete_document, find_documents_with_filters, count_documents_with_filters, MongoDB
+from app.core.database import delete_document, count_documents_with_filters, MongoDB
 from app.services.image.image_service import ImageService
 from app.utils.file.file_utils import create_temp_local_file
 from app.services.image.image_constants import IMAGE_COLLECTION_NAME
@@ -251,7 +251,7 @@ class VideoService:
             
             # Fetch all matching thumbnail images from the database
             IMAGE_COLLECTION_NAME = "images"
-            thumbnail_docs = await find_documents_with_filters(
+            thumbnail_docs = await MongoDB().find_documents_with_filters(
                 IMAGE_COLLECTION_NAME,
                 filters,
                 skip=0,
@@ -548,7 +548,7 @@ class VideoService:
             skip = (request.page - 1) * request.page_size
 
             # Get paginated documents
-            documents = await find_documents_with_filters(
+            documents = await MongoDB().find_documents_with_filters(
                 VIDEO_COLLECTION_NAME,
                 filters,
                 skip=skip,
@@ -638,7 +638,7 @@ class VideoService:
                     "entity_type": "video",
                     "image_type": ImageType.REPRESENTATIVE.value
                 }
-                thumbnail_images = await find_documents_with_filters(IMAGE_COLLECTION_NAME, filters)
+                thumbnail_images = await MongoDB().find_documents_with_filters(IMAGE_COLLECTION_NAME, filters)
                 deleted_thumbnail_images = 0
                 for thumbnail_image in thumbnail_images:
                     thumbnail_image_id = str(thumbnail_image.get("_id", ""))

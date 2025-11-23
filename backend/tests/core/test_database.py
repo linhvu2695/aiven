@@ -5,7 +5,6 @@ from bson.errors import InvalidId
 
 from app.core.database import (
     MongoDB,
-    find_documents_with_filters,
     delete_document
 )
 
@@ -401,7 +400,7 @@ class TestFindDocumentsWithFilters:
         mock_motor_client["collection"].find.return_value = mock_cursor
         
         # Act
-        result = await find_documents_with_filters("test_collection", filters)
+        result = await MongoDB().find_documents_with_filters("test_collection", filters)
         
         # Assert
         assert result == matching_documents
@@ -424,7 +423,7 @@ class TestFindDocumentsWithFilters:
         mock_motor_client["collection"].find.return_value = mock_cursor
         
         # Act
-        result = await find_documents_with_filters("test_collection", filters)
+        result = await MongoDB().find_documents_with_filters("test_collection", filters)
         
         # Assert
         assert result == matching_documents
@@ -447,7 +446,7 @@ class TestFindDocumentsWithFilters:
         mock_motor_client["collection"].find.return_value = mock_cursor
         
         # Act
-        result = await find_documents_with_filters("test_collection", filters)
+        result = await MongoDB().find_documents_with_filters("test_collection", filters)
         
         # Assert
         assert result == all_documents
@@ -463,7 +462,7 @@ class TestFindDocumentsWithFilters:
         mock_motor_client["collection"].find.return_value = mock_cursor
         
         # Act
-        result = await find_documents_with_filters("test_collection", filters)
+        result = await MongoDB().find_documents_with_filters("test_collection", filters)
         
         # Assert
         assert result == []
@@ -485,7 +484,7 @@ class TestFindDocumentsWithFilters:
         mock_motor_client["collection"].find.return_value = mock_cursor
         
         # Act
-        result = await find_documents_with_filters("test_collection", filters, skip=skip, limit=limit)
+        result = await MongoDB().find_documents_with_filters("test_collection", filters, skip=skip, limit=limit)
         
         # Assert
         assert result == matching_documents
@@ -510,7 +509,7 @@ class TestFindDocumentsWithFilters:
         mock_motor_client["collection"].find.return_value = mock_cursor
         
         # Act
-        result = await find_documents_with_filters("test_collection", filters, sort_by=sort_by, asc=asc)
+        result = await MongoDB().find_documents_with_filters("test_collection", filters, sort_by=sort_by, asc=asc)
         
         # Assert
         assert result == matching_documents
@@ -534,7 +533,7 @@ class TestFindDocumentsWithFilters:
         mock_motor_client["collection"].find.return_value = mock_cursor
         
         # Act
-        result = await find_documents_with_filters("test_collection", filters, sort_by=sort_by, asc=asc)
+        result = await MongoDB().find_documents_with_filters("test_collection", filters, sort_by=sort_by, asc=asc)
         
         # Assert
         assert result == matching_documents
@@ -560,7 +559,7 @@ class TestFindDocumentsWithFilters:
         mock_motor_client["collection"].find.return_value = mock_cursor
         
         # Act
-        result = await find_documents_with_filters(
+        result = await MongoDB().find_documents_with_filters(
             "test_collection", 
             filters, 
             skip=skip, 
@@ -588,7 +587,7 @@ class TestFindDocumentsWithFilters:
         mock_motor_client["collection"].find.return_value = mock_cursor
         
         # Act
-        result = await find_documents_with_filters("test_collection", filters, skip=skip)
+        result = await MongoDB().find_documents_with_filters("test_collection", filters, skip=skip)
         
         # Assert
         assert result == matching_documents
@@ -619,7 +618,7 @@ class TestFindDocumentsWithFilters:
         mock_motor_client["collection"].find.return_value = mock_cursor
         
         # Act
-        result = await find_documents_with_filters("test_collection", filters)
+        result = await MongoDB().find_documents_with_filters("test_collection", filters)
         
         # Assert
         assert result == matching_documents
@@ -637,7 +636,7 @@ class TestDeleteDocument:
         mock_motor_client["collection"].delete_one.return_value = mock_result
         
         # Act
-        result = await delete_document("test_collection", doc_id)
+        result = await MongoDB().delete_document("test_collection", doc_id)
         
         # Assert
         assert result is True

@@ -1337,7 +1337,10 @@ class TestVideoServiceListVideos:
         mock_docs = [mock_video_document]
         
         with patch("app.services.video.video_service.count_documents_with_filters", return_value=1), \
-             patch("app.services.video.video_service.find_documents_with_filters", return_value=mock_docs):
+             patch("app.services.video.video_service.MongoDB") as mock_mongodb_class:
+            mock_mongodb_instance = MagicMock()
+            mock_mongodb_class.return_value = mock_mongodb_instance
+            mock_mongodb_instance.find_documents_with_filters = AsyncMock(return_value=mock_docs)
             
             request = VideoListRequest()
             response = await video_service.list_videos(request)
@@ -1368,7 +1371,10 @@ class TestVideoServiceListVideos:
             mock_docs.append(doc)
         
         with patch("app.services.video.video_service.count_documents_with_filters", return_value=25), \
-             patch("app.services.video.video_service.find_documents_with_filters", return_value=mock_docs):
+             patch("app.services.video.video_service.MongoDB") as mock_mongodb_class:
+            mock_mongodb_instance = MagicMock()
+            mock_mongodb_class.return_value = mock_mongodb_instance
+            mock_mongodb_instance.find_documents_with_filters = AsyncMock(return_value=mock_docs)
             
             request = VideoListRequest(page=2, page_size=5)
             response = await video_service.list_videos(request)
@@ -1387,7 +1393,10 @@ class TestVideoServiceListVideos:
         mock_docs = [mock_video_document]
         
         with patch("app.services.video.video_service.count_documents_with_filters", return_value=1) as mock_count, \
-             patch("app.services.video.video_service.find_documents_with_filters", return_value=mock_docs) as mock_find:
+             patch("app.services.video.video_service.MongoDB") as mock_mongodb_class:
+            mock_mongodb_instance = MagicMock()
+            mock_mongodb_class.return_value = mock_mongodb_instance
+            mock_mongodb_instance.find_documents_with_filters = AsyncMock(return_value=mock_docs)
             
             request = VideoListRequest(video_type=VideoType.GENERAL)
             response = await video_service.list_videos(request)
@@ -1409,7 +1418,10 @@ class TestVideoServiceListVideos:
         mock_docs = [mock_video_document]
         
         with patch("app.services.video.video_service.count_documents_with_filters", return_value=1) as mock_count, \
-             patch("app.services.video.video_service.find_documents_with_filters", return_value=mock_docs):
+             patch("app.services.video.video_service.MongoDB") as mock_mongodb_class:
+            mock_mongodb_instance = MagicMock()
+            mock_mongodb_class.return_value = mock_mongodb_instance
+            mock_mongodb_instance.find_documents_with_filters = AsyncMock(return_value=mock_docs)
             
             request = VideoListRequest(entity_id="entity_123")
             response = await video_service.list_videos(request)
@@ -1431,7 +1443,10 @@ class TestVideoServiceListVideos:
         mock_docs = [mock_video_document]
         
         with patch("app.services.video.video_service.count_documents_with_filters", return_value=1) as mock_count, \
-             patch("app.services.video.video_service.find_documents_with_filters", return_value=mock_docs):
+             patch("app.services.video.video_service.MongoDB") as mock_mongodb_class:
+            mock_mongodb_instance = MagicMock()
+            mock_mongodb_class.return_value = mock_mongodb_instance
+            mock_mongodb_instance.find_documents_with_filters = AsyncMock(return_value=mock_docs)
             
             request = VideoListRequest(entity_type="test_entity")
             response = await video_service.list_videos(request)
@@ -1453,7 +1468,10 @@ class TestVideoServiceListVideos:
         mock_docs = [mock_video_document]
         
         with patch("app.services.video.video_service.count_documents_with_filters", return_value=1) as mock_count, \
-             patch("app.services.video.video_service.find_documents_with_filters", return_value=mock_docs):
+             patch("app.services.video.video_service.MongoDB") as mock_mongodb_class:
+            mock_mongodb_instance = MagicMock()
+            mock_mongodb_class.return_value = mock_mongodb_instance
+            mock_mongodb_instance.find_documents_with_filters = AsyncMock(return_value=mock_docs)
             
             request = VideoListRequest(
                 video_type=VideoType.GENERAL,
@@ -1484,7 +1502,10 @@ class TestVideoServiceListVideos:
         mock_docs = [mock_video_document, mock_doc_deleted]
         
         with patch("app.services.video.video_service.count_documents_with_filters", return_value=2) as mock_count, \
-             patch("app.services.video.video_service.find_documents_with_filters", return_value=mock_docs):
+             patch("app.services.video.video_service.MongoDB") as mock_mongodb_class:
+            mock_mongodb_instance = MagicMock()
+            mock_mongodb_class.return_value = mock_mongodb_instance
+            mock_mongodb_instance.find_documents_with_filters = AsyncMock(return_value=mock_docs)
             
             request = VideoListRequest(include_deleted=True)
             response = await video_service.list_videos(request)
@@ -1505,7 +1526,10 @@ class TestVideoServiceListVideos:
         mock_docs = [mock_video_document]
         
         with patch("app.services.video.video_service.count_documents_with_filters", return_value=1) as mock_count, \
-             patch("app.services.video.video_service.find_documents_with_filters", return_value=mock_docs):
+             patch("app.services.video.video_service.MongoDB") as mock_mongodb_class:
+            mock_mongodb_instance = MagicMock()
+            mock_mongodb_class.return_value = mock_mongodb_instance
+            mock_mongodb_instance.find_documents_with_filters = AsyncMock(return_value=mock_docs)
             
             request = VideoListRequest(include_deleted=False)
             response = await video_service.list_videos(request)
@@ -1524,7 +1548,10 @@ class TestVideoServiceListVideos:
         from app.classes.video import VideoListRequest, VideoListResponse
         
         with patch("app.services.video.video_service.count_documents_with_filters", return_value=0), \
-             patch("app.services.video.video_service.find_documents_with_filters", return_value=[]):
+             patch("app.services.video.video_service.MongoDB") as mock_mongodb_class:
+            mock_mongodb_instance = MagicMock()
+            mock_mongodb_class.return_value = mock_mongodb_instance
+            mock_mongodb_instance.find_documents_with_filters = AsyncMock(return_value=[])
             
             request = VideoListRequest()
             response = await video_service.list_videos(request)
@@ -1548,7 +1575,10 @@ class TestVideoServiceListVideos:
             mock_docs.append(doc)
         
         with patch("app.services.video.video_service.count_documents_with_filters", return_value=100), \
-             patch("app.services.video.video_service.find_documents_with_filters", return_value=mock_docs):
+             patch("app.services.video.video_service.MongoDB") as mock_mongodb_class:
+            mock_mongodb_instance = MagicMock()
+            mock_mongodb_class.return_value = mock_mongodb_instance
+            mock_mongodb_instance.find_documents_with_filters = AsyncMock(return_value=mock_docs)
             
             request = VideoListRequest(page=1, page_size=100)
             response = await video_service.list_videos(request)
@@ -1567,7 +1597,10 @@ class TestVideoServiceListVideos:
         mock_docs = [mock_video_document]
         
         with patch("app.services.video.video_service.count_documents_with_filters", return_value=50), \
-             patch("app.services.video.video_service.find_documents_with_filters", return_value=mock_docs) as mock_find:
+             patch("app.services.video.video_service.MongoDB") as mock_mongodb_class:
+            mock_mongodb_instance = MagicMock()
+            mock_mongodb_class.return_value = mock_mongodb_instance
+            mock_mongodb_instance.find_documents_with_filters = AsyncMock(return_value=mock_docs)
             
             # Request page 3 with page_size 10
             request = VideoListRequest(page=3, page_size=10)
@@ -1576,7 +1609,7 @@ class TestVideoServiceListVideos:
             assert isinstance(response, VideoListResponse)
             
             # Verify skip was calculated correctly (page 3 means skip first 20 items)
-            call_kwargs = mock_find.call_args[1]
+            call_kwargs = mock_mongodb_instance.find_documents_with_filters.call_args[1]
             assert call_kwargs["skip"] == 20
             assert call_kwargs["limit"] == 10
 
@@ -1588,7 +1621,10 @@ class TestVideoServiceListVideos:
         mock_docs = [mock_video_document]
         
         with patch("app.services.video.video_service.count_documents_with_filters", return_value=1), \
-             patch("app.services.video.video_service.find_documents_with_filters", return_value=mock_docs) as mock_find:
+             patch("app.services.video.video_service.MongoDB") as mock_mongodb_class:
+            mock_mongodb_instance = MagicMock()
+            mock_mongodb_class.return_value = mock_mongodb_instance
+            mock_mongodb_instance.find_documents_with_filters = AsyncMock(return_value=mock_docs)
             
             request = VideoListRequest()
             response = await video_service.list_videos(request)
@@ -1596,7 +1632,7 @@ class TestVideoServiceListVideos:
             assert isinstance(response, VideoListResponse)
             
             # Verify sort parameters
-            call_kwargs = mock_find.call_args[1]
+            call_kwargs = mock_mongodb_instance.find_documents_with_filters.call_args[1]
             assert call_kwargs["sort_by"] == "updated_at"
             assert call_kwargs["asc"] is False  # Descending order
 
@@ -1632,7 +1668,10 @@ class TestVideoServiceListVideos:
         }
         
         with patch("app.services.video.video_service.count_documents_with_filters", return_value=1), \
-             patch("app.services.video.video_service.find_documents_with_filters", return_value=[minimal_doc]):
+             patch("app.services.video.video_service.MongoDB") as mock_mongodb_class:
+            mock_mongodb_instance = MagicMock()
+            mock_mongodb_class.return_value = mock_mongodb_instance
+            mock_mongodb_instance.find_documents_with_filters = AsyncMock(return_value=[minimal_doc])
             
             request = VideoListRequest()
             response = await video_service.list_videos(request)
@@ -1654,7 +1693,10 @@ class TestVideoServiceListVideos:
         from app.classes.video import VideoListRequest, VideoListResponse
         
         with patch("app.services.video.video_service.count_documents_with_filters", return_value=1), \
-             patch("app.services.video.video_service.find_documents_with_filters", return_value=[mock_video_document]):
+             patch("app.services.video.video_service.MongoDB") as mock_mongodb_class:
+            mock_mongodb_instance = MagicMock()
+            mock_mongodb_class.return_value = mock_mongodb_instance
+            mock_mongodb_instance.find_documents_with_filters = AsyncMock(return_value=[mock_video_document])
             
             request = VideoListRequest()
             response = await video_service.list_videos(request)
@@ -1693,7 +1735,10 @@ class TestVideoServiceListVideos:
         mock_docs = [mock_video_document]
         
         with patch("app.services.video.video_service.count_documents_with_filters", return_value=30), \
-             patch("app.services.video.video_service.find_documents_with_filters", return_value=mock_docs) as mock_find:
+             patch("app.services.video.video_service.MongoDB") as mock_mongodb_class:
+            mock_mongodb_instance = MagicMock()
+            mock_mongodb_class.return_value = mock_mongodb_instance
+            mock_mongodb_instance.find_documents_with_filters = AsyncMock(return_value=mock_docs)
             
             request = VideoListRequest(page=1, page_size=10)
             response = await video_service.list_videos(request)
@@ -1703,7 +1748,7 @@ class TestVideoServiceListVideos:
             assert response.total == 30
             
             # Verify skip is 0 for first page
-            call_kwargs = mock_find.call_args[1]
+            call_kwargs = mock_mongodb_instance.find_documents_with_filters.call_args[1]
             assert call_kwargs["skip"] == 0
 
     @pytest.mark.asyncio
@@ -1719,7 +1764,10 @@ class TestVideoServiceListVideos:
             mock_docs.append(doc)
         
         with patch("app.services.video.video_service.count_documents_with_filters", return_value=23), \
-             patch("app.services.video.video_service.find_documents_with_filters", return_value=mock_docs):
+             patch("app.services.video.video_service.MongoDB") as mock_mongodb_class:
+            mock_mongodb_instance = MagicMock()
+            mock_mongodb_class.return_value = mock_mongodb_instance
+            mock_mongodb_instance.find_documents_with_filters = AsyncMock(return_value=mock_docs)
             
             # Request page 3 with page_size 10 (would skip 20, expecting 3 results)
             request = VideoListRequest(page=3, page_size=10)

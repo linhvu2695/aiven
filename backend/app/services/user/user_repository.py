@@ -5,7 +5,7 @@ from typing import Dict, Any
 
 from bson import ObjectId
 from app.classes.user import CreateUserRequest, CreateUserResponse, DeleteUserResponse, GetUserByEmailRequest, GetUserByEmailResponse, GetUserByUsernameRequest, GetUserByUsernameResponse, GetUserByIdResponse, UserInfo
-from app.core.database import delete_document, find_documents_with_filters, MongoDB
+from app.core.database import delete_document, MongoDB
 
 USER_COLLECTION_NAME = "users"
 
@@ -79,7 +79,7 @@ class UserRepository:
             if not request.include_disabled:
                 filters["disabled"] = False
             
-            users = await find_documents_with_filters(
+            users = await MongoDB().find_documents_with_filters(
                 USER_COLLECTION_NAME, 
                 filters,
                 limit=1
@@ -125,7 +125,7 @@ class UserRepository:
             if not request.include_disabled:
                 filters["disabled"] = False
             
-            users = await find_documents_with_filters(
+            users = await MongoDB().find_documents_with_filters(
                 USER_COLLECTION_NAME, 
                 filters,
                 limit=1

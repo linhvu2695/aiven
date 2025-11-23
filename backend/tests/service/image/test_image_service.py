@@ -472,7 +472,10 @@ class TestImageServiceListImages:
         mock_documents = [mock_image_document, mock_image_document.copy()]
         
         with patch("app.services.image.image_service.count_documents_with_filters", return_value=2), \
-             patch("app.services.image.image_service.find_documents_with_filters", return_value=mock_documents):
+             patch("app.services.image.image_service.MongoDB") as mock_mongodb_class:
+            mock_mongodb_instance = MagicMock()
+            mock_mongodb_class.return_value = mock_mongodb_instance
+            mock_mongodb_instance.find_documents_with_filters = AsyncMock(return_value=mock_documents)
             
             response = await image_service.list_images(ImageListRequest(page=1, page_size=10))
             
@@ -486,7 +489,11 @@ class TestImageServiceListImages:
     async def test_list_images_with_filters(self, image_service: ImageService, mock_image_document):
         """Test image listing with filters"""
         with patch("app.services.image.image_service.count_documents_with_filters", return_value=1) as mock_count, \
-             patch("app.services.image.image_service.find_documents_with_filters", return_value=[mock_image_document]) as mock_find:
+             patch("app.services.image.image_service.MongoDB") as mock_mongodb_class:
+            mock_mongodb_instance = MagicMock()
+            mock_mongodb_class.return_value = mock_mongodb_instance
+            mock_mongodb_instance.find_documents_with_filters = AsyncMock(return_value=[mock_image_document])
+            mock_find = mock_mongodb_instance.find_documents_with_filters
             
             await image_service.list_images(
                 ImageListRequest(
@@ -507,7 +514,10 @@ class TestImageServiceListImages:
     async def test_list_images_include_deleted(self, image_service: ImageService):
         """Test image listing includes deleted when requested"""
         with patch("app.services.image.image_service.count_documents_with_filters") as mock_count, \
-             patch("app.services.image.image_service.find_documents_with_filters", return_value=[]):
+             patch("app.services.image.image_service.MongoDB") as mock_mongodb_class:
+            mock_mongodb_instance = MagicMock()
+            mock_mongodb_class.return_value = mock_mongodb_instance
+            mock_mongodb_instance.find_documents_with_filters = AsyncMock(return_value=[])
 
             await image_service.list_images(ImageListRequest(include_deleted=True))
             
@@ -519,7 +529,10 @@ class TestImageServiceListImages:
     async def test_list_images_exclude_deleted(self, image_service: ImageService):
         """Test image listing includes deleted when requested"""
         with patch("app.services.image.image_service.count_documents_with_filters") as mock_count, \
-             patch("app.services.image.image_service.find_documents_with_filters", return_value=[]):
+             patch("app.services.image.image_service.MongoDB") as mock_mongodb_class:
+            mock_mongodb_instance = MagicMock()
+            mock_mongodb_class.return_value = mock_mongodb_instance
+            mock_mongodb_instance.find_documents_with_filters = AsyncMock(return_value=[])
 
             await image_service.list_images(ImageListRequest())
             

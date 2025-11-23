@@ -169,17 +169,6 @@ class MongoDB:
 
 # Backward compatibility functions - delegate to MongoDB singleton
 
-async def find_documents_with_filters(
-    collection_name: str, 
-    filters: Dict[str, Any], 
-    skip: int = 0, 
-    limit: Optional[int] = None,
-    sort_by: Optional[str] = None,
-    asc: bool = True
-) -> list[dict]:
-    """Deprecated: Use MongoDB().find_documents_with_filters() instead"""
-    return await MongoDB().find_documents_with_filters(collection_name, filters, skip, limit, sort_by, asc)
-
 async def count_documents_with_filters(collection_name: str, filters: Dict[str, Any]) -> int:
     """Deprecated: Use MongoDB().count_documents_with_filters() instead"""
     return await MongoDB().count_documents_with_filters(collection_name, filters)
