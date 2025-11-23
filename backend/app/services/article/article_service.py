@@ -9,7 +9,7 @@ from app.classes.article import (
     DeleteArticleResponse,
     SearchArticlesResponse,
 )
-from app.core.database import delete_document, find_documents_by_field, MongoDB
+from app.core.database import delete_document, MongoDB
 
 ARTICLE_COLLECTION_NAME = "articles"
 
@@ -123,7 +123,7 @@ class ArticleService:
         
         try:
             # First, find all children of this article
-            child_documents = await find_documents_by_field(ARTICLE_COLLECTION_NAME, "parent", id)
+            child_documents = await MongoDB().find_documents_by_field(ARTICLE_COLLECTION_NAME, "parent", id)
             
             # Recursively delete all children
             for child_doc in child_documents:

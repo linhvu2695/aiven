@@ -5,7 +5,6 @@ from bson.errors import InvalidId
 
 from app.core.database import (
     MongoDB,
-    find_documents_by_field,
     find_documents_with_filters,
     delete_document
 )
@@ -363,7 +362,7 @@ class TestFindDocumentsByField:
         mock_motor_client["collection"].find.return_value = mock_cursor
         
         # Act
-        result = await find_documents_by_field("test_collection", field_name, field_value)
+        result = await MongoDB().find_documents_by_field("test_collection", field_name, field_value)
         
         # Assert
         assert result == matching_documents
@@ -755,11 +754,11 @@ class TestIntegrationScenarios:
         
         # Test search operations
         # Search by status
-        active_results = await find_documents_by_field(collection_name, "status", "active")
+        active_results = await MongoDB().find_documents_by_field(collection_name, "status", "active")
         assert len(active_results) == 2
         
         # Search by category
-        type_a_results = await find_documents_by_field(collection_name, "category", "type_a")
+        type_a_results = await MongoDB().find_documents_by_field(collection_name, "category", "type_a")
         assert len(type_a_results) == 2
         
         # Verify find was called with correct filters
