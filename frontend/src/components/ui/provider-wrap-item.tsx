@@ -5,12 +5,13 @@ interface ProviderWrapItemProps {
     value: string;
     title: string;
     icon?: ComponentType<{ size?: number }>;
+    disabled?: boolean;
 }
 
-export const ProviderWrapItem = ({ value, title, icon: Icon }: ProviderWrapItemProps) => {
+export const ProviderWrapItem = ({ value, title, icon: Icon, disabled }: ProviderWrapItemProps) => {
     return (
         <WrapItem key={value}>
-            <RadioCard.Item value={value}>
+            <RadioCard.Item value={value} disabled={disabled}>
                 <RadioCard.ItemHiddenInput />
                 <RadioCard.ItemControl>
                     <RadioCard.ItemText fontSize={14}>

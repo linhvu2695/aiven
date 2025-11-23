@@ -17,9 +17,10 @@ import type {
     VideoUrlsResponse,
     VideoWithUrl,
 } from "@/types/video";
-import { FaArrowLeft, FaArrowRight } from "react-icons/fa";
-import { VideoCard, VideoDetailDialog } from "@/components/video";
+import { FaArrowLeft, FaArrowRight, FaMagic } from "react-icons/fa";
+import { VideoCard, VideoDetailDialog, VideoGenDialog } from "@/components/video";
 import { useVideo } from "@/context/video-ctx";
+import { Tooltip } from "@/components/ui";
 
 export const VideoPage = () => {
     const [videos, setVideos] = useState<VideoWithUrl[]>([]);
@@ -27,7 +28,7 @@ export const VideoPage = () => {
     const [currentPage, setCurrentPage] = useState(1);
     const [totalVideos, setTotalVideos] = useState(0);
     const pageSize = 12;
-    const { openVideoDialog } = useVideo();
+    const { openVideoDialog, isGenDialogOpen, setIsGenDialogOpen } = useVideo();
 
     const fetchVideos = async (page: number = currentPage) => {
         try {
@@ -119,6 +120,19 @@ export const VideoPage = () => {
                 <Text fontSize="2xl" fontWeight="bold">
                     Videos
                 </Text>
+
+                {/* Generate Video */}
+                <Tooltip content="Generate Video">
+                    <IconButton
+                        aria-label="Generate Video"
+                        size="md"
+                        variant="ghost"
+                        borderRadius={"full"}
+                        onClick={() => setIsGenDialogOpen(true)}
+                    >
+                        <FaMagic />
+                    </IconButton>
+                </Tooltip>
             </HStack>
 
             {/* Main Content */}
@@ -186,6 +200,11 @@ export const VideoPage = () => {
             </Flex>
 
             <VideoDetailDialog />
+            <VideoGenDialog 
+                isOpen={isGenDialogOpen} 
+                onClose={() => setIsGenDialogOpen(false)}
+                onSuccess={() => fetchVideos(currentPage)}
+            />
         </Box>
     );
 };

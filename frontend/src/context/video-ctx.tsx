@@ -7,6 +7,8 @@ type VideoContextType = {
     isDialogOpen: boolean;
     openVideoDialog: (video: VideoWithUrl) => void;
     closeVideoDialog: () => void;
+    isGenDialogOpen: boolean;
+    setIsGenDialogOpen: (isOpen: boolean) => void;
 };
 
 const VideoContext = createContext<VideoContextType | undefined>(undefined);
@@ -22,6 +24,7 @@ export const useVideo = () => {
 export const VideoProvider = ({ children }: { children: ReactNode }) => {
     const [selectedVideo, setSelectedVideo] = useState<VideoWithUrl | null>(null);
     const [isDialogOpen, setIsDialogOpen] = useState(false);
+    const [isGenDialogOpen, setIsGenDialogOpen] = useState(false);
 
     const openVideoDialog = (video: VideoWithUrl) => {
         setSelectedVideo(video);
@@ -39,7 +42,9 @@ export const VideoProvider = ({ children }: { children: ReactNode }) => {
             setSelectedVideo,
             isDialogOpen,
             openVideoDialog,
-            closeVideoDialog
+            closeVideoDialog,
+            isGenDialogOpen,
+            setIsGenDialogOpen
         }}>
             {children}
         </VideoContext.Provider>
