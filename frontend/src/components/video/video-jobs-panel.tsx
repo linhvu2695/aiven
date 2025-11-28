@@ -14,13 +14,14 @@ import type { JobInfo, JobListResponse } from "@/types/job";
 import { ACTIVE_JOB_STATUSES, COMPLETED_JOB_STATUSES } from "@/types/job";
 import { VideoJobCard } from "./video-job-card";
 import { toaster } from "@/components/ui/toaster";
-import { Tooltip } from "@/components/ui";
+import { Tooltip, useColorMode } from "@/components/ui";
 
 const RECENT_JOB_THRESHOLD_MINUTES = 30*24*60; // 24 hours
 const PAGE_SIZE = 7;
 
 export const VideoJobsPanel = () => {
     const [jobs, setJobs] = useState<JobInfo[]>([]);
+    const { colorMode } = useColorMode();
     const [loading, setLoading] = useState(false);
     const [isExpanded, setIsExpanded] = useState(false);
     const [currentPage, setCurrentPage] = useState(1);
@@ -119,15 +120,11 @@ export const VideoJobsPanel = () => {
             bottom={0}
             left={0}
             right={0}
-            bg="white"
+            bg={colorMode === "dark" ? "gray.800" : "white"}
             borderTop="1px solid"
-            borderColor="gray.200"
+            borderColor={colorMode === "dark" ? "gray.700" : "gray.200"}
             shadow="lg"
             zIndex={10}
-            _dark={{
-                bg: "gray.800",
-                borderColor: "gray.700",
-            }}
         >
             {/* Header */}
             <HStack
@@ -135,7 +132,6 @@ export const VideoJobsPanel = () => {
                 justify="space-between"
                 cursor="pointer"
                 onClick={() => setIsExpanded(!isExpanded)}
-                _hover={{ bg: "gray.50", _dark: { bg: "gray.700" } }}
             >
                 <HStack gap={2}>
                     <IconButton
