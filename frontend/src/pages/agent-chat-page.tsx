@@ -1,18 +1,29 @@
 import { BASE_URL } from "@/App";
 import { AgentContainer } from "@/components/agent";
-import { ChatContainer, ConversationDrawer, type ConversationInfo } from "@/components/chat";
+import { AgentEvalContainer } from "@/components/agent/agent-eval-container";
+import {
+    ChatContainer,
+    ConversationDrawer,
+    type ConversationInfo,
+} from "@/components/chat";
+import { Tooltip } from "@/components/ui";
 import { useAgent } from "@/context/agent-ctx";
-import { 
-    Box, 
-    HStack, 
-    IconButton
-} from "@chakra-ui/react";
+import { Box, HStack, IconButton, VStack } from "@chakra-ui/react";
 import { useEffect, useState } from "react";
-import { LuMessageSquare } from "react-icons/lu";
+import { FaRegComment } from "react-icons/fa";
+import { FaClockRotateLeft, FaFlask } from "react-icons/fa6";
+
+enum AgentContainerState {
+    CHAT = "chat",
+    EVALUATE = "evaluate",
+}
 
 export const AgentChatPage = () => {
     const { agent, setAgent, setAgentDraft } = useAgent();
     const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+    const [agentContainerState, setAgentContainerState] = useState(
+        AgentContainerState.CHAT
+    );
     const [conversations, setConversations] = useState<ConversationInfo[]>([]);
 
     const fetchConversations = async () => {
@@ -20,7 +31,10 @@ export const AgentChatPage = () => {
             // Include agent_id in the API call to filter conversations by current agent
             const agentId = agent?.id || "";
             const response = await fetch(
-                BASE_URL + `/api/chat/conversations?limit=100&agent_id=${encodeURIComponent(agentId)}`,
+                BASE_URL +
+                    `/api/chat/conversations?limit=100&agent_id=${encodeURIComponent(
+                        agentId
+                    )}`,
                 {
                     method: "GET",
                     headers: {
@@ -39,8 +53,10 @@ export const AgentChatPage = () => {
 
     const handleConversationDeleted = (sessionId: string) => {
         // Remove the deleted conversation from the list
-        setConversations(prevConversations => 
-            prevConversations.filter(conversation => conversation.session_id !== sessionId)
+        setConversations((prevConversations) =>
+            prevConversations.filter(
+                (conversation) => conversation.session_id !== sessionId
+            )
         );
     };
 
@@ -48,7 +64,10 @@ export const AgentChatPage = () => {
         const fetchAgent = async () => {
             try {
                 const response = await fetch(
-                    BASE_URL + `/api/agent/id=${agent?.id ?? "685fff58d3367dc42c178987"}`,
+                    BASE_URL +
+                        `/api/agent/id=${
+                            agent?.id ?? "685fff58d3367dc42c178987"
+                        }`,
                     {
                         method: "GET",
                         headers: {
@@ -75,35 +94,60 @@ export const AgentChatPage = () => {
         }
     }, [agent?.id]);
 
-
     return (
         <>
             <HStack as="main" position="relative">
-                <IconButton
-                    aria-label="Open conversations"
-                    onClick={() => {
-                        setIsDrawerOpen(true);
-                        fetchConversations();
-                    }}
-                    size={"sm"}
-                    position="absolute"
-                    top={0}
-                    left={6}
-                    zIndex={10}
-                    variant="solid"
-                    _hover={{
-                        transform: "scale(1.1)",
-                        bgColor: "teal.500",
-                    }}
-                >
-                    <LuMessageSquare />
-                </IconButton>
-                
-                <Box as="aside" flex={1} height={"88vh"}>
+                <Box as="aside" flex={1} height={"88vh"} position="relative">
                     <AgentContainer />
+
+                    {/* Agent buttons */}
+                    <VStack
+                        position="absolute"
+                        top={10}
+                        right={0}
+                        zIndex={10}
+                        gap={2}
+                    >
+                        {/* Chat button */}
+                        <AgentButton
+                            label="Chat"
+                            icon={<FaRegComment />}
+                            onClick={() =>
+                                setAgentContainerState(AgentContainerState.CHAT)
+                            }
+                        />
+
+                        {/* Open conversations button */}
+                        <AgentButton
+                            label="Open conversations"
+                            icon={<FaClockRotateLeft />}
+                            onClick={() => {
+                                setAgentContainerState(
+                                    AgentContainerState.CHAT
+                                );
+                                setIsDrawerOpen(true);
+                                fetchConversations();
+                            }}
+                        />
+                        <AgentButton
+                            label="Evaluate agent"
+                            icon={<FaFlask />}
+                            onClick={() =>
+                                setAgentContainerState(
+                                    AgentContainerState.EVALUATE
+                                )
+                            }
+                        />
+                    </VStack>
                 </Box>
+
                 <Box as="section" flex={2} height={"88vh"}>
-                    <ChatContainer />
+                    {agentContainerState === AgentContainerState.EVALUATE && (
+                        <AgentEvalContainer />
+                    )}
+                    {agentContainerState === AgentContainerState.CHAT && (
+                        <ChatContainer />
+                    )}
                 </Box>
             </HStack>
 
@@ -115,5 +159,29 @@ export const AgentChatPage = () => {
                 agentName={agent?.name}
             />
         </>
+    );
+};
+
+const AgentButton = ({
+    label,
+    icon,
+    onClick,
+}: {
+    label: string;
+    icon: React.ReactNode;
+    onClick: () => void;
+}) => {
+    return (
+        <Tooltip content={label} showArrow>
+            <IconButton
+                aria-label={label}
+                onClick={onClick}
+                size={"sm"}
+                variant="solid"
+                _hover={{ transform: "scale(1.1)", bgColor: "teal.500" }}
+            >
+                {icon}
+            </IconButton>
+        </Tooltip>
     );
 };
