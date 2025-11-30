@@ -6,10 +6,14 @@ import {
     Spinner,
     useFileUploadContext,
     Float,
+    Box,
+    Heading,
+    HStack,
+    Text,
 } from "@chakra-ui/react";
 import { FileUpload } from "@chakra-ui/react";
 import { useRef, useState } from "react";
-import { FaPaperclip, FaPaperPlane } from "react-icons/fa";
+import { FaComment, FaPaperclip, FaPaperPlane } from "react-icons/fa";
 import { LuRefreshCw } from "react-icons/lu";
 import { ChatMessage } from "./chat-message";
 import { BASE_URL } from "@/App";
@@ -283,6 +287,16 @@ const ChatContainerContent = () => {
             justifyContent="space-between"
             data-testid="chat-container"
         >
+            {/* Header */}
+            <Box p={4} borderBottom="1px" borderColor="border.default">
+                <Heading size="lg" color="fg.default">
+                    <HStack gap={3}>
+                        <FaComment color="teal.500" />
+                        <Text>Chat with {agent?.name || "Agent"}</Text>
+                    </HStack>
+                </Heading>
+            </Box>
+            
             {/* Messages */}
             <Stack spaceY={3} align="stretch" overflowY="auto" p={4}>
                 {messages.map((msg, idx) => (

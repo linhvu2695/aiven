@@ -6,12 +6,12 @@ import {
     ConversationDrawer,
     type ConversationInfo,
 } from "@/components/chat";
-import { Tooltip } from "@/components/ui";
 import { useAgent } from "@/context/agent-ctx";
-import { Box, HStack, IconButton, VStack } from "@chakra-ui/react";
+import { AgentEvalProvider } from "@/context/agent-eval-ctx";
+import { Box, HStack, IconButton, Text, VStack } from "@chakra-ui/react";
 import { useEffect, useState } from "react";
 import { FaRegComment } from "react-icons/fa";
-import { FaClockRotateLeft, FaFlask } from "react-icons/fa6";
+import { FaClockRotateLeft, FaScaleBalanced } from "react-icons/fa6";
 
 enum AgentContainerState {
     CHAT = "chat",
@@ -22,7 +22,7 @@ export const AgentChatPage = () => {
     const { agent, setAgent, setAgentDraft } = useAgent();
     const [isDrawerOpen, setIsDrawerOpen] = useState(false);
     const [agentContainerState, setAgentContainerState] = useState(
-        AgentContainerState.CHAT
+        AgentContainerState.EVALUATE
     );
     const [conversations, setConversations] = useState<ConversationInfo[]>([]);
 
@@ -131,7 +131,7 @@ export const AgentChatPage = () => {
                         />
                         <AgentButton
                             label="Evaluate agent"
-                            icon={<FaFlask />}
+                            icon={<FaScaleBalanced />}
                             onClick={() =>
                                 setAgentContainerState(
                                     AgentContainerState.EVALUATE
@@ -143,7 +143,9 @@ export const AgentChatPage = () => {
 
                 <Box as="section" flex={2} height={"88vh"}>
                     {agentContainerState === AgentContainerState.EVALUATE && (
-                        <AgentEvalContainer />
+                        <AgentEvalProvider>
+                            <AgentEvalContainer />
+                        </AgentEvalProvider>
                     )}
                     {agentContainerState === AgentContainerState.CHAT && (
                         <ChatContainer />
@@ -171,17 +173,53 @@ const AgentButton = ({
     icon: React.ReactNode;
     onClick: () => void;
 }) => {
+    const [isHovered, setIsHovered] = useState(false);
+
     return (
-        <Tooltip content={label} showArrow>
+        <Box
+            position="relative"
+            display="flex"
+            alignItems="center"
+            onMouseEnter={() => setIsHovered(true)}
+            onMouseLeave={() => setIsHovered(false)}
+        >
             <IconButton
                 aria-label={label}
                 onClick={onClick}
                 size={"sm"}
                 variant="solid"
                 _hover={{ transform: "scale(1.1)", bgColor: "teal.500" }}
+                transition="transform 0.2s"
             >
                 {icon}
             </IconButton>
-        </Tooltip>
+
+            {/* Ribbon tooltip */}
+            <Box
+                position="absolute"
+                left="100%"
+                ml={2}
+                overflow="hidden"
+                whiteSpace="nowrap"
+                transition="max-width 0.3s ease-in-out, opacity 0.3s ease-in-out"
+                maxWidth={isHovered ? "200px" : "0"}
+                opacity={isHovered ? 1 : 0}
+                pointerEvents="none"
+            >
+                <Box
+                    bg="teal.500"
+                    color="white"
+                    px={3}
+                    py={1.5}
+                    borderRadius="md"
+                    boxShadow="md"
+                    position="relative"
+                >
+                    <Text fontSize="sm" fontWeight="medium">
+                        {label}
+                    </Text>
+                </Box>
+            </Box>
+        </Box>
     );
 };

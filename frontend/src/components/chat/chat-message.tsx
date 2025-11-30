@@ -5,6 +5,7 @@ import remarkBreaks from "remark-breaks";
 import { useAgent } from "@/context/agent-ctx";
 import type { ChatMessageInfo } from "./chat-message-info";
 import { FilePreview } from "./file-preview";
+import { DEFAULT_USER_AVATAR } from "@/utils/constants";
 
 interface ParsedMessageContent {
     text: string;
@@ -119,7 +120,7 @@ const MessageBubble = ({
     >
         <Avatar.Root size={"sm"}>
             <Avatar.Image
-                src={role === "user" ? "/astronaut2.webp" : agent?.avatar_image_url}
+                src={role === "user" ? DEFAULT_USER_AVATAR : agent?.avatar_image_url}
                 borderWidth="1px"
                 borderColor="white"
                 _hover={{
