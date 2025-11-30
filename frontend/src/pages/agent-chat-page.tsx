@@ -1,6 +1,6 @@
 import { BASE_URL } from "@/App";
 import { AgentContainer } from "@/components/agent";
-import { AgentEvalContainer } from "@/components/agent/agent-eval-container";
+import { AgentEvalContainer } from "@/components/agent/agent-eval/agent-eval-container";
 import {
     ChatContainer,
     ConversationDrawer,

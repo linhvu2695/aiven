@@ -10,11 +10,11 @@ import {
     Text,
 } from "@chakra-ui/react";
 import { useState } from "react";
-import { ChatMessage } from "../chat";
+import { ChatMessage } from "../../chat";
 import { FaPlus } from "react-icons/fa";
 import { useAgent } from "@/context/agent-ctx";
 import { useAgentEval } from "@/context/agent-eval-ctx";
-import { useColorMode } from "../ui";
+import { useColorMode } from "../../ui";
 import { DEFAULT_USER_AVATAR } from "@/utils/constants";
 
 interface RoleAvatarOptionProps {

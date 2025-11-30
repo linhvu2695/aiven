@@ -12,7 +12,7 @@ import { FaScaleBalanced } from "react-icons/fa6";
 import { FaPlay, FaUndo } from "react-icons/fa";
 import { useAgent } from "@/context/agent-ctx";
 import { useAgentEval } from "@/context/agent-eval-ctx";
-import { Tooltip } from "../ui";
+import { Tooltip } from "../../ui";
 import { AgentEvalChat } from "./agent-eval-chat";
 
 export const AgentEvalContainer = () => {
@@ -91,3 +91,4 @@ export const AgentEvalContainer = () => {
         </Container>
     );
 };
+
