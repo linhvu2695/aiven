@@ -4,19 +4,7 @@ Main MCP Server for Aiven Application APIs
 This module creates and configures the MCP server that exposes the Aiven 
 application APIs as tools and resources for AI agents.
 """
-
-import sys
-import os
-from pathlib import Path
-
-# Add backend directory to Python path for both package and direct execution
-current_dir = Path(__file__).parent
-backend_dir = current_dir.parent
-if str(backend_dir) not in sys.path:
-    sys.path.insert(0, str(backend_dir))
-
 from mcp.server.fastmcp import FastMCP
-
 from mcp_server.config import config
 from mcp_server.client import AivenAPIClient
 from mcp_server.tools import (
@@ -61,6 +49,12 @@ def run_server():
 
 # Create the server instance that MCP CLI expects
 mcp = create_mcp_server()
+
+
+def get_mcp_server() -> FastMCP:
+    """Get the MCP server instance"""
+    return mcp
+
 
 if __name__ == "__main__":
     run_server()
