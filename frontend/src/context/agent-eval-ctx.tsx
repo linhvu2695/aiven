@@ -1,5 +1,6 @@
 import { createContext, useContext, useState, useEffect, type ReactNode } from "react";
 import type { ChatMessageInfo } from "@/components/chat/chat-message-info";
+import type { Agent } from "./agent-ctx";
 
 type AgentEvalContextType = {
     messages: ChatMessageInfo[];
@@ -7,6 +8,8 @@ type AgentEvalContextType = {
     resetMessages: () => void;
     selectedRole: "user" | "assistant";
     setSelectedRole: (role: "user" | "assistant") => void;
+    judgeAgent: Agent | null;
+    setJudgeAgent: (agent: Agent | null) => void;
 };
 
 const AgentEvalContext = createContext<AgentEvalContextType | undefined>(undefined);
@@ -31,6 +34,7 @@ export const AgentEvalProvider = ({ children }: { children: ReactNode }) => {
         },
     ]);
     const [selectedRole, setSelectedRole] = useState<"user" | "assistant">("user");
+    const [judgeAgent, setJudgeAgent] = useState<Agent | null>(null);
 
     // Update selectedRole when messages updated (default behavior)
     useEffect(() => {
@@ -68,6 +72,8 @@ export const AgentEvalProvider = ({ children }: { children: ReactNode }) => {
                 resetMessages,
                 selectedRole,
                 setSelectedRole,
+                judgeAgent,
+                setJudgeAgent,
             }}
         >
             {children}

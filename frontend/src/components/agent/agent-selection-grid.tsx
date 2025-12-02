@@ -2,7 +2,6 @@ import { Box, Container, SimpleGrid, Text, VStack } from "@chakra-ui/react";
 import { useEffect, useState } from "react";
 import type { Agent } from "@/context/agent-ctx";
 import { BASE_URL } from "@/App";
-import { useAgent } from "@/context/agent-ctx";
 
 const AgentSelectionGridItem = (
     agentInfo: Agent & { onClick?: () => void }
@@ -40,8 +39,11 @@ const AgentSelectionGridItem = (
     );
 };
 
-export const AgentSelectionGrid = ({ onSelect }: { onSelect?: () => void }) => {
-    const { setAgent } = useAgent();
+export const AgentSelectionGrid = ({ 
+    onAgentSelect 
+}: { 
+    onAgentSelect?: (agent: Agent) => void;
+}) => {
     const [agents, setAgents] = useState<Agent[]>([]);
 
     const fetchAgents = async () => {
@@ -85,8 +87,10 @@ export const AgentSelectionGrid = ({ onSelect }: { onSelect?: () => void }) => {
                         key={agent.id}
                         {...agent}
                         onClick={() => {
-                            setAgent(agent);
-                            if (onSelect) onSelect();
+                            if (onAgentSelect) {
+                                // Use custom handler if provided
+                                onAgentSelect(agent);
+                            }
                         }}
                     />
                 ))}

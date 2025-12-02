@@ -9,12 +9,15 @@ import {
 import { AgentCard } from "./agent-card";
 import { AgentSelectionGrid } from "./agent-selection-grid";
 import { useChat } from "@/context/chat-ctx";
+import { useAgent, type Agent } from "@/context/agent-ctx";
 
 export const AgentContainer = () => {
     const { open, onOpen, onClose } = useDisclosure();
     const { resetMessages } = useChat();
+    const { setAgent } = useAgent();
 
-    const handleAgentSelect = () => {
+    const handleAgentSelect = (agent: Agent) => {
+        setAgent(agent);
         resetMessages();
         onClose();
     };
@@ -61,7 +64,7 @@ export const AgentContainer = () => {
                             </Dialog.Header>
 
                             <Dialog.Body>
-                                <AgentSelectionGrid onSelect={handleAgentSelect} />
+                                <AgentSelectionGrid onAgentSelect={handleAgentSelect} />
                             </Dialog.Body>
 
                             <Dialog.CloseTrigger asChild>
