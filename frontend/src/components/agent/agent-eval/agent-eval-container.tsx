@@ -87,6 +87,7 @@ export const AgentEvalContainer = () => {
                     <AgentEvalChat />
 
                     <Box flex={1} h="100%" display="flex" flexDirection="column">
+                        {/* Tab buttons */}
                         <Box mb={0}>
                             <HStack gap={2} align="flex-end">
                                 <TabButton

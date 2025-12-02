@@ -18,6 +18,7 @@ def main():
     print("  🏥 Health check")
     print("  🤖 Agent management (CRUD)")
     print("  📄 Article management (CRUD)")
+    print("  🖼️ Image generation")
     print()
     print("Available resources:")
     print("  📚 API documentation")

@@ -29,4 +29,7 @@ def register_api_docs_resource(mcp: FastMCP):
 
 ## Health API
 - GET /api/ping - Health check
+
+## Image API
+- POST /api/image/generate - Generate image
 """
