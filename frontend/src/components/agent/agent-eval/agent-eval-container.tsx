@@ -7,9 +7,6 @@ import {
     Box,
     Button,
     IconButton,
-    Dialog,
-    Portal,
-    CloseButton,
     useDisclosure,
     Avatar,
 } from "@chakra-ui/react";
@@ -20,7 +17,7 @@ import { useAgent, type Agent } from "@/context/agent-ctx";
 import { useAgentEval } from "@/context/agent-eval-ctx";
 import { Tooltip } from "../../ui";
 import { AgentEvalChat } from "./agent-eval-chat";
-import { AgentSelectionGrid } from "../agent-selection-grid";
+import { AgentSelectionDialog } from "../agent-selection-dialog";
 
 type EvalMode = "llm-judge" | "trajectory";
 
@@ -199,35 +196,12 @@ export const AgentEvalContainer = () => {
             </Stack>
 
             {/* Select Judge Agent Dialog */}
-            <Dialog.Root
+            <AgentSelectionDialog
                 open={open}
-                onOpenChange={(e) => {
-                    if (!e.open) {
-                        onClose();
-                    }
-                }}
-                size="xl"
-                placement="center"
-            >
-                <Portal>
-                    <Dialog.Backdrop />
-                    <Dialog.Positioner>
-                        <Dialog.Content>
-                            <Dialog.Header>
-                                <Dialog.Title>Select a Judge Agent</Dialog.Title>
-                            </Dialog.Header>
-
-                            <Dialog.Body>
-                                <AgentSelectionGrid onAgentSelect={handleJudgeAgentSelect} />
-                            </Dialog.Body>
-
-                            <Dialog.CloseTrigger asChild>
-                                <CloseButton size="sm" />
-                            </Dialog.CloseTrigger>
-                        </Dialog.Content>
-                    </Dialog.Positioner>
-                </Portal>
-            </Dialog.Root>
+                onClose={onClose}
+                title="Select a Judge Agent"
+                onAgentSelect={handleJudgeAgentSelect}
+            />
         </Container>
     );
 };

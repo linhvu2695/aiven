@@ -1,13 +1,6 @@
-import {
-    Button,
-    CloseButton,
-    Container,
-    Dialog,
-    Portal,
-    useDisclosure,
-} from "@chakra-ui/react";
+import { Button, Container, useDisclosure } from "@chakra-ui/react";
 import { AgentCard } from "./agent-card";
-import { AgentSelectionGrid } from "./agent-selection-grid";
+import { AgentSelectionDialog } from "./agent-selection-dialog";
 import { useChat } from "@/context/chat-ctx";
 import { useAgent, type Agent } from "@/context/agent-ctx";
 
@@ -47,33 +40,12 @@ export const AgentContainer = () => {
             </Container>
 
             {/* Select agent popup */}
-            <Dialog.Root
+            <AgentSelectionDialog
                 open={open}
-                onOpenChange={(e) => {
-                    if (!e.open) onClose();
-                }}
-                size="xl"
-                placement="center"
-            >
-                <Portal>
-                    <Dialog.Backdrop />
-                    <Dialog.Positioner>
-                        <Dialog.Content>
-                            <Dialog.Header>
-                                <Dialog.Title>Select an Agent</Dialog.Title>
-                            </Dialog.Header>
-
-                            <Dialog.Body>
-                                <AgentSelectionGrid onAgentSelect={handleAgentSelect} />
-                            </Dialog.Body>
-
-                            <Dialog.CloseTrigger asChild>
-                                <CloseButton size="sm" />
-                            </Dialog.CloseTrigger>
-                        </Dialog.Content>
-                    </Dialog.Positioner>
-                </Portal>
-            </Dialog.Root>
+                onClose={onClose}
+                title="Select an Agent"
+                onAgentSelect={handleAgentSelect}
+            />
         </>
     );
 };
