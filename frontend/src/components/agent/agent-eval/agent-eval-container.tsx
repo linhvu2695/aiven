@@ -7,17 +7,16 @@ import {
     Box,
     Button,
     IconButton,
-    useDisclosure,
-    Avatar,
 } from "@chakra-ui/react";
 import { useState } from "react";
 import { FaScaleBalanced } from "react-icons/fa6";
 import { FaPlay, FaUndo } from "react-icons/fa";
-import { useAgent, type Agent } from "@/context/agent-ctx";
+import { useAgent } from "@/context/agent-ctx";
 import { useAgentEval } from "@/context/agent-eval-ctx";
 import { Tooltip } from "../../ui";
 import { AgentEvalChat } from "./agent-eval-chat";
-import { AgentSelectionDialog } from "../agent-selection-dialog";
+import { AgentEvalLlmJudge } from "./agent-eval-llm-judge";
+import { AgentEvalTrajectoryMatch } from "./agent-eval-trajectory-match";
 
 type EvalMode = "llm-judge" | "trajectory";
 
@@ -52,14 +51,14 @@ const TabButton = ({ tab, label, currentTab, onClick }: TabButtonProps) => {
 
 export const AgentEvalContainer = () => {
     const { agent } = useAgent();
-    const { resetMessages, judgeAgent, setJudgeAgent } = useAgentEval();
+    const {
+        resetMessages,
+        setJudgeAgent,
+        setTrajectoryMatch,
+        setToolArgsMatch,
+        setExpectedToolCalls,
+    } = useAgentEval();
     const [evalMode, setEvalMode] = useState<EvalMode>("llm-judge");
-    const { open, onOpen, onClose } = useDisclosure();
-
-    const handleJudgeAgentSelect = (selectedAgent: Agent) => {
-        setJudgeAgent(selectedAgent);
-        onClose();
-    };
 
     return (
         <Container
@@ -79,11 +78,22 @@ export const AgentEvalContainer = () => {
                 </Heading>
             </Box>
 
-            <Stack className="agent-eval-content" flex={1} display="flex" flexDirection="column" gap={4}>
+            <Stack
+                className="agent-eval-content"
+                flex={1}
+                display="flex"
+                flexDirection="column"
+                gap={4}
+            >
                 <HStack className="agent-eval-input" flex={1} minH={0}>
                     <AgentEvalChat />
 
-                    <Box flex={1} h="100%" display="flex" flexDirection="column">
+                    <Box
+                        flex={1}
+                        h="100%"
+                        display="flex"
+                        flexDirection="column"
+                    >
                         {/* Tab buttons */}
                         <Box mb={0}>
                             <HStack gap={2} align="flex-end">
@@ -104,46 +114,9 @@ export const AgentEvalContainer = () => {
                         </Box>
 
                         <Box flex={1} minH={0} p={4}>
-                            {evalMode === "llm-judge" && (
-                                <Box h="100%">
-                                    {judgeAgent ? (
-                                        <Box>
-                                            <HStack mb={2} gap={3}>
-                                                <Avatar.Root size="md">
-                                                    <Avatar.Image src={judgeAgent.avatar_image_url} />
-                                                    <Avatar.Fallback name={judgeAgent.name} />
-                                                </Avatar.Root>
-                                                <Text fontSize="lg" fontWeight="semibold">
-                                                    Judge: {judgeAgent.name}
-                                                </Text>
-                                            </HStack>
-                                            <Button
-                                                onClick={onOpen}
-                                                variant="outline"
-                                                w="50%"
-                                                colorPalette="teal"
-                                                borderRadius={"12px"}
-                                            >
-                                                Change Judge Agent
-                                            </Button>
-                                        </Box>
-                                    ) : (
-                                        <Button
-                                            onClick={onOpen}
-                                            variant="outline"
-                                            w="50%"
-                                            colorPalette="teal"
-                                            borderRadius={"12px"}
-                                        >
-                                            Select Judge Agent
-                                        </Button>
-                                    )}
-                                </Box>
-                            )}
+                            {evalMode === "llm-judge" && <AgentEvalLlmJudge />}
                             {evalMode === "trajectory" && (
-                                <Box h="100%">
-                                    {/* Trajectory section - to be filled later */}
-                                </Box>
+                                <AgentEvalTrajectoryMatch />
                             )}
                         </Box>
                     </Box>
@@ -177,6 +150,9 @@ export const AgentEvalContainer = () => {
                             onClick={() => {
                                 resetMessages();
                                 setJudgeAgent(null);
+                                setTrajectoryMatch("strict");
+                                setToolArgsMatch("ignore");
+                                setExpectedToolCalls([]);
                             }}
                             size={"sm"}
                             variant="solid"
@@ -190,19 +166,16 @@ export const AgentEvalContainer = () => {
                     </Tooltip>
                 </HStack>
 
-                <Stack className="agent-eval-result" flex={1} minH={0} overflowY="auto" p={4}>
+                <Stack
+                    className="agent-eval-result"
+                    flex={1}
+                    minH={0}
+                    overflowY="auto"
+                    p={4}
+                >
                     <Heading size="lg">Result</Heading>
                 </Stack>
             </Stack>
-
-            {/* Select Judge Agent Dialog */}
-            <AgentSelectionDialog
-                open={open}
-                onClose={onClose}
-                title="Select a Judge Agent"
-                onAgentSelect={handleJudgeAgentSelect}
-            />
         </Container>
     );
 };
-
