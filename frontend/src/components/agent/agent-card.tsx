@@ -20,7 +20,8 @@ import {
 } from "@chakra-ui/react";
 import { LLMProviderSelector } from "./llm-provider-selector";
 import { ToolSelectionGrid } from "./tool-selection-grid";
-import { useAgent, type Tool } from "@/context/agent-ctx";
+import { useAgent } from "@/context/agent-ctx";
+import type { ToolInfo } from "@/types/tool";
 import { useState, useRef, useEffect } from "react";
 import { BASE_URL } from "@/App";
 import { FaPencilAlt, FaPlus } from "react-icons/fa";
@@ -51,14 +52,14 @@ export const AgentCard = ({
     const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
     const [avatarFile, setAvatarFile] = useState<File | null>(null);
     const [isAvatarLoading, setIsAvatarLoading] = useState(false);
-    const [availableTools, setAvailableTools] = useState<Tool[]>([]);
+    const [availableTools, setAvailableTools] = useState<ToolInfo[]>([]);
     const [isToolPopupOpen, setIsToolPopupOpen] = useState(false);
     const [selectedToolIds, setSelectedToolIds] = useState<Set<string>>(
         new Set()
     );
     const fileInputRef = useRef<HTMLInputElement | null>(null);
 
-    const fetchAvailableTools = async (): Promise<Tool[]> => {
+    const fetchAvailableTools = async (): Promise<ToolInfo[]> => {
         try {
             const response = await fetch(BASE_URL + "/api/tool/search", {
                 method: "GET",

@@ -6,17 +6,18 @@ import {
     IconButton,
     VStack,
     useDisclosure,
-    Dialog,
-    Portal,
-    CloseButton,
 } from "@chakra-ui/react";
-import { useState, useEffect } from "react";
 import { FaPlus, FaTrash } from "react-icons/fa";
-import { useAgentEval, type TrajectoryMatch, type ToolArgsMatch, type ExpectedToolCall } from "@/context/agent-eval-ctx";
-import { type Tool } from "@/context/agent-ctx";
+import { useAgentEval, type TrajectoryMatch, type ToolArgsMatch } from "@/context/agent-eval-ctx";
 import { Dropdown } from "../../ui/dropdown";
-import { ToolSelectionGrid } from "../tool-selection-grid";
-import { BASE_URL } from "@/App";
+import { FunctionSelectionDialog } from "./function-selection-dialog";
+
+export interface MCPFunction {
+    name: string;
+    description: string | null;
+    inputSchema: Record<string, any> | null;
+    outputSchema: Record<string, any> | null;
+}
 
 export const AgentEvalTrajectoryMatch = () => {
     const {
@@ -28,65 +29,14 @@ export const AgentEvalTrajectoryMatch = () => {
         setExpectedToolCalls,
     } = useAgentEval();
 
-    const [availableTools, setAvailableTools] = useState<Tool[]>([]);
     const {
-        open: isToolDialogOpen,
-        onOpen: onToolDialogOpen,
-        onClose: onToolDialogClose,
+        open: isFunctionDialogOpen,
+        onOpen: onFunctionDialogOpen,
+        onClose: onFunctionDialogClose,
     } = useDisclosure();
-    const [selectedToolId, setSelectedToolId] = useState<string>("");
-
-    // Fetch available tools
-    useEffect(() => {
-        const fetchAvailableTools = async (): Promise<Tool[]> => {
-            try {
-                const response = await fetch(BASE_URL + "/api/tool/search", {
-                    method: "GET",
-                    headers: {
-                        "Content-Type": "application/json",
-                    },
-                });
-
-                if (!response.ok)
-                    throw new Error("Failed to fetch available tools");
-
-                const data = await response.json();
-                return data.tools;
-            } catch (error) {
-                console.error("Error fetching available tools:", error);
-                return [];
-            }
-        };
-
-        fetchAvailableTools().then(setAvailableTools);
-    }, []);
-
-    const handleAddToolCall = () => {
-        setSelectedToolId("");
-        onToolDialogOpen();
-    };
-
-    const handleToolSelect = (toolId: string) => {
-        const tool = availableTools.find((t) => t.id === toolId);
-        if (tool) {
-            const newToolCall: ExpectedToolCall = {
-                id: `tool-call-${Date.now()}`,
-                toolId: tool.id,
-                toolName: tool.name,
-                args: {},
-            };
-            setExpectedToolCalls([...expectedToolCalls, newToolCall]);
-            onToolDialogClose();
-        }
-    };
 
     const handleRemoveToolCall = (id: string) => {
         setExpectedToolCalls(expectedToolCalls.filter((tc) => tc.id !== id));
-    };
-
-    // Always return false to allow selecting the same tool multiple times
-    const isToolSelected = (_toolId: string) => {
-        return false;
     };
 
     return (
@@ -155,7 +105,7 @@ export const AgentEvalTrajectoryMatch = () => {
 
                 {/* Add button */}
                 <Button
-                    onClick={handleAddToolCall}
+                    onClick={onFunctionDialogOpen}
                     variant="outline"
                     colorPalette="teal"
                     borderRadius="12px"
@@ -176,9 +126,6 @@ export const AgentEvalTrajectoryMatch = () => {
                         overflowY="auto"
                     >
                         {expectedToolCalls.map((toolCall, index) => {
-                            const tool = availableTools.find(
-                                (t) => t.id === toolCall.toolId
-                            );
                             return (
                                 <Box
                                     key={toolCall.id}
@@ -201,7 +148,7 @@ export const AgentEvalTrajectoryMatch = () => {
                                             {index + 1}.
                                         </Text>
                                         <Text fontWeight="semibold">
-                                            {tool?.emoji} {toolCall.toolName}
+                                            {toolCall.toolName}
                                         </Text>
                                     </HStack>
                                     <IconButton
@@ -222,51 +169,11 @@ export const AgentEvalTrajectoryMatch = () => {
                 )}
             </Box>
 
-            {/* Tool Selection Dialog */}
-            <Dialog.Root
-                open={isToolDialogOpen}
-                onOpenChange={(e) => {
-                    if (!e.open) {
-                        onToolDialogClose();
-                    }
-                }}
-                size="xl"
-                placement="center"
-            >
-                <Portal>
-                    <Dialog.Backdrop />
-                    <Dialog.Positioner>
-                        <Dialog.Content>
-                            <Dialog.Header>
-                                <Dialog.Title>
-                                    Select Expected Tool Call
-                                </Dialog.Title>
-                            </Dialog.Header>
-
-                            <Dialog.Body>
-                                <ToolSelectionGrid
-                                    availableTools={availableTools}
-                                    isToolAssigned={isToolSelected}
-                                    selectedToolIds={
-                                        selectedToolId
-                                            ? new Set([selectedToolId])
-                                            : new Set()
-                                    }
-                                    onToggleToolSelection={(toolId) => {
-                                        setSelectedToolId(toolId);
-                                        handleToolSelect(toolId);
-                                    }}
-                                    onRemoveTool={() => {}}
-                                />
-                            </Dialog.Body>
-
-                            <Dialog.CloseTrigger asChild>
-                                <CloseButton size="sm" />
-                            </Dialog.CloseTrigger>
-                        </Dialog.Content>
-                    </Dialog.Positioner>
-                </Portal>
-            </Dialog.Root>
+            {/* Function Selection Dialog */}
+            <FunctionSelectionDialog
+                isOpen={isFunctionDialogOpen}
+                onClose={onFunctionDialogClose}
+            />
         </>
     );
 };

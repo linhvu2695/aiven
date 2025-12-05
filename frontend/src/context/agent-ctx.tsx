@@ -1,12 +1,5 @@
 import { createContext, useContext, useState, type ReactNode } from "react";
 
-export type Tool = {
-  id: string;
-  name: string;
-  description: string;
-  emoji: string;
-};
-
 export type Agent = {
   id: string;
   name: string;
