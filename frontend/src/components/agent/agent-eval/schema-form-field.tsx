@@ -4,6 +4,7 @@ interface SchemaFormFieldProps {
     propertyName: string;
     propertySchema: Record<string, any>;
     value: string;
+    isRequired: boolean;
     onChange: (value: string) => void;
 }
 
@@ -11,6 +12,7 @@ export const SchemaFormField = ({
     propertyName,
     propertySchema,
     value,
+    isRequired,
     onChange,
 }: SchemaFormFieldProps) => {
     const getTypeLabel = (schema: Record<string, any>): string => {
@@ -37,9 +39,16 @@ export const SchemaFormField = ({
         >
             <VStack align="stretch" gap={2}>
                 <HStack justify="space-between" align="center">
-                    <Text fontWeight="semibold" fontSize="sm">
-                        {propertyName}
-                    </Text>
+                    <HStack align="center">
+                        <Text fontWeight="semibold" fontSize="sm">
+                            {propertyName}
+                        </Text>
+                        {isRequired && (
+                            <Text as="span" color="red.500" ml={1}>
+                                *
+                            </Text>
+                        )}
+                    </HStack>
                     <Text
                         fontSize="xs"
                         color="gray.500"
@@ -66,4 +75,3 @@ export const SchemaFormField = ({
         </Box>
     );
 };
-

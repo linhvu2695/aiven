@@ -73,6 +73,9 @@ export const FunctionCallConfigDialog = ({
                                     <Text>Configure expectations:</Text>
                                     <CodeText>{functionCall.function.name}</CodeText>
                                 </HStack>
+                                <Text fontSize="xs" color="gray.500" fontStyle="italic">
+                                    {functionCall.function.description}
+                                </Text>
                             </Dialog.Title>
                         </Dialog.Header>
 

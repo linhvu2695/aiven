@@ -85,7 +85,7 @@ export const AgentEvalContainer = () => {
                 flexDirection="column"
                 gap={4}
             >
-                <HStack className="agent-eval-input" flex={1} minH={0}>
+                <HStack className="agent-eval-input" flex={1} minH={500}>
                     <AgentEvalChat />
 
                     <Box

@@ -28,7 +28,7 @@ export const SchemaFormSection = ({
     }
 
     const properties = schema.properties as Record<string, Record<string, any>>;
-    console.log(properties);
+    const required = schema.required as string[];
 
     const handleFieldChange = (propertyName: string, value: string) => {
         const newValues = {
@@ -62,6 +62,7 @@ export const SchemaFormSection = ({
                                 propertyName={propertyName}
                                 propertySchema={propertySchema}
                                 value={displayValue}
+                                isRequired={required.includes(propertyName)}
                                 onChange={(value) => handleFieldChange(propertyName, value)}
                             />
                         );
