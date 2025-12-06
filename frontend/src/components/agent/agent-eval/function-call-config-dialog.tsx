@@ -71,10 +71,10 @@ export const FunctionCallConfigDialog = ({
                             <Dialog.Title>
                                 <HStack gap={2} align="center">
                                     <Text>Configure expectations:</Text>
-                                    <CodeText>{functionCall.function.name}</CodeText>
+                                    <CodeText>{functionCall?.function?.name || ""}</CodeText>
                                 </HStack>
                                 <Text fontSize="xs" color="gray.500" fontStyle="italic">
-                                    {functionCall.function.description}
+                                    {functionCall?.function?.description || ""}
                                 </Text>
                             </Dialog.Title>
                         </Dialog.Header>
@@ -84,7 +84,7 @@ export const FunctionCallConfigDialog = ({
                                 {/* Expected Input */}
                                 <SchemaFormSection
                                     title="Expected Input"
-                                    schema={functionCall.function.inputSchema}
+                                    schema={functionCall?.function?.inputSchema || {}}
                                     values={expectedInput}
                                     onChange={setExpectedInput}
                                 />
@@ -94,7 +94,7 @@ export const FunctionCallConfigDialog = ({
                                 {/* Expected Output */}
                                 <SchemaFormSection
                                     title="Expected Output"
-                                    schema={functionCall.function.outputSchema}
+                                    schema={functionCall?.function?.outputSchema || {}}
                                     values={expectedOutput}
                                     onChange={setExpectedOutput}
                                 />

@@ -28,7 +28,7 @@ export const SchemaFormSection = ({
     }
 
     const properties = schema.properties as Record<string, Record<string, any>>;
-    const required = schema.required as string[];
+    const required = schema.required ? schema.required as string[] : [];
 
     const handleFieldChange = (propertyName: string, value: string) => {
         const newValues = {
