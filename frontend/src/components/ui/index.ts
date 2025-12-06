@@ -7,3 +7,4 @@ export { FormField, type FormFieldProps } from "./form-field";
 export { DeleteItemButton, type DeleteItemButtonProps } from "./delete-item-button";
 export { DetailItemButton, type DetailItemButtonProps } from "./detail-item-button";
 export { ProviderWrapItem } from "./provider-wrap-item";
+export { CodeText, type CodeTextProps } from "./code-text";

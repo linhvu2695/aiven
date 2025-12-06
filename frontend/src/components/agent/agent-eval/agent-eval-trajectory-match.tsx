@@ -3,14 +3,14 @@ import {
     HStack,
     Text,
     Button,
-    IconButton,
     VStack,
     useDisclosure,
 } from "@chakra-ui/react";
-import { FaPlus, FaTrash } from "react-icons/fa";
+import { FaPlus } from "react-icons/fa";
 import { useAgentEval, type TrajectoryMatch, type ToolArgsMatch } from "@/context/agent-eval-ctx";
 import { Dropdown } from "../../ui/dropdown";
 import { FunctionSelectionDialog } from "./function-selection-dialog";
+import { ExpectedFunctionCallItem } from "./expected-function-call-item";
 
 export interface MCPFunction {
     name: string;
@@ -25,8 +25,7 @@ export const AgentEvalTrajectoryMatch = () => {
         setTrajectoryMatch,
         toolArgsMatch,
         setToolArgsMatch,
-        expectedToolCalls,
-        setExpectedToolCalls,
+        expectedFunctionCalls,
     } = useAgentEval();
 
     const {
@@ -34,10 +33,6 @@ export const AgentEvalTrajectoryMatch = () => {
         onOpen: onFunctionDialogOpen,
         onClose: onFunctionDialogClose,
     } = useDisclosure();
-
-    const handleRemoveToolCall = (id: string) => {
-        setExpectedToolCalls(expectedToolCalls.filter((tc) => tc.id !== id));
-    };
 
     return (
         <>
@@ -113,58 +108,25 @@ export const AgentEvalTrajectoryMatch = () => {
                 >
                     <HStack gap={2}>
                         <FaPlus />
-                        <Text>Add Expected Tool Call</Text>
+                        <Text>Add Expected Function Call</Text>
                     </HStack>
                 </Button>
 
-                {/* Expected tool calls list */}
-                {expectedToolCalls.length > 0 && (
+                {/* Expected function calls list */}
+                {expectedFunctionCalls.length > 0 && (
                     <VStack
                         align="stretch"
                         gap={2}
                         maxH="300px"
                         overflowY="auto"
                     >
-                        {expectedToolCalls.map((toolCall, index) => {
-                            return (
-                                <Box
-                                    key={toolCall.id}
-                                    p={3}
-                                    border="1px solid"
-                                    borderColor="gray.200"
-                                    borderRadius="md"
-                                    display="flex"
-                                    justifyContent="space-between"
-                                    alignItems="center"
-                                    _dark={{
-                                        borderColor: "gray.700",
-                                    }}
-                                >
-                                    <HStack gap={2}>
-                                        <Text
-                                            fontWeight="semibold"
-                                            color="gray.500"
-                                        >
-                                            {index + 1}.
-                                        </Text>
-                                        <Text fontWeight="semibold">
-                                            {toolCall.toolName}
-                                        </Text>
-                                    </HStack>
-                                    <IconButton
-                                        aria-label="Remove tool call"
-                                        size="sm"
-                                        variant="ghost"
-                                        colorPalette="red"
-                                        onClick={() =>
-                                            handleRemoveToolCall(toolCall.id)
-                                        }
-                                    >
-                                        <FaTrash />
-                                    </IconButton>
-                                </Box>
-                            );
-                        })}
+                        {expectedFunctionCalls.map((functionCall, index) => (
+                            <ExpectedFunctionCallItem
+                                key={functionCall.id}
+                                functionCall={functionCall}
+                                index={index}
+                            />
+                        ))}
                     </VStack>
                 )}
             </Box>

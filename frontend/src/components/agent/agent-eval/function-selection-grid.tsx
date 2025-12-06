@@ -6,7 +6,7 @@ import {
     VStack,
 } from "@chakra-ui/react";
 import { useState, useEffect, useMemo } from "react";
-import { useAgentEval, type ExpectedToolCall } from "@/context/agent-eval-ctx";
+import { useAgentEval, type ExpectedFunctionCall } from "@/context/agent-eval-ctx";
 import { BASE_URL } from "@/App";
 import type { MCPFunction } from "./agent-eval-trajectory-match";
 import { useAgent } from "@/context/agent-ctx";
@@ -19,7 +19,7 @@ interface FunctionSelectionGridProps {
 export const FunctionSelectionGrid = ({
     onClose,
 }: FunctionSelectionGridProps) => {
-    const { setExpectedToolCalls, expectedToolCalls } = useAgentEval();
+    const { setExpectedFunctionCalls, expectedFunctionCalls } = useAgentEval();
     const { agent } = useAgent();
     const [availableFunctions, setAvailableFunctions] = useState<MCPFunction[]>([]);
     const [tools, setTools] = useState<ToolInfo[]>([]);
@@ -96,13 +96,13 @@ export const FunctionSelectionGrid = ({
     const handleFunctionSelect = (functionName: string) => {
         const func = availableFunctions.find((f) => f.name === functionName);
         if (func && enabledMCPFunctions.has(functionName)) {
-            const newToolCall: ExpectedToolCall = {
-                id: `tool-call-${Date.now()}`,
-                toolId: func.name,
-                toolName: func.name,
-                args: {},
+            const newFunctionCall: ExpectedFunctionCall = {
+                id: `function-call-${Date.now()}`,
+                function: func,
+                expectedInput: {},
+                expectedOutput: {},
             };
-            setExpectedToolCalls([...expectedToolCalls, newToolCall]);
+            setExpectedFunctionCalls([...expectedFunctionCalls, newFunctionCall]);
             onClose();
         }
     };

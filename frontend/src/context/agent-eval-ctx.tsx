@@ -1,15 +1,16 @@
 import { createContext, useContext, useState, useEffect, type ReactNode } from "react";
 import type { ChatMessageInfo } from "@/components/chat/chat-message-info";
 import type { Agent } from "./agent-ctx";
+import type { MCPFunction } from "@/components/agent/agent-eval/agent-eval-trajectory-match";
 
 export type TrajectoryMatch = "strict" | "unordered" | "superset" | "subset";
 export type ToolArgsMatch = "ignore" | "strict" | "superset" | "subset";
 
-export interface ExpectedToolCall {
+export interface ExpectedFunctionCall {
     id: string;
-    toolId: string;
-    toolName: string;
-    args?: Record<string, any>;
+    function: MCPFunction;
+    expectedInput: Record<string, any>;
+    expectedOutput: Record<string, any>;
 }
 
 type AgentEvalContextType = {
@@ -24,8 +25,8 @@ type AgentEvalContextType = {
     setTrajectoryMatch: (match: TrajectoryMatch) => void;
     toolArgsMatch: ToolArgsMatch;
     setToolArgsMatch: (match: ToolArgsMatch) => void;
-    expectedToolCalls: ExpectedToolCall[];
-    setExpectedToolCalls: (calls: ExpectedToolCall[]) => void;
+    expectedFunctionCalls: ExpectedFunctionCall[];
+    setExpectedFunctionCalls: (calls: ExpectedFunctionCall[]) => void;
 };
 
 const AgentEvalContext = createContext<AgentEvalContextType | undefined>(undefined);
@@ -53,7 +54,7 @@ export const AgentEvalProvider = ({ children }: { children: ReactNode }) => {
     const [judgeAgent, setJudgeAgent] = useState<Agent | null>(null);
     const [trajectoryMatch, setTrajectoryMatch] = useState<TrajectoryMatch>("strict");
     const [toolArgsMatch, setToolArgsMatch] = useState<ToolArgsMatch>("ignore");
-    const [expectedToolCalls, setExpectedToolCalls] = useState<ExpectedToolCall[]>([]);
+    const [expectedFunctionCalls, setExpectedFunctionCalls] = useState<ExpectedFunctionCall[]>([]);
 
     // Update selectedRole when messages updated (default behavior)
     useEffect(() => {
@@ -81,7 +82,7 @@ export const AgentEvalProvider = ({ children }: { children: ReactNode }) => {
                 role: "assistant",
             },
         ]);
-        setExpectedToolCalls([]);
+        setExpectedFunctionCalls([]);
     };
 
     return (
@@ -98,8 +99,8 @@ export const AgentEvalProvider = ({ children }: { children: ReactNode }) => {
                 setTrajectoryMatch,
                 toolArgsMatch,
                 setToolArgsMatch,
-                expectedToolCalls,
-                setExpectedToolCalls,
+                expectedFunctionCalls,
+                setExpectedFunctionCalls,
             }}
         >
             {children}

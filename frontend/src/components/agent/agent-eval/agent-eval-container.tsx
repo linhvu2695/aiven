@@ -56,7 +56,7 @@ export const AgentEvalContainer = () => {
         setJudgeAgent,
         setTrajectoryMatch,
         setToolArgsMatch,
-        setExpectedToolCalls,
+        setExpectedFunctionCalls,
     } = useAgentEval();
     const [evalMode, setEvalMode] = useState<EvalMode>("llm-judge");
 
@@ -152,7 +152,7 @@ export const AgentEvalContainer = () => {
                                 setJudgeAgent(null);
                                 setTrajectoryMatch("strict");
                                 setToolArgsMatch("ignore");
-                                setExpectedToolCalls([]);
+                                setExpectedFunctionCalls([]);
                             }}
                             size={"sm"}
                             variant="solid"
