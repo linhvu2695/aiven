@@ -157,7 +157,28 @@ export const SchemaFormSection = ({
                                 );
                             }
                             
-                            // If resolved schema is not an object or couldn't be resolved,
+                            // Check if resolved schema is an enum
+                            else if (resolvedSchema && resolvedSchema.enum 
+                                && Array.isArray(resolvedSchema.enum)) 
+                            {
+                                const fullPath = prefix ? `${prefix}.${propertyName}` : propertyName;
+                                const value = getNestedValue(values, fullPath) || "";
+                                const enumValue = String(value); // enum values are strings
+                                
+                                return (
+                                    <SchemaFormField
+                                        key={propertyName}
+                                        propertyName={propertyName}
+                                        propertySchema={propertySchema}
+                                        value={enumValue}
+                                        isRequired={required.includes(propertyName)}
+                                        onChange={(value) => handleFieldChange(propertyName, value)}
+                                        enumValues={resolvedSchema.enum}
+                                    />
+                                );
+                            }
+                            
+                            // If resolved schema is not an object or enum, or couldn't be resolved,
                             // fall through to regular field rendering
                         }
                         

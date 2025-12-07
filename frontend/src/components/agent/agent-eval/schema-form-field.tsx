@@ -1,4 +1,5 @@
 import { Box, HStack, Text, Input, VStack } from "@chakra-ui/react";
+import { Dropdown } from "@/components/ui/dropdown";
 
 interface SchemaFormFieldProps {
     propertyName: string;
@@ -6,6 +7,7 @@ interface SchemaFormFieldProps {
     value: string;
     isRequired: boolean;
     onChange: (value: string) => void;
+    enumValues?: string[];
 }
 
 export const SchemaFormField = ({
@@ -14,14 +16,31 @@ export const SchemaFormField = ({
     value,
     isRequired,
     onChange,
+    enumValues,
 }: SchemaFormFieldProps) => {
     const getTypeLabel = (schema: Record<string, any>): string => {
+        // AnyOf type
+        if (schema.anyOf && Array.isArray(schema.anyOf)) {
+            const types = schema.anyOf
+                .map((option: Record<string, any>) => option.type)
+                .filter((type: any) => type !== undefined && type !== "null");
+            if (types.length > 0) {
+                return types.join(" | ");
+            }
+        }
+        // Normal type
         if (schema.type) {
             if (Array.isArray(schema.type)) {
                 return schema.type.join(" | ");
             }
             return schema.type;
         }
+        
+        // Ref type
+        if (schema.$ref) {
+            return `${schema.$ref.replace("#/$defs/", "")}`;
+        }
+        // Default 
         return "any";
     };
 
@@ -38,6 +57,7 @@ export const SchemaFormField = ({
             }}
         >
             <VStack align="stretch" gap={2}>
+                {/* Field name */}
                 <HStack justify="space-between" align="center">
                     <HStack align="center">
                         <Text fontWeight="semibold" fontSize="sm">
@@ -65,12 +85,26 @@ export const SchemaFormField = ({
                         {typeLabel}
                     </Text>
                 </HStack>
-                <Input
-                    value={value}
-                    onChange={(e) => onChange(e.target.value)}
-                    placeholder={`Enter value for ${propertyName}`}
-                    size="sm"
-                />
+
+                {/* Field value */}
+                {enumValues && enumValues.length > 0 ? (
+                    <Dropdown
+                        value={value}
+                        onValueChange={onChange}
+                        options={enumValues.map((enumValue) => ({
+                            value: enumValue,
+                            label: enumValue,
+                        }))}
+                        placeholder={`Select ${propertyName}`}
+                    />
+                ) : (
+                    <Input
+                        value={value}
+                        onChange={(e) => onChange(e.target.value)}
+                        placeholder={`Enter value for ${propertyName}`}
+                        size="sm"
+                    />
+                )}
             </VStack>
         </Box>
     );
