@@ -64,7 +64,7 @@ export const FunctionCallConfigDialog = ({
             placement="center"
         >
             <Portal>
-                <Dialog.Backdrop />
+                <Dialog.Backdrop/>
                 <Dialog.Positioner>
                     <Dialog.Content>
                         <Dialog.Header>
@@ -79,7 +79,7 @@ export const FunctionCallConfigDialog = ({
                             </Dialog.Title>
                         </Dialog.Header>
 
-                        <Dialog.Body>
+                        <Dialog.Body maxH={"70vh"} overflowY="auto">
                             <VStack gap={6} align="stretch">
                                 {/* Expected Input */}
                                 <SchemaFormSection
