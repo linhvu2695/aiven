@@ -68,7 +68,7 @@ const RoleAvatarOption = ({
 export const AgentEvalChat = () => {
     const { colorMode } = useColorMode();
     const { agent } = useAgent();
-    const { messages, addMessage, selectedRole, setSelectedRole } = useAgentEval();
+    const { messages, addMessage, setMessages, selectedRole, setSelectedRole } = useAgentEval();
     const [input, setInput] = useState("");
     const [isRolePopoverOpen, setIsRolePopoverOpen] = useState(false);
 
@@ -78,6 +78,10 @@ export const AgentEvalChat = () => {
         setInput("");
         // Reset to default for next message (alternating)
         setSelectedRole(selectedRole === "user" ? "assistant" : "user");
+    };
+
+    const handleRemoveMessage = (idx: number) => {
+        setMessages(messages.filter((_, i) => i !== idx));
     };
 
     return (
@@ -105,6 +109,9 @@ export const AgentEvalChat = () => {
                         key={idx}
                         content={msg.content}
                         role={msg.role}
+                        onRemove={() => {
+                            handleRemoveMessage(idx);
+                        }}
                     />
                 ))}
             </Stack>

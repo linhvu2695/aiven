@@ -82,8 +82,8 @@ export const AgentEvalTrajectoryMatch = () => {
                                 label: "Ignore",
                             },
                             {
-                                value: "strict",
-                                label: "Strict",
+                                value: "exact",
+                                label: "Exact",
                             },
                             {
                                 value: "superset",

@@ -4,7 +4,7 @@ import type { Agent } from "./agent-ctx";
 import type { MCPFunction } from "@/components/agent/agent-eval/agent-eval-trajectory-match";
 
 export type TrajectoryMatch = "strict" | "unordered" | "superset" | "subset";
-export type ToolArgsMatch = "ignore" | "strict" | "superset" | "subset";
+export type ToolArgsMatch = "ignore" | "exact" | "superset" | "subset";
 
 export interface ExpectedFunctionCall {
     id: string;
@@ -15,6 +15,7 @@ export interface ExpectedFunctionCall {
 
 type AgentEvalContextType = {
     messages: ChatMessageInfo[];
+    setMessages: (messages: ChatMessageInfo[]) => void;
     addMessage: (content: string, role: "user" | "assistant") => void;
     resetMessages: () => void;
     selectedRole: "user" | "assistant";
@@ -89,6 +90,7 @@ export const AgentEvalProvider = ({ children }: { children: ReactNode }) => {
         <AgentEvalContext.Provider
             value={{
                 messages,
+                setMessages,
                 addMessage,
                 resetMessages,
                 selectedRole,

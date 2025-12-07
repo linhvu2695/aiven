@@ -1,7 +1,15 @@
-import { Avatar, Box, HStack, Text, VStack } from "@chakra-ui/react";
+import {
+    Avatar,
+    Box,
+    HStack,
+    IconButton,
+    Text,
+    VStack,
+} from "@chakra-ui/react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import remarkBreaks from "remark-breaks";
+import { FaTimes } from "react-icons/fa";
 import { useAgent } from "@/context/agent-ctx";
 import type { ChatMessageInfo } from "./chat-message-info";
 import { FilePreview } from "./file-preview";
@@ -43,7 +51,7 @@ const parseMessageContent = (msg: ChatMessageInfo): ParsedMessageContent => {
 
     // Check if we have any file content (either frontend File or backend image data)
     const hasFileContent = Boolean(file || imageData);
-    
+
     // Check if content is an image
     const isFileImage = file && file.type?.startsWith("image/");
     const isMimeTypeImage = mimeType && String(mimeType).startsWith("image/");
@@ -102,16 +110,44 @@ const MessageContent = ({ content }: { content: string }) => (
     </ReactMarkdown>
 );
 
+const RemoveMessageButton = ({
+    role,
+    onRemove,
+}: {
+    role: string;
+    onRemove: () => void;
+}) => (
+    <IconButton
+        aria-label="Remove message"
+        size="xs"
+        variant="ghost"
+        bg="transparent"
+        position="absolute"
+        color="red.500"
+        top={-3}
+        right={role === "user" ? undefined : -4}
+        left={role === "user" ? -4 : undefined}
+        zIndex={10}
+        onClick={onRemove}
+        opacity={0.7}
+        _hover={{ opacity: 1 }}
+    >
+        <FaTimes />
+    </IconButton>
+);
+
 const MessageBubble = ({
     role,
     agent,
     children,
     isImage = false,
+    onRemove,
 }: {
     role: string;
     agent: any;
     children: React.ReactNode;
     isImage?: boolean;
+    onRemove?: () => void;
 }) => (
     <HStack
         flexDirection={role === "user" ? "row-reverse" : "row"}
@@ -120,7 +156,11 @@ const MessageBubble = ({
     >
         <Avatar.Root size={"sm"}>
             <Avatar.Image
-                src={role === "user" ? DEFAULT_USER_AVATAR : agent?.avatar_image_url}
+                src={
+                    role === "user"
+                        ? DEFAULT_USER_AVATAR
+                        : agent?.avatar_image_url
+                }
                 borderWidth="1px"
                 borderColor="white"
                 _hover={{
@@ -132,19 +172,24 @@ const MessageBubble = ({
         </Avatar.Root>
 
         <Box
+            position="relative"
             bg={roleBgColor[role] ?? "gray.600"}
             color="white"
             p={isImage ? 0 : 3}
             borderRadius={14}
         >
+            {onRemove && <RemoveMessageButton role={role} onRemove={onRemove} />}
             {children}
         </Box>
     </HStack>
 );
 
-export const ChatMessage = (msg: ChatMessageInfo) => {
+export const ChatMessage = (
+    msg: ChatMessageInfo & { onRemove?: () => void }
+) => {
     const { agent } = useAgent();
-    
+    const { onRemove } = msg;
+
     const {
         text,
         file,
@@ -167,6 +212,7 @@ export const ChatMessage = (msg: ChatMessageInfo) => {
                     role={msg.role}
                     agent={agent}
                     isImage={isImageContent}
+                    onRemove={onRemove}
                 >
                     <FilePreview
                         file={file}
@@ -186,10 +232,11 @@ export const ChatMessage = (msg: ChatMessageInfo) => {
 
     // Single bubble for file or text only
     return (
-        <MessageBubble 
-            role={msg.role} 
+        <MessageBubble
+            role={msg.role}
             agent={agent}
             isImage={isImageContent && !text}
+            onRemove={onRemove}
         >
             {hasFileContent && (
                 <Box mb={text ? 2 : 0}>
