@@ -13,10 +13,12 @@ import { FaScaleBalanced } from "react-icons/fa6";
 import { FaPlay, FaUndo } from "react-icons/fa";
 import { useAgent } from "@/context/agent-ctx";
 import { useAgentEval } from "@/context/agent-eval-ctx";
-import { Tooltip } from "../../ui";
+import { toaster, Tooltip } from "../../ui";
 import { AgentEvalChat } from "./agent-eval-chat";
 import { AgentEvalLlmJudge } from "./agent-eval-llm-judge";
 import { AgentEvalTrajectoryMatch } from "./agent-eval-trajectory-match";
+import { BASE_URL } from "@/App";
+import type { ChatMessageInfo } from "@/components/chat/chat-message-info";
 
 type EvalMode = "llm-judge" | "trajectory";
 
@@ -49,9 +51,106 @@ const TabButton = ({ tab, label, currentTab, onClick }: TabButtonProps) => {
     );
 };
 
+// Helper function to serialize ChatMessageInfo to backend ChatMessage format
+const serializeMessage = (msg: ChatMessageInfo) => {    
+    return {
+        role: msg.role,
+        content: String(msg.content),
+    }
+};
+
+// Helper function to build expected trajectory from messages
+const buildExpectedTrajectory = (messages: ChatMessageInfo[]) => {
+    var trajectory = messages.map(serializeMessage);
+
+    // TODO: Add tool_calls support when needed
+    // For now, we'll just include the basic message structure
+    
+    // Add final assistant response
+    trajectory.push({
+        role: "assistant",
+        content: "",
+    });
+    
+    return trajectory;
+};
+
+// Handler function for evaluating the agent
+const handleEvaluate = async (
+    agent: { id: string } | null,
+    messages: ChatMessageInfo[] | undefined,
+    setIsEvaluating: (isEvaluating: boolean) => void
+) => {
+    if (!agent?.id) {
+        toaster.create({
+            description: "Agent ID is required for evaluation",
+            type: "error",
+        });
+        return;
+    }
+    
+    if (!messages || messages.length === 0) {
+        toaster.create({
+            description: "Empty input messages",
+            type: "error",
+        });
+        return;
+    }
+    
+    setIsEvaluating(true);
+    
+    try {
+        // Serialize input messages
+        const inputMessages = messages.map(serializeMessage);
+        
+        // Build expected trajectory
+        const expectedTrajectory = buildExpectedTrajectory(messages);
+        
+        // Make API call
+        const response = await fetch(BASE_URL + "/api/agent/evaluate", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+                agent_id: agent.id,
+                input_messages: inputMessages,
+                expected_trajectory: expectedTrajectory,
+            }),
+        });
+        
+        if (!response.ok) {
+            toaster.create({
+                description: `Failed to evaluate agent: HTTP ${response.status}: ${response.statusText}`,
+                type: "error",
+            });
+            return;
+        }
+        
+        const result = await response.json();
+        console.log("Evaluation result:", result);
+
+        toaster.create({
+            description: "Evaluation completed successfully",
+            type: "success",
+        });
+        
+        // TODO: Display result in the result section
+    } catch (error) {
+        console.error("Error evaluating agent:", error);
+        toaster.create({
+            description: `Failed to evaluate agent`,
+            type: "error",
+        });
+    } finally {
+        setIsEvaluating(false);
+    }
+};
+
 export const AgentEvalContainer = () => {
     const { agent } = useAgent();
     const {
+        messages,
         resetMessages,
         setJudgeAgent,
         setTrajectoryMatch,
@@ -59,6 +158,7 @@ export const AgentEvalContainer = () => {
         setExpectedFunctionCalls,
     } = useAgentEval();
     const [evalMode, setEvalMode] = useState<EvalMode>("llm-judge");
+    const [isEvaluating, setIsEvaluating] = useState(false);
 
     return (
         <Container
@@ -136,11 +236,11 @@ export const AgentEvalContainer = () => {
                             gradientTo: "teal.400",
                             boxShadow: "0px 4px 10px rgba(0, 0, 0, 0.1)",
                         }}
-                        onClick={() => {
-                            // TODO: Implement evaluate logic
-                        }}
+                        onClick={() => handleEvaluate(agent, messages, setIsEvaluating)}
+                        loading={isEvaluating}
+                        disabled={isEvaluating || !agent?.id || !messages || messages.length === 0}
                     >
-                        Evaluate <FaPlay />
+                        EVALUATE <FaPlay />
                     </Button>
 
                     {/* Reset button */}

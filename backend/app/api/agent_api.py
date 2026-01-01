@@ -4,9 +4,12 @@ from app.classes.agent import (
     CreateOrUpdateAgentResponse, 
     DeleteAgentResponse,
     UpdateAgentAvatarResponse,
-    SearchAgentsResponse
+    SearchAgentsResponse,
+    EvaluateAgentRequest,
+    EvaluateAgentResponse
 )
 from app.services.agent.agent_service import AgentService
+from app.services.agent.agent_eval_service import AgentEvalService
 from app.services.image.image_service import ImageService
 
 router = APIRouter()
@@ -60,5 +63,13 @@ async def get_agent_avatar_url(agent_id: str):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+@router.post("/evaluate", response_model=EvaluateAgentResponse)
+async def evaluate_agent(request: EvaluateAgentRequest):
+    """Evaluate an agent by comparing expected vs actual trajectory"""
+    response = await AgentEvalService().evaluate_agent(request)
+    if response.success:
+        return response
+    else:
+        raise HTTPException(status_code=500, detail=response.message)
 
 

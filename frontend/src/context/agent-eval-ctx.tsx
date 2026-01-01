@@ -32,6 +32,13 @@ type AgentEvalContextType = {
 
 const AgentEvalContext = createContext<AgentEvalContextType | undefined>(undefined);
 
+const DEFAULT_MESSAGES = [
+    {
+        content: "Hello, how are you?",
+        role: "user",
+    }
+];
+
 export const useAgentEval = () => {
     const context = useContext(AgentEvalContext);
     if (!context) {
@@ -41,16 +48,7 @@ export const useAgentEval = () => {
 };
 
 export const AgentEvalProvider = ({ children }: { children: ReactNode }) => {
-    const [messages, setMessages] = useState<ChatMessageInfo[]>([
-        {
-            content: "Hello, how are you?",
-            role: "user",
-        },
-        {
-            content: "I'm good, thank you! How can I help you today?",
-            role: "assistant",
-        },
-    ]);
+    const [messages, setMessages] = useState<ChatMessageInfo[]>(DEFAULT_MESSAGES);
     const [selectedRole, setSelectedRole] = useState<"user" | "assistant">("user");
     const [judgeAgent, setJudgeAgent] = useState<Agent | null>(null);
     const [trajectoryMatch, setTrajectoryMatch] = useState<TrajectoryMatch>("strict");
@@ -73,16 +71,7 @@ export const AgentEvalProvider = ({ children }: { children: ReactNode }) => {
     };
 
     const resetMessages = () => {
-        setMessages([
-            {
-                content: "Hello, how are you?",
-                role: "user",
-            },
-            {
-                content: "I'm good, thank you! How can I help you today?",
-                role: "assistant",
-            },
-        ]);
+        setMessages(DEFAULT_MESSAGES);
         setExpectedFunctionCalls([]);
     };
 
