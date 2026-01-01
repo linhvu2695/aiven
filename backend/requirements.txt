@@ -32,6 +32,8 @@ langchain-anthropic==1.2.0
 langgraph==1.0.4
 langgraph-checkpoint==2.1.0
 mcp==1.12.3
+agentevals==0.0.9
+openevals==0.1.2
 
 # AI Providers
 anthropic==0.75.0

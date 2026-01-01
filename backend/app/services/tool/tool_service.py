@@ -1,3 +1,7 @@
+import logging
+from pathlib import Path
+from langchain_core.tools import BaseTool
+from langchain_mcp_adapters.client import MultiServerMCPClient
 from app.classes.tool import ToolInfo, SearchToolsResponse
 
 TOOL_COLLECTION = [
@@ -46,6 +50,7 @@ class ToolService:
         return SearchToolsResponse(tools=TOOL_COLLECTION)
     
     def get_mcp_functions_for_tools(self, tool_ids: list[str]) -> set[str]:
+        """Get MCP functions for tools"""
         mcp_functions = set()
         
         # Create a lookup map for faster access
@@ -59,3 +64,43 @@ class ToolService:
                 print(f"Warning: Unknown tool ID '{tool_id}' - no MCP functions found")
         
         return mcp_functions
+
+    async def load_mcp_functions(self, tool_names: list[str]) -> list[BaseTool]:
+        """Load MCP functions from the MCP server based on tool names"""
+        if not tool_names:
+            return []
+
+        try:
+            # Get the path to the MCP server
+            current_dir = Path(__file__).parent
+            backend_dir = current_dir.parent.parent.parent
+            mcp_server_path = backend_dir / "mcp_server" / "server.py"
+
+            client = MultiServerMCPClient(
+                {
+                    "aiven": {
+                        "command": "python",
+                        "args": [str(mcp_server_path)],
+                        "transport": "stdio",
+                    }
+                }
+            )
+
+            # Get all available tools from MCP server
+            all_functions = await client.get_tools()
+
+            allowed_mcp_functions = self.get_mcp_functions_for_tools(
+                tool_names
+            )
+
+            filtered_functions: list[BaseTool] = []
+            for function in all_functions:
+                if function.name in allowed_mcp_functions:
+                    filtered_functions.append(function)
+            return filtered_functions
+
+        except Exception as e:
+            logging.getLogger("uvicorn.warning").warning(
+                f"Warning: Could not load MCP tools: {e}"
+            )
+            return []

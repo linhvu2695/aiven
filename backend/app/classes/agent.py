@@ -1,7 +1,8 @@
-from typing import Optional
+from typing import Optional, List
 from pydantic import BaseModel
 from app.services.chat.chat_constants import LLMModel
 from app.classes.image import ImageInfo, ImageType
+from app.classes.chat import ChatMessage
 
 class AgentAvatarInfo(ImageInfo):#     
     def __init__(self, **data):
@@ -48,3 +49,16 @@ class UpdateAgentAvatarResponse(BaseModel):
 
 class SearchAgentsResponse(BaseModel):
     agents: list[AgentInfo]
+
+class EvaluateAgentRequest(BaseModel):
+    agent_id: str
+    input_messages: List[ChatMessage]  # Conversation history to evaluate
+    expected_trajectory: list[dict]  # Expected trajectory in agentevals format
+
+class EvaluateAgentResponse(BaseModel):
+    success: bool
+    score: bool  # True if trajectory matches, False otherwise
+    key: str  # Evaluation key (e.g., "trajectory_strict_match")
+    comment: Optional[str] = None  # Optional comment from evaluator
+    actual_trajectory: list[dict]  # Actual trajectory that was evaluated
+    message: str

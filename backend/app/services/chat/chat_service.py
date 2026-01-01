@@ -1,13 +1,11 @@
 import logging, re
+import json
 from datetime import datetime, timezone
-from typing import AsyncGenerator
-from pathlib import Path
+from typing import AsyncGenerator, Any
 from langchain.chat_models import init_chat_model
 from langchain_core.language_models.chat_models import BaseChatModel
-from langchain_core.messages import HumanMessage, AIMessage
+from langchain_core.messages import HumanMessage, AIMessage, ToolMessage
 from langchain_core.runnables import RunnableConfig
-from langchain_core.tools import BaseTool
-from langchain_mcp_adapters.client import MultiServerMCPClient
 from langgraph.prebuilt import create_react_agent
 from app.classes.chat import (
     ChatMessage,
@@ -50,45 +48,6 @@ class ChatService:
         if not hasattr(cls, "_instance") or cls._instance is None:
             cls._instance = super(ChatService, cls).__new__(cls)
         return cls._instance
-
-    async def _load_mcp_tools(self, tool_names: list[str]) -> list[BaseTool]:
-        if not tool_names:
-            return []
-
-        try:
-            # Get the path to the MCP server
-            current_dir = Path(__file__).parent
-            backend_dir = current_dir.parent.parent.parent
-            mcp_server_path = backend_dir / "mcp_server" / "server.py"
-
-            client = MultiServerMCPClient(
-                {
-                    "aiven": {
-                        "command": "python",
-                        "args": [str(mcp_server_path)],
-                        "transport": "stdio",
-                    }
-                }
-            )
-
-            # Get all available tools from MCP server
-            all_functions = await client.get_tools()
-
-            allowed_mcp_functions = ToolService().get_mcp_functions_for_tools(
-                tool_names
-            )
-
-            filtered_functions = []
-            for function in all_functions:
-                if function.name in allowed_mcp_functions:
-                    filtered_functions.append(function)
-            return filtered_functions
-
-        except Exception as e:
-            logging.getLogger("uvicorn.warning").warning(
-                f"Warning: Could not load MCP tools: {e}"
-            )
-            return []
 
     def _parse_format_error(self, error_message: str) -> str:
         """Parse LLM provider error message to extract supported formats and return user-friendly message."""
@@ -191,6 +150,125 @@ class ChatService:
         except Exception as e:
             logging.getLogger("uvicorn.error").error(f"Error generating conversation name: {e}")
 
+    def _jsonify_human_message_content(self, content) -> str | list[dict]:
+        """
+        Convert HumanMessage content to JSON-compatible format.
+        
+        Args:
+            content: The content from HumanMessage (can be str or list)
+            
+        Returns:
+            Either a string (for simple text) or list of dicts (for multimodal content)
+        """
+        if isinstance(content, list):
+            # Preserve multimodal content structure
+            # Convert to agentevals-compatible format
+            multimodal_items = []
+            for item in content:
+                if isinstance(item, dict):
+                    item_type = item.get("type", "")
+                    if item_type == "text":
+                        multimodal_items.append({
+                            "type": "text",
+                            "text": item.get("text", "")
+                        })
+                    elif item_type == "image":
+                        # Preserve image information
+                        source = item.get("source", {})
+                        if source.get("type") == "url":
+                            multimodal_items.append({
+                                "type": "image",
+                                "source": {
+                                    "type": "url",
+                                    "url": source.get("url", "")
+                                }
+                            })
+                        elif source.get("type") == "base64":
+                            multimodal_items.append({
+                                "type": "image",
+                                "source": {
+                                    "type": "base64",
+                                    "media_type": source.get("media_type", "image/jpeg"),
+                                    "data": source.get("data", "")
+                                }
+                            })
+            
+            # If we have multimodal items, use them; otherwise fallback to string representation
+            if multimodal_items:
+                # If only one text item, simplify to string for compatibility
+                if len(multimodal_items) == 1 and multimodal_items[0].get("type") == "text":
+                    return multimodal_items[0].get("text", "")
+                else:
+                    # Preserve full multimodal structure
+                    return multimodal_items
+            else:
+                # Fallback: convert list to string if no recognized items
+                return str(content)
+        
+        # Simple string content
+        return str(content)
+
+    def _jsonify_tool_calls(self, tool_calls) -> list[dict]:
+        """
+        Convert tool calls to JSON-compatible format.
+        
+        Args:
+            tool_calls: List of tool calls (can be dict or object-style)
+            
+        Returns:
+            List of dictionaries in agentevals-compatible format
+        """
+        result: list[dict] = []
+        for tool_call in tool_calls:
+            # Handle both dict and object-style tool calls
+            if isinstance(tool_call, dict):
+                tool_name = tool_call.get("name", "")
+                tool_args = tool_call.get("args", {})
+            else:
+                # Object-style tool call
+                tool_name = getattr(tool_call, "name", "")
+                tool_args = getattr(tool_call, "args", {})
+            
+            result.append({
+                "function": {
+                    "name": tool_name,
+                    "arguments": json.dumps(tool_args) if isinstance(tool_args, dict) else str(tool_args)
+                }
+            })
+        return result
+
+    def jsonify_langchain_messages(self, messages) -> list[dict]:
+        """Convert LangChain messages to JSON-compatible dictionary format"""
+        trajectory = []
+        
+        for message in messages:
+            if isinstance(message, HumanMessage):
+                jsonified_content = self._jsonify_human_message_content(message.content)
+                trajectory.append({
+                    "role": "user",
+                    "content": jsonified_content
+                })
+            
+            elif isinstance(message, AIMessage):
+                trajectory_item: dict[str, Any] = {
+                    "role": "assistant",
+                    "content": str(message.content) if message.content else ""
+                }
+                
+                # Handle tool calls
+                if hasattr(message, "tool_calls") and message.tool_calls:
+                    trajectory_item["tool_calls"] = self._jsonify_tool_calls(message.tool_calls)
+                
+                trajectory.append(trajectory_item)
+            
+            elif isinstance(message, ToolMessage):
+                trajectory.append({
+                    "role": "tool",
+                    "content": str(message.content)
+                })
+        
+        return trajectory
+  
     def get_chat_model(self, model_name) -> BaseChatModel:
         if model_name in OPENAI_MODELS:
             return init_chat_model(
@@ -268,7 +346,7 @@ class ChatService:
             logging.getLogger("uvicorn.info").info("Step 4: Loading MCP tools")
             functions = []
             if agent.tools is not None and len(agent.tools) > 0:
-                functions = await self._load_mcp_tools(agent.tools)
+                functions = await ToolService().load_mcp_functions(agent.tools)
 
             logging.getLogger("uvicorn.info").info("Step 5: Creating LangGraph react agent")
             graph = create_react_agent(
@@ -392,7 +470,7 @@ class ChatService:
             logging.getLogger("uvicorn.info").info("Step 4: Loading MCP tools")
             functions = []
             if agent.tools is not None and len(agent.tools) > 0:
-                functions = await self._load_mcp_tools(agent.tools)
+                functions = await ToolService().load_mcp_functions(agent.tools)
 
             logging.getLogger("uvicorn.info").info("Step 5: Creating LangGraph react agent")
             graph = create_react_agent(

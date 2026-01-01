@@ -1,5 +1,7 @@
+from typing import Any
 import pytest
 from unittest.mock import patch, AsyncMock, MagicMock
+from langchain_core.messages import HumanMessage, AIMessage, ToolCall, ToolMessage
 
 from app.services.chat.chat_service import ChatService
 from app.services.agent.agent_service import AgentService
@@ -1754,4 +1756,255 @@ class TestConversationNaming:
         await chat_service._generate_conversation_name_if_needed(mock_history, TEST_AGENT_ID)
         
         # Verify that update was NOT called
-        mock_mongodb_instance_chat_service.update_document.assert_not_called() 
+        mock_mongodb_instance_chat_service.update_document.assert_not_called()
+
+
+class TestJsonifyLangchainMessages:
+    """Test jsonify_langchain_messages method."""
+    
+    @pytest.fixture
+    def chat_service(self):
+        ChatService._instance = None
+        return ChatService()
+    
+    def test_jsonify_human_message_simple(self, chat_service: ChatService):
+        """Test converting a simple HumanMessage to dict."""
+        messages = [HumanMessage(content="Hello, world!")]
+        result = chat_service.jsonify_langchain_messages(messages)
+        
+        assert len(result) == 1
+        assert result[0] == {
+            "role": "user",
+            "content": "Hello, world!"
+        }
+
+    def test_jsonify_human_message_empty_content(self, chat_service: ChatService):
+        """Test converting a HumanMessage with empty content to dict."""
+        messages = [HumanMessage(content="")]
+        result = chat_service.jsonify_langchain_messages(messages)
+        
+        assert len(result) == 1
+        assert result[0] == {
+            "role": "user",
+            "content": ""
+        }
+    
+    def test_jsonify_human_message_multimodal(self, chat_service: ChatService):
+        """Test converting HumanMessage with multimodal content (text + image)."""
+        multimodal_content = [
+            {"type": "text", "text": "What's in this image?"},
+            {"type": "image", "source": {"type": "url", "url": "http://example.com/image.jpg"}}
+        ]
+        messages = [HumanMessage(content=multimodal_content)]
+        result = chat_service.jsonify_langchain_messages(messages)
+        
+        assert len(result) == 1
+        assert result[0]["role"] == "user"
+        # Multimodal content should be preserved as a list
+        assert isinstance(result[0]["content"], list)
+        assert len(result[0]["content"]) == 2
+        assert result[0]["content"][0] == {"type": "text", "text": "What's in this image?"}
+        assert result[0]["content"][1] == {
+            "type": "image",
+            "source": {"type": "url", "url": "http://example.com/image.jpg"}
+        }
+    
+    def test_jsonify_human_message_multimodal_no_text(self, chat_service: ChatService):
+        """Test converting HumanMessage with multimodal content but no text item."""
+        multimodal_content : list[Any] = [
+            {"type": "image", "source": {"type": "url", "url": "http://example.com/image.jpg"}}
+        ]
+        messages = [HumanMessage(content=multimodal_content)]
+        result = chat_service.jsonify_langchain_messages(messages)
+        
+        assert len(result) == 1
+        assert result[0]["role"] == "user"
+        # Image-only content should be preserved as a list
+        assert isinstance(result[0]["content"], list)
+        assert len(result[0]["content"]) == 1
+        assert result[0]["content"][0]["type"] == "image"
+    
+    def test_jsonify_human_message_multimodal_text_only(self, chat_service: ChatService):
+        """Test converting HumanMessage with multimodal content containing only text (should simplify to string)."""
+        multimodal_content : list[Any] = [
+            {"type": "text", "text": "Hello, world!"}
+        ]
+        messages = [HumanMessage(content=multimodal_content)]
+        result = chat_service.jsonify_langchain_messages(messages)
+        
+        assert len(result) == 1
+        assert result[0] == {
+            "role": "user",
+            "content": "Hello, world!"  # Should simplify to string when only text
+        }
+    
+    def test_jsonify_ai_message_simple(self, chat_service: ChatService):
+        """Test converting a simple AIMessage to dict."""
+        from langchain_core.messages import AIMessage
+        
+        messages = [AIMessage(content="I can help you with that!")]
+        result = chat_service.jsonify_langchain_messages(messages)
+        
+        assert len(result) == 1
+        assert result[0] == {
+            "role": "assistant",
+            "content": "I can help you with that!"
+        }
+    
+    def test_jsonify_ai_message_empty_content(self, chat_service: ChatService):
+        """Test converting AIMessage with empty content."""
+        from langchain_core.messages import AIMessage
+        
+        messages = [AIMessage(content="")]
+        result = chat_service.jsonify_langchain_messages(messages)
+        
+        assert len(result) == 1
+        assert result[0] == {
+            "role": "assistant",
+            "content": ""
+        }
+    
+    def test_jsonify_ai_message_with_tool_calls_dict(self, chat_service: ChatService):
+        """Test converting AIMessage with tool calls (dict format)."""
+        ai_message = AIMessage(content="")
+        ai_message.tool_calls = [
+            ToolCall(
+                id="call_123", 
+                name="get_weather", 
+                args={"city": "San Francisco"}
+            )
+        ]
+        messages = [ai_message]
+        result = chat_service.jsonify_langchain_messages(messages)
+        
+        assert len(result) == 1
+        assert result[0]["role"] == "assistant"
+        assert result[0]["content"] == ""
+        assert "tool_calls" in result[0]
+        assert len(result[0]["tool_calls"]) == 1
+        assert result[0]["tool_calls"][0] == {
+            "function": {
+                "name": "get_weather",
+                "arguments": '{"city": "San Francisco"}'
+            }
+        }
+    
+    def test_jsonify_ai_message_with_tool_calls_object(self, chat_service: ChatService):
+        """Test converting AIMessage with tool calls (object format)."""        
+        ai_message = AIMessage(content="")
+        ai_message.tool_calls = [
+            ToolCall(
+                id="call_123", 
+                name="search_web", 
+                args={"query": "Python tutorials"})
+            ]
+        messages = [ai_message]
+        result = chat_service.jsonify_langchain_messages(messages)
+        
+        assert len(result) == 1
+        assert result[0]["role"] == "assistant"
+        assert "tool_calls" in result[0]
+        assert len(result[0]["tool_calls"]) == 1
+        assert result[0]["tool_calls"][0]["function"]["name"] == "search_web"
+        assert result[0]["tool_calls"][0]["function"]["arguments"] == '{"query": "Python tutorials"}'
+    
+    def test_jsonify_ai_message_with_multiple_tool_calls(self, chat_service: ChatService):
+        """Test converting AIMessage with multiple tool calls."""
+        ai_message = AIMessage(content="")
+        ai_message.tool_calls = [
+            ToolCall(id="call_1", name="get_weather", args={"city": "SF"}),
+            ToolCall(id="call_2", name="get_time", args={})
+        ]
+        messages = [ai_message]
+        result = chat_service.jsonify_langchain_messages(messages)
+        
+        assert len(result) == 1
+        assert len(result[0]["tool_calls"]) == 2
+        assert result[0]["tool_calls"][0]["function"]["name"] == "get_weather"
+        assert result[0]["tool_calls"][1]["function"]["name"] == "get_time"
+    
+    def test_jsonify_tool_message(self, chat_service: ChatService):
+        """Test converting ToolMessage to dict."""
+        messages = [ToolMessage(content="Temperature: 72°F", tool_call_id="call_123")]
+        result = chat_service.jsonify_langchain_messages(messages)
+        
+        assert len(result) == 1
+        assert result[0] == {
+            "role": "tool",
+            "content": "Temperature: 72°F"
+        }
+    
+    def test_jsonify_tool_message_empty_content(self, chat_service: ChatService):
+        """Test converting ToolMessage with empty content."""
+        messages = [ToolMessage(content="", tool_call_id="call_123")]
+        result = chat_service.jsonify_langchain_messages(messages)
+        
+        assert len(result) == 1
+        assert result[0] == {
+            "role": "tool",
+            "content": ""
+        }
+    
+    def test_jsonify_mixed_messages(self, chat_service: ChatService):
+        """Test converting a conversation with mixed message types."""
+        ai_message_with_tools = AIMessage(content="")
+        ai_message_with_tools.tool_calls = [
+            ToolCall(
+                id="call_123", 
+                name="get_weather", 
+                args={"city": "SF"}
+            )
+        ]
+        
+        messages = [
+            HumanMessage(content="What's the weather?"),
+            ai_message_with_tools,
+            ToolMessage(content="Temperature: 72°F", tool_call_id="call_123"),
+            AIMessage(content="The weather in SF is 72°F")
+        ]
+        result = chat_service.jsonify_langchain_messages(messages)
+        
+        assert len(result) == 4
+        assert result[0]["role"] == "user"
+        assert result[0]["content"] == "What's the weather?"
+        assert result[1]["role"] == "assistant"
+        assert "tool_calls" in result[1]
+        assert result[2]["role"] == "tool"
+        assert result[2]["content"] == "Temperature: 72°F"
+        assert result[3]["role"] == "assistant"
+        assert result[3]["content"] == "The weather in SF is 72°F"
+    
+    def test_jsonify_empty_messages_list(self, chat_service: ChatService):
+        """Test converting an empty messages list."""
+        result = chat_service.jsonify_langchain_messages([])
+        
+        assert result == []
+    
+    def test_jsonify_tool_message_none_content(self, chat_service: ChatService):
+        """Test converting ToolMessage with None content."""
+        messages = [ToolMessage(content=None, tool_call_id="call_123")] # type: ignore
+        result = chat_service.jsonify_langchain_messages(messages)
+        
+        assert len(result) == 1
+        assert result[0]["role"] == "tool"
+        assert result[0]["content"] == "None"
+    
+    def test_jsonify_ai_message_tool_calls_empty_args(self, chat_service: ChatService):
+        """Test converting AIMessage with tool call that has empty args."""
+        ai_message = AIMessage(content="")
+        ai_message.tool_calls = [ToolCall(id="call_123", name="ping", args={})]
+        messages = [ai_message]
+        result = chat_service.jsonify_langchain_messages(messages)
+        
+        assert len(result) == 1
+        assert result[0]["tool_calls"][0]["function"]["arguments"] == "{}"
+    
+    def test_jsonify_ai_message_tool_calls_non_dict_args(self, chat_service: ChatService):
+        """Test converting AIMessage with tool call that has non-dict args."""
+        ai_message = AIMessage(content="")
+        ai_message.tool_calls = [ToolCall(id="call_123", name="test_tool", args={"test_key": "test_value"})]
+        messages = [ai_message]
+        result = chat_service.jsonify_langchain_messages(messages)
+        
+        assert len(result) == 1
+        assert result[0]["tool_calls"][0]["function"]["arguments"] == '{"test_key": "test_value"}'
