@@ -5,6 +5,7 @@ from langchain_core.messages import HumanMessage, AIMessage, ToolCall, ToolMessa
 
 from app.services.chat.chat_service import ChatService
 from app.services.agent.agent_service import AgentService
+from app.services.tool.tool_service import ToolService
 from app.classes.chat import ChatMessage, ChatRequest, ChatResponse, ChatFileContent, ChatStreamChunk
 from app.classes.agent import AgentInfo
 from app.services.chat.chat_constants import LLMModel
@@ -1196,8 +1197,10 @@ class TestGenerateStreamingChatResponse:
         
         mocks = self.setup_base_mocks(chat_service, mock_model, agent_with_tools)
         
+        mock_load_mcp_functions = AsyncMock(return_value=mock_tools)
         with mocks['model_patch'], mocks['agent_patch'], mocks['history_patch'], \
-             patch.object(chat_service, '_load_mcp_tools', new=AsyncMock(return_value=mock_tools)), \
+             patch.object(ToolService, 'load_mcp_functions', new=mock_load_mcp_functions), \
+             patch.object(chat_service, '_get_agent_system_prompt', new=AsyncMock(return_value="System prompt")), \
              patch('app.services.chat.chat_service.create_react_agent') as mock_create_agent:
             
             mock_create_agent.return_value = mock_graph
