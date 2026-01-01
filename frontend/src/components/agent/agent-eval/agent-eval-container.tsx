@@ -60,14 +60,50 @@ const serializeMessage = (msg: ChatMessageInfo) => {
     }
 };
 
-// Helper function to build expected trajectory from messages
-const buildExpectedTrajectory = (messages: ChatMessageInfo[]) => {
-    var trajectory = messages.map(serializeMessage);
+// Helper function to build expected trajectory from messages and expected function calls
+const buildExpectedTrajectory = (
+    messages: ChatMessageInfo[],
+    expectedFunctionCalls: Array<{
+        function: { name: string };
+        expectedInput: Record<string, any>;
+        expectedOutput: Record<string, any>;
+    }>
+) => {
+    // Input chat history
+    const trajectory: Array<{
+        role: string;
+        content: string;
+        tool_calls?: Array<{
+            function: {
+                name: string;
+                arguments: string;
+            };
+        }>;
+    }> = messages.map(serializeMessage);
 
-    // TODO: Add tool_calls support when needed
-    // For now, we'll just include the basic message structure
+    // Expected function calls
+    expectedFunctionCalls.forEach((call) => {
+        trajectory.push({
+            role: "assistant",
+            content: "",
+            tool_calls: [
+                {
+                    function: {
+                        name: call.function.name,
+                        arguments: JSON.stringify(call.expectedInput),
+                    },
+                },
+            ],
+        });
+
+        // Tool response
+        trajectory.push({
+            role: "tool",
+            content: JSON.stringify(call.expectedOutput),
+        });
+    });
     
-    // Add final assistant response
+    // Final assistant response
     trajectory.push({
         role: "assistant",
         content: "",
@@ -80,6 +116,11 @@ const buildExpectedTrajectory = (messages: ChatMessageInfo[]) => {
 const handleEvaluate = async (
     agent: { id: string } | null,
     messages: ChatMessageInfo[] | undefined,
+    expectedFunctionCalls: Array<{
+        function: { name: string };
+        expectedInput: Record<string, any>;
+        expectedOutput: Record<string, any>;
+    }>,
     setIsEvaluating: (isEvaluating: boolean) => void,
     setEvalResult: (result: any) => void
 ) => {
@@ -105,8 +146,8 @@ const handleEvaluate = async (
         // Serialize input messages
         const inputMessages = messages.map(serializeMessage);
         
-        // Build expected trajectory
-        const expectedTrajectory = buildExpectedTrajectory(messages);
+        // Build expected trajectory (input messages -> tool calls -> final response)
+        const expectedTrajectory = buildExpectedTrajectory(messages, expectedFunctionCalls);
         
         // Make API call
         const response = await fetch(BASE_URL + "/api/agent/evaluate", {
@@ -154,6 +195,7 @@ export const AgentEvalContainer = () => {
     const { agent } = useAgent();
     const {
         messages,
+        expectedFunctionCalls,
         resetMessages,
         setJudgeAgent,
         setTrajectoryMatch,
@@ -240,7 +282,7 @@ export const AgentEvalContainer = () => {
                             gradientTo: "teal.400",
                             boxShadow: "0px 4px 10px rgba(0, 0, 0, 0.1)",
                         }}
-                        onClick={() => handleEvaluate(agent, messages, setIsEvaluating, setEvalResult)}
+                        onClick={() => handleEvaluate(agent, messages, expectedFunctionCalls, setIsEvaluating, setEvalResult)}
                         loading={isEvaluating}
                         disabled={isEvaluating || !agent?.id || !messages || messages.length === 0}
                     >
