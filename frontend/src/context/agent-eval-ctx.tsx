@@ -13,6 +13,24 @@ export interface ExpectedFunctionCall {
     expectedOutput: Record<string, any>;
 }
 
+export interface EvalResult {
+    success: boolean;
+    score: boolean; // True if trajectory matches, False otherwise
+    key: string; // Evaluation key (e.g., "trajectory_strict_match")
+    comment?: string; // Optional comment from evaluator
+    actual_trajectory: Array<{
+        role: string;
+        content: string;
+        tool_calls?: Array<{
+            function: {
+                name: string;
+                arguments: string;
+            };
+        }>;
+    }>;
+    message: string;
+}
+
 type AgentEvalContextType = {
     messages: ChatMessageInfo[];
     setMessages: (messages: ChatMessageInfo[]) => void;
@@ -28,6 +46,8 @@ type AgentEvalContextType = {
     setToolArgsMatch: (match: ToolArgsMatch) => void;
     expectedFunctionCalls: ExpectedFunctionCall[];
     setExpectedFunctionCalls: (calls: ExpectedFunctionCall[]) => void;
+    evalResult: EvalResult | null;
+    setEvalResult: (result: EvalResult | null) => void;
 };
 
 const AgentEvalContext = createContext<AgentEvalContextType | undefined>(undefined);
@@ -54,6 +74,7 @@ export const AgentEvalProvider = ({ children }: { children: ReactNode }) => {
     const [trajectoryMatch, setTrajectoryMatch] = useState<TrajectoryMatch>("strict");
     const [toolArgsMatch, setToolArgsMatch] = useState<ToolArgsMatch>("ignore");
     const [expectedFunctionCalls, setExpectedFunctionCalls] = useState<ExpectedFunctionCall[]>([]);
+    const [evalResult, setEvalResult] = useState<EvalResult | null>(null);
 
     // Update selectedRole when messages updated (default behavior)
     useEffect(() => {
@@ -73,6 +94,7 @@ export const AgentEvalProvider = ({ children }: { children: ReactNode }) => {
     const resetMessages = () => {
         setMessages(DEFAULT_MESSAGES);
         setExpectedFunctionCalls([]);
+        setEvalResult(null);
     };
 
     return (
@@ -92,6 +114,8 @@ export const AgentEvalProvider = ({ children }: { children: ReactNode }) => {
                 setToolArgsMatch,
                 expectedFunctionCalls,
                 setExpectedFunctionCalls,
+                evalResult,
+                setEvalResult,
             }}
         >
             {children}

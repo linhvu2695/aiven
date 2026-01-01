@@ -17,6 +17,7 @@ import { toaster, Tooltip } from "../../ui";
 import { AgentEvalChat } from "./agent-eval-chat";
 import { AgentEvalLlmJudge } from "./agent-eval-llm-judge";
 import { AgentEvalTrajectoryMatch } from "./agent-eval-trajectory-match";
+import { AgentEvalResult } from "./agent-eval-result";
 import { BASE_URL } from "@/App";
 import type { ChatMessageInfo } from "@/components/chat/chat-message-info";
 
@@ -79,7 +80,8 @@ const buildExpectedTrajectory = (messages: ChatMessageInfo[]) => {
 const handleEvaluate = async (
     agent: { id: string } | null,
     messages: ChatMessageInfo[] | undefined,
-    setIsEvaluating: (isEvaluating: boolean) => void
+    setIsEvaluating: (isEvaluating: boolean) => void,
+    setEvalResult: (result: any) => void
 ) => {
     if (!agent?.id) {
         toaster.create({
@@ -130,12 +132,13 @@ const handleEvaluate = async (
         const result = await response.json();
         console.log("Evaluation result:", result);
 
+        // Store result in context
+        setEvalResult(result);
+
         toaster.create({
             description: "Evaluation completed successfully",
             type: "success",
         });
-        
-        // TODO: Display result in the result section
     } catch (error) {
         console.error("Error evaluating agent:", error);
         toaster.create({
@@ -156,6 +159,7 @@ export const AgentEvalContainer = () => {
         setTrajectoryMatch,
         setToolArgsMatch,
         setExpectedFunctionCalls,
+        setEvalResult,
     } = useAgentEval();
     const [evalMode, setEvalMode] = useState<EvalMode>("llm-judge");
     const [isEvaluating, setIsEvaluating] = useState(false);
@@ -236,7 +240,7 @@ export const AgentEvalContainer = () => {
                             gradientTo: "teal.400",
                             boxShadow: "0px 4px 10px rgba(0, 0, 0, 0.1)",
                         }}
-                        onClick={() => handleEvaluate(agent, messages, setIsEvaluating)}
+                        onClick={() => handleEvaluate(agent, messages, setIsEvaluating, setEvalResult)}
                         loading={isEvaluating}
                         disabled={isEvaluating || !agent?.id || !messages || messages.length === 0}
                     >
@@ -271,9 +275,8 @@ export const AgentEvalContainer = () => {
                     flex={1}
                     minH={0}
                     overflowY="auto"
-                    p={4}
                 >
-                    <Heading size="lg">Result</Heading>
+                    <AgentEvalResult />
                 </Stack>
             </Stack>
         </Container>
