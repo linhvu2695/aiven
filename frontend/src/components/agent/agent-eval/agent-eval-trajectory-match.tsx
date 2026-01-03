@@ -5,6 +5,7 @@ import {
     Button,
     VStack,
     useDisclosure,
+    Separator,
 } from "@chakra-ui/react";
 import { FaPlus } from "react-icons/fa";
 import { useAgentEval, type TrajectoryMatch, type ToolArgsMatch } from "@/context/agent-eval-ctx";
@@ -89,6 +90,9 @@ export const AgentEvalTrajectoryMatch = () => {
                         flex={1}
                     />
                 </HStack>
+
+                {/* Separator */}
+                <Separator />
 
                 {/* Add button */}
                 <Button

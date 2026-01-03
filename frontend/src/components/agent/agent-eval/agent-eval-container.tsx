@@ -123,6 +123,7 @@ const handleEvaluate = async (
     }>,
     trajectoryMatchMode: TrajectoryMatch,
     toolArgsMatchMode: ToolArgsMatch,
+    judgeId: string | undefined,
     setIsEvaluating: (isEvaluating: boolean) => void,
     setEvalResult: (result: any) => void
 ) => {
@@ -163,6 +164,7 @@ const handleEvaluate = async (
                 expected_trajectory: expectedTrajectory,
                 trajectory_match_mode: trajectoryMatchMode,
                 tool_args_match_mode: toolArgsMatchMode,
+                judge_id: judgeId,
             }),
         });
         
@@ -204,6 +206,7 @@ export const AgentEvalContainer = () => {
         setJudgeAgent,
         trajectoryMatch,
         toolArgsMatch,
+        judgeAgent,
         setTrajectoryMatch,
         setToolArgsMatch,
         setExpectedFunctionCalls,
@@ -290,11 +293,11 @@ export const AgentEvalContainer = () => {
                             gradientTo: "teal.400",
                             boxShadow: "0px 4px 10px rgba(0, 0, 0, 0.1)",
                         }}
-                        onClick={() => handleEvaluate(agent, messages, expectedFunctionCalls, trajectoryMatch, toolArgsMatch, setIsEvaluating, setEvalResult)}
+                        onClick={() => handleEvaluate(agent, messages, expectedFunctionCalls, trajectoryMatch, toolArgsMatch, judgeAgent?.id, setIsEvaluating, setEvalResult)}
                         loading={isEvaluating}
                         disabled={isEvaluating || !agent?.id || !messages || messages.length === 0}
                     >
-                        EVALUATE <FaPlay />
+                        EVALUATE - {judgeAgent ? "🤖 LLM As a Judge" : "💫 Trajectory Match"} <FaPlay />
                     </Button>
 
                     {/* Reset button */}

@@ -11,6 +11,7 @@ from app.core.config import settings
 from app.utils.string.string_utils import is_empty_string
 from app.utils.chat.chat_utils import convert_chat_messages
 from agentevals.trajectory.match import create_trajectory_match_evaluator
+from agentevals.trajectory.llm import create_trajectory_llm_as_judge, TRAJECTORY_ACCURACY_PROMPT, TRAJECTORY_ACCURACY_PROMPT_WITH_REFERENCE
 
 
 class AgentEvalService:
@@ -103,20 +104,30 @@ class AgentEvalService:
                 result["messages"]
             )
 
-            # Step 7: Evaluate using agentevals
-            logging.getLogger("uvicorn.info").info("Step 7: Evaluating with agentevals")
-            evaluator = create_trajectory_match_evaluator(
-                trajectory_match_mode=request.trajectory_match_mode.value,  
-                tool_args_match_mode=request.tool_args_match_mode.value,    
-                tool_args_match_overrides={}     
-            )
+            # Step 7: Create evaluator
+            logging.getLogger("uvicorn.info").info("Step 7: Creating evaluator")
+            if is_empty_string(request.judge_id):
+                evaluator = create_trajectory_match_evaluator(
+                    trajectory_match_mode=request.trajectory_match_mode.value,  
+                    tool_args_match_mode=request.tool_args_match_mode.value,    
+                    tool_args_match_overrides={}     
+                )
+            else:
+                judge_model = ChatService().get_chat_model("gpt-4o-mini")
+                evaluator = create_trajectory_llm_as_judge(
+                    prompt=TRAJECTORY_ACCURACY_PROMPT_WITH_REFERENCE,
+                    judge=judge_model,
+                )
 
+            # Step 8: Evaluate
+            logging.getLogger("uvicorn.info").info("Step 8: Evaluating")
             evaluation_result = evaluator(
                 outputs=actual_trajectory,
                 reference_outputs=request.expected_trajectory
             )
 
-            # Step 8: Extract evaluation results
+            # Step 9: Extract evaluation results
+            logging.getLogger("uvicorn.info").info("Step 9: Extracting evaluation results")
             if isinstance(evaluation_result, dict):
                 score = evaluation_result.get("score", False)
                 key = evaluation_result.get("key", None)
@@ -130,9 +141,8 @@ class AgentEvalService:
             if isinstance(score, (int, float)):
                 score = bool(score)
             
-            # Step 9: Return evaluation response
-            logging.getLogger("uvicorn.info").info(
-                f"Evaluation complete: score={score}, key={key}"
+            # Step 10: Return evaluation response
+            logging.getLogger("uvicorn.info").info("Step 10: Returning evaluation response. Evaluation complete: score={score}, key={key}"
             )
             
             return EvaluateAgentResponse(
