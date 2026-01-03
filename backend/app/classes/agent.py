@@ -1,8 +1,19 @@
+from enum import Enum
 from typing import Optional, List
 from pydantic import BaseModel
 from app.services.chat.chat_constants import LLMModel
 from app.classes.image import ImageInfo, ImageType
 from app.classes.chat import ChatMessage
+
+class TrajectoryMatchMode(str, Enum):
+    STRICT = "strict"
+    UNORDERED = "unordered"
+    SUPERSET = "superset"
+    SUBSET = "subset"
+
+class ToolArgsMatchMode(str, Enum):
+    EXACT = "exact"
+    IGNORE = "ignore"
 
 class AgentAvatarInfo(ImageInfo):#     
     def __init__(self, **data):
@@ -52,8 +63,10 @@ class SearchAgentsResponse(BaseModel):
 
 class EvaluateAgentRequest(BaseModel):
     agent_id: str
-    input_messages: List[ChatMessage]  # Conversation history to evaluate
-    expected_trajectory: list[dict]  # Expected trajectory in agentevals format
+    input_messages: List[ChatMessage]
+    expected_trajectory: list[dict]
+    trajectory_match_mode: TrajectoryMatchMode = TrajectoryMatchMode.STRICT
+    tool_args_match_mode: ToolArgsMatchMode = ToolArgsMatchMode.EXACT
 
 class EvaluateAgentResponse(BaseModel):
     success: bool

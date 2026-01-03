@@ -106,8 +106,8 @@ class AgentEvalService:
             # Step 7: Evaluate using agentevals
             logging.getLogger("uvicorn.info").info("Step 7: Evaluating with agentevals")
             evaluator = create_trajectory_match_evaluator(
-                trajectory_match_mode="strict",  
-                tool_args_match_mode="exact",    
+                trajectory_match_mode=request.trajectory_match_mode.value,  
+                tool_args_match_mode=request.tool_args_match_mode.value,    
                 tool_args_match_overrides={}     
             )
 

@@ -84,15 +84,7 @@ export const AgentEvalTrajectoryMatch = () => {
                             {
                                 value: "exact",
                                 label: "Exact",
-                            },
-                            {
-                                value: "superset",
-                                label: "Superset",
-                            },
-                            {
-                                value: "subset",
-                                label: "Subset",
-                            },
+                            }
                         ]}
                         flex={1}
                     />

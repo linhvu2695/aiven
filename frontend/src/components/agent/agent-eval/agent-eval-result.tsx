@@ -202,7 +202,7 @@ export const AgentEvalResult = () => {
                     onClick={() => setIsTrajectoryExpanded(!isTrajectoryExpanded)}
                 >
                     <HStack>
-                        <Heading size="md">Actual Trajectory</Heading>
+                        <Heading size="md">💫 - Actual Trajectory</Heading>
                         <Badge colorScheme="blue">
                             {evalResult.actual_trajectory.length} steps
                         </Badge>

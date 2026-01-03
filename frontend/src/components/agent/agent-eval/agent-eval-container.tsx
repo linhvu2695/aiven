@@ -12,7 +12,7 @@ import { useState } from "react";
 import { FaScaleBalanced } from "react-icons/fa6";
 import { FaPlay, FaUndo } from "react-icons/fa";
 import { useAgent } from "@/context/agent-ctx";
-import { useAgentEval } from "@/context/agent-eval-ctx";
+import { useAgentEval, type ToolArgsMatch, type TrajectoryMatch } from "@/context/agent-eval-ctx";
 import { toaster, Tooltip } from "../../ui";
 import { AgentEvalChat } from "./agent-eval-chat";
 import { AgentEvalLlmJudge } from "./agent-eval-llm-judge";
@@ -121,6 +121,8 @@ const handleEvaluate = async (
         expectedInput: Record<string, any>;
         expectedOutput: Record<string, any>;
     }>,
+    trajectoryMatchMode: TrajectoryMatch,
+    toolArgsMatchMode: ToolArgsMatch,
     setIsEvaluating: (isEvaluating: boolean) => void,
     setEvalResult: (result: any) => void
 ) => {
@@ -159,6 +161,8 @@ const handleEvaluate = async (
                 agent_id: agent.id,
                 input_messages: inputMessages,
                 expected_trajectory: expectedTrajectory,
+                trajectory_match_mode: trajectoryMatchMode,
+                tool_args_match_mode: toolArgsMatchMode,
             }),
         });
         
@@ -198,6 +202,8 @@ export const AgentEvalContainer = () => {
         expectedFunctionCalls,
         resetMessages,
         setJudgeAgent,
+        trajectoryMatch,
+        toolArgsMatch,
         setTrajectoryMatch,
         setToolArgsMatch,
         setExpectedFunctionCalls,
@@ -227,11 +233,12 @@ export const AgentEvalContainer = () => {
             <Stack
                 className="agent-eval-content"
                 flex={1}
+                minH={0}
                 display="flex"
                 flexDirection="column"
                 gap={4}
             >
-                <HStack className="agent-eval-input" flex={1} minH={500}>
+                <HStack className="agent-eval-input" flex={1} minH={400} minW={0}>
                     <AgentEvalChat />
 
                     <Box
@@ -239,6 +246,7 @@ export const AgentEvalContainer = () => {
                         h="100%"
                         display="flex"
                         flexDirection="column"
+                        minW={0}
                     >
                         {/* Tab buttons */}
                         <Box mb={0}>
@@ -268,10 +276,10 @@ export const AgentEvalContainer = () => {
                     </Box>
                 </HStack>
 
-                <HStack className="agent-eval-buttons" gap={4}>
+                <HStack className="agent-eval-buttons" gap={4} flexShrink={0}>
                     {/* Evaluate button */}
                     <Button
-                        w="100%"
+                        w="95%"
                         borderRadius="12px"
                         bgGradient="to-r"
                         gradientFrom="teal.700"
@@ -282,7 +290,7 @@ export const AgentEvalContainer = () => {
                             gradientTo: "teal.400",
                             boxShadow: "0px 4px 10px rgba(0, 0, 0, 0.1)",
                         }}
-                        onClick={() => handleEvaluate(agent, messages, expectedFunctionCalls, setIsEvaluating, setEvalResult)}
+                        onClick={() => handleEvaluate(agent, messages, expectedFunctionCalls, trajectoryMatch, toolArgsMatch, setIsEvaluating, setEvalResult)}
                         loading={isEvaluating}
                         disabled={isEvaluating || !agent?.id || !messages || messages.length === 0}
                     >
@@ -316,6 +324,7 @@ export const AgentEvalContainer = () => {
                     className="agent-eval-result"
                     flex={1}
                     minH={0}
+                    maxH="100%"
                     overflowY="auto"
                 >
                     <AgentEvalResult />
