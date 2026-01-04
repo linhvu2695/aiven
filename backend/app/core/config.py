@@ -30,6 +30,12 @@ class Settings(BaseSettings):
     redis_background_database: str
     redis_max_connections: int
 
+    neo4j_uri: str
+    neo4j_username: str
+    neo4j_password: str
+    neo4j_database: str
+    neo4j_max_connection_pool_size: int
+
     langchain_api_key: str
     langchain_project: str
     langsmith_tracing: str

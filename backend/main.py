@@ -2,6 +2,8 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.api import chat_api, agent_api, storage_api, article_api, health_api, tool_api, plant_api, image_api, user_api, video_api, job_api
 from app.core.database import MongoDB
+from app.core.graph import Neo4j
+from app.core.cache import RedisCache
 from contextlib import asynccontextmanager
 from app.core.config import settings
 import os
@@ -9,6 +11,8 @@ import os
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     await MongoDB().check_health()
+    await Neo4j().check_health()
+    await RedisCache().check_health()
     yield
 
 app = FastAPI(

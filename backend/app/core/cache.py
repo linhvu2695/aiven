@@ -1,5 +1,6 @@
 from redis.asyncio import Redis
 from app.core.config import settings
+import logging
 
 class RedisCache:
     _instance = None
@@ -27,6 +28,16 @@ class RedisCache:
     
     async def set(self, key: str, value: str, expiration: int = 60) -> bool:
         return await self.redis.set(key, value, ex=expiration)
+    
+    async def check_health(self):
+        """Check Redis connection health"""
+        try:
+            await self.redis.ping()
+            logging.getLogger("uvicorn.info").info("Successfully connected to Redis")
+            return True
+        except Exception as ex:
+            logging.getLogger("uvicorn.error").error(f"Failed to connect to Redis: {ex}")
+            return False
     
     async def close(self):
         """Close Redis connection"""
