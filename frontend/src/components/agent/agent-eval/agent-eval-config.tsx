@@ -1,34 +1,21 @@
-import {
-    Box,
-    HStack,
-    Text,
-    Button,
-    VStack,
-    useDisclosure,
-    Separator,
-} from "@chakra-ui/react";
+import { Box, HStack, Text, Button, useDisclosure, VStack, Separator, Checkbox } from "@chakra-ui/react";
 import { FaPlus } from "react-icons/fa";
 import { useAgentEval, type TrajectoryMatch, type ToolArgsMatch } from "@/context/agent-eval-ctx";
-import { Dropdown } from "../../ui/dropdown";
-import { FunctionSelectionDialog } from "./function-selection-dialog";
 import { ExpectedFunctionCallItem } from "./expected-function-call-item";
+import { FunctionSelectionDialog } from "./function-selection-dialog";
+import { Dropdown } from "../../ui/dropdown";
 
-export interface MCPFunction {
-    name: string;
-    description: string | null;
-    inputSchema: Record<string, any> | null;
-    outputSchema: Record<string, any> | null;
-}
-
-export const AgentEvalTrajectoryMatch = () => {
+export const AgentEvalConfig = () => {
     const {
+        llmAsJudge,
+        setLlmAsJudge,
         trajectoryMatch,
         setTrajectoryMatch,
         toolArgsMatch,
         setToolArgsMatch,
         expectedFunctionCalls,
     } = useAgentEval();
-
+    
     const {
         open: isFunctionDialogOpen,
         onOpen: onFunctionDialogOpen,
@@ -43,6 +30,21 @@ export const AgentEvalTrajectoryMatch = () => {
                 flexDirection="column"
                 gap={4}
             >
+                {/* LLM as Judge Checkbox */}
+                <Checkbox.Root
+                    checked={llmAsJudge}
+                    onCheckedChange={(details) => setLlmAsJudge(details.checked as boolean)}
+                    size="lg"
+                >
+                    <Checkbox.HiddenInput />
+                    <Checkbox.Control />
+                    <Checkbox.Label>
+                        <Text fontSize="md" fontWeight="medium">
+                            Use LLM as Judge
+                        </Text>
+                    </Checkbox.Label>
+                </Checkbox.Root>
+
                 {/* Configuration dropdowns */}
                 <HStack gap={4} align="flex-end">
                     <Dropdown
@@ -70,6 +72,7 @@ export const AgentEvalTrajectoryMatch = () => {
                             },
                         ]}
                         flex={1}
+                        disabled={llmAsJudge}
                     />
                     <Dropdown
                         title="Tool args match"
@@ -85,9 +88,10 @@ export const AgentEvalTrajectoryMatch = () => {
                             {
                                 value: "exact",
                                 label: "Exact",
-                            }
+                            },
                         ]}
                         flex={1}
+                        disabled={llmAsJudge}
                     />
                 </HStack>
 

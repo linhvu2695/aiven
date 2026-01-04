@@ -67,7 +67,7 @@ class EvaluateAgentRequest(BaseModel):
     expected_trajectory: list[dict]
     trajectory_match_mode: TrajectoryMatchMode = TrajectoryMatchMode.STRICT
     tool_args_match_mode: ToolArgsMatchMode = ToolArgsMatchMode.EXACT
-    judge_id: Optional[str] = None # if filled, LLM-as-a-Judge will be used instead of TrajectoryMatch
+    llm_as_a_judge: bool = False # if True, LLM-as-a-Judge will be used instead of TrajectoryMatch
 
 class EvaluateAgentResponse(BaseModel):
     success: bool

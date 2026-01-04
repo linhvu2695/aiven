@@ -1,7 +1,12 @@
 import { createContext, useContext, useState, useEffect, type ReactNode } from "react";
 import type { ChatMessageInfo } from "@/components/chat/chat-message-info";
-import type { Agent } from "./agent-ctx";
-import type { MCPFunction } from "@/components/agent/agent-eval/agent-eval-trajectory-match";
+
+export interface MCPFunction {
+    name: string;
+    description: string | null;
+    inputSchema: Record<string, any> | null;
+    outputSchema: Record<string, any> | null;
+}
 
 export type TrajectoryMatch = "strict" | "unordered" | "superset" | "subset";
 export type ToolArgsMatch = "ignore" | "exact" | "superset" | "subset";
@@ -38,8 +43,8 @@ type AgentEvalContextType = {
     resetMessages: () => void;
     selectedRole: "user" | "assistant";
     setSelectedRole: (role: "user" | "assistant") => void;
-    judgeAgent: Agent | null;
-    setJudgeAgent: (agent: Agent | null) => void;
+    llmAsJudge: boolean;
+    setLlmAsJudge: (llmAsJudge: boolean) => void;
     trajectoryMatch: TrajectoryMatch;
     setTrajectoryMatch: (match: TrajectoryMatch) => void;
     toolArgsMatch: ToolArgsMatch;
@@ -70,7 +75,7 @@ export const useAgentEval = () => {
 export const AgentEvalProvider = ({ children }: { children: ReactNode }) => {
     const [messages, setMessages] = useState<ChatMessageInfo[]>(DEFAULT_MESSAGES);
     const [selectedRole, setSelectedRole] = useState<"user" | "assistant">("user");
-    const [judgeAgent, setJudgeAgent] = useState<Agent | null>(null);
+    const [llmAsJudge, setLlmAsJudge] = useState<boolean>(false);
     const [trajectoryMatch, setTrajectoryMatch] = useState<TrajectoryMatch>("strict");
     const [toolArgsMatch, setToolArgsMatch] = useState<ToolArgsMatch>("ignore");
     const [expectedFunctionCalls, setExpectedFunctionCalls] = useState<ExpectedFunctionCall[]>([]);
@@ -106,8 +111,8 @@ export const AgentEvalProvider = ({ children }: { children: ReactNode }) => {
                 resetMessages,
                 selectedRole,
                 setSelectedRole,
-                judgeAgent,
-                setJudgeAgent,
+                llmAsJudge,
+                setLlmAsJudge,
                 trajectoryMatch,
                 setTrajectoryMatch,
                 toolArgsMatch,

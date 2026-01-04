@@ -106,16 +106,22 @@ class AgentEvalService:
 
             # Step 7: Create evaluator
             logging.getLogger("uvicorn.info").info("Step 7: Creating evaluator")
-            if is_empty_string(request.judge_id):
+            if not request.llm_as_a_judge:
+                logging.getLogger("uvicorn.info").info("Step 7: Creating trajectory match evaluator")
                 evaluator = create_trajectory_match_evaluator(
                     trajectory_match_mode=request.trajectory_match_mode.value,  
                     tool_args_match_mode=request.tool_args_match_mode.value,    
                     tool_args_match_overrides={}     
                 )
             else:
+                logging.getLogger("uvicorn.info").info("Step 7: Creating trajectory LLM as judge evaluator")
+                accuracy_prompt = TRAJECTORY_ACCURACY_PROMPT
+                if request.expected_trajectory is not None and len(request.expected_trajectory) > 0:
+                    accuracy_prompt = TRAJECTORY_ACCURACY_PROMPT_WITH_REFERENCE
                 judge_model = ChatService().get_chat_model("gpt-4o-mini")
+
                 evaluator = create_trajectory_llm_as_judge(
-                    prompt=TRAJECTORY_ACCURACY_PROMPT_WITH_REFERENCE,
+                    prompt=accuracy_prompt,
                     judge=judge_model,
                 )
 

@@ -15,42 +15,10 @@ import { useAgent } from "@/context/agent-ctx";
 import { useAgentEval, type ToolArgsMatch, type TrajectoryMatch } from "@/context/agent-eval-ctx";
 import { toaster, Tooltip } from "../../ui";
 import { AgentEvalChat } from "./agent-eval-chat";
-import { AgentEvalLlmJudge } from "./agent-eval-llm-judge";
-import { AgentEvalTrajectoryMatch } from "./agent-eval-trajectory-match";
+import { AgentEvalConfig } from "./agent-eval-config";
 import { AgentEvalResult } from "./agent-eval-result";
 import { BASE_URL } from "@/App";
 import type { ChatMessageInfo } from "@/components/chat/chat-message-info";
-
-type EvalMode = "llm-judge" | "trajectory";
-
-interface TabButtonProps {
-    tab: EvalMode;
-    label: string;
-    currentTab: EvalMode;
-    onClick: () => void;
-}
-
-const TabButton = ({ tab, label, currentTab, onClick }: TabButtonProps) => {
-    const isActive = currentTab === tab;
-    return (
-        <Button
-            onClick={onClick}
-            borderRadius="8px 8px 0 0"
-            bg={isActive ? "teal.500" : "white"}
-            border="none"
-            borderBottom={isActive ? "none" : "2px solid"}
-            px={6}
-            py={3}
-            _hover={{
-                bg: isActive ? "teal.500" : "teal.100",
-            }}
-            boxShadow={isActive ? "0 2px 4px rgba(0, 0, 0, 0.1)" : "none"}
-            transition="all 0.2s"
-        >
-            {label}
-        </Button>
-    );
-};
 
 // Helper function to serialize ChatMessageInfo to backend ChatMessage format
 const serializeMessage = (msg: ChatMessageInfo) => {    
@@ -82,26 +50,27 @@ const buildExpectedTrajectory = (
     }> = messages.map(serializeMessage);
 
     // Expected function calls
-    expectedFunctionCalls.forEach((call) => {
+    if (expectedFunctionCalls.length > 0) {
+        // One assistant message with all tool_calls
         trajectory.push({
             role: "assistant",
             content: "",
-            tool_calls: [
-                {
-                    function: {
-                        name: call.function.name,
-                        arguments: JSON.stringify(call.expectedInput),
-                    },
+            tool_calls: expectedFunctionCalls.map((call) => ({
+                function: {
+                    name: call.function.name,
+                    arguments: JSON.stringify(call.expectedInput),
                 },
-            ],
+            })),
         });
 
-        // Tool response
-        trajectory.push({
-            role: "tool",
-            content: JSON.stringify(call.expectedOutput),
+        // All tool responses
+        expectedFunctionCalls.forEach((call) => {
+            trajectory.push({
+                role: "tool",
+                content: JSON.stringify(call.expectedOutput),
+            });
         });
-    });
+    }
     
     // Final assistant response
     trajectory.push({
@@ -123,7 +92,7 @@ const handleEvaluate = async (
     }>,
     trajectoryMatchMode: TrajectoryMatch,
     toolArgsMatchMode: ToolArgsMatch,
-    judgeId: string | undefined,
+    llmAsJudge: boolean,
     setIsEvaluating: (isEvaluating: boolean) => void,
     setEvalResult: (result: any) => void
 ) => {
@@ -164,7 +133,7 @@ const handleEvaluate = async (
                 expected_trajectory: expectedTrajectory,
                 trajectory_match_mode: trajectoryMatchMode,
                 tool_args_match_mode: toolArgsMatchMode,
-                judge_id: judgeId,
+                llm_as_a_judge: llmAsJudge,
             }),
         });
         
@@ -203,16 +172,15 @@ export const AgentEvalContainer = () => {
         messages,
         expectedFunctionCalls,
         resetMessages,
-        setJudgeAgent,
+        llmAsJudge,
+        setLlmAsJudge,
         trajectoryMatch,
         toolArgsMatch,
-        judgeAgent,
         setTrajectoryMatch,
         setToolArgsMatch,
         setExpectedFunctionCalls,
         setEvalResult,
     } = useAgentEval();
-    const [evalMode, setEvalMode] = useState<EvalMode>("llm-judge");
     const [isEvaluating, setIsEvaluating] = useState(false);
 
     return (
@@ -250,32 +218,9 @@ export const AgentEvalContainer = () => {
                         display="flex"
                         flexDirection="column"
                         minW={0}
+                        p={4}
                     >
-                        {/* Tab buttons */}
-                        <Box mb={0}>
-                            <HStack gap={2} align="flex-end">
-                                <TabButton
-                                    tab="llm-judge"
-                                    label="LLM As a Judge"
-                                    currentTab={evalMode}
-                                    onClick={() => setEvalMode("llm-judge")}
-                                />
-                                <TabButton
-                                    tab="trajectory"
-                                    label="Trajectory"
-                                    currentTab={evalMode}
-                                    onClick={() => setEvalMode("trajectory")}
-                                />
-                            </HStack>
-                            <Box h="2px" bg="teal.500" />
-                        </Box>
-
-                        <Box flex={1} minH={0} p={4}>
-                            {evalMode === "llm-judge" && <AgentEvalLlmJudge />}
-                            {evalMode === "trajectory" && (
-                                <AgentEvalTrajectoryMatch />
-                            )}
-                        </Box>
+                        <AgentEvalConfig />
                     </Box>
                 </HStack>
 
@@ -293,11 +238,11 @@ export const AgentEvalContainer = () => {
                             gradientTo: "teal.400",
                             boxShadow: "0px 4px 10px rgba(0, 0, 0, 0.1)",
                         }}
-                        onClick={() => handleEvaluate(agent, messages, expectedFunctionCalls, trajectoryMatch, toolArgsMatch, judgeAgent?.id, setIsEvaluating, setEvalResult)}
+                        onClick={() => handleEvaluate(agent, messages, expectedFunctionCalls, trajectoryMatch, toolArgsMatch, llmAsJudge, setIsEvaluating, setEvalResult)}
                         loading={isEvaluating}
                         disabled={isEvaluating || !agent?.id || !messages || messages.length === 0}
                     >
-                        EVALUATE - {judgeAgent ? "🤖 LLM As a Judge" : "💫 Trajectory Match"} <FaPlay />
+                        EVALUATE - {llmAsJudge ? "🤖 LLM As a Judge" : "💫 Trajectory Match"} <FaPlay />
                     </Button>
 
                     {/* Reset button */}
@@ -306,7 +251,7 @@ export const AgentEvalContainer = () => {
                             aria-label={"Reset"}
                             onClick={() => {
                                 resetMessages();
-                                setJudgeAgent(null);
+                                setLlmAsJudge(false);
                                 setTrajectoryMatch("strict");
                                 setToolArgsMatch("ignore");
                                 setExpectedFunctionCalls([]);

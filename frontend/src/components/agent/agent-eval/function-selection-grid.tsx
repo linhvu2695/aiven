@@ -6,9 +6,8 @@ import {
     VStack,
 } from "@chakra-ui/react";
 import { useState, useEffect, useMemo } from "react";
-import { useAgentEval, type ExpectedFunctionCall } from "@/context/agent-eval-ctx";
+import { useAgentEval, type ExpectedFunctionCall, type MCPFunction } from "@/context/agent-eval-ctx";
 import { BASE_URL } from "@/App";
-import type { MCPFunction } from "./agent-eval-trajectory-match";
 import { useAgent } from "@/context/agent-ctx";
 import type { ToolInfo } from "@/types/tool";
 
