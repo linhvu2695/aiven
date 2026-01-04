@@ -25,6 +25,7 @@ backend/keys/*
 
 # Jupyter Notebook
 .ipynb_checkpoints/
+notebooks/lib/
 
 # macOS
 .DS_Store
