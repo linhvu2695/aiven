@@ -1,8 +1,6 @@
 import { Box, IconButton, Text } from "@chakra-ui/react";
 import { 
-    FaTshirt, 
-    FaExpand, 
-    FaMagic,
+    FaTshirt,
     FaEraser,
     FaBuilding,
 } from "react-icons/fa";

@@ -1,34 +1,27 @@
 import {
     Box,
     VStack,
-    HStack,
     Text,
-    Input,
-    Button,
     Flex,
+    Textarea,
+    Heading,
+    Link,
+    Code,
 } from "@chakra-ui/react";
-import { FaSave, FaTimes } from "react-icons/fa";
-import { useColorMode } from "@/components/ui/color-mode";
-import type { Article, ViewMode } from "@/context/article-ctx";
+import ReactMarkdown from "react-markdown";
+import { useArticle } from "@/context/article-ctx";
+import { ArticleViewHeader } from "./article-view-header";
 
 interface ArticleViewProps {
-    article: Article | null;
-    articleDraft: Article | null;
-    mode: ViewMode;
     onSave: () => void;
     onCancel: () => void;
-    onUpdateDraft: (updater: (prev: Article | null) => Article | null) => void;
 }
 
 export const ArticleView = ({
-    article,
-    articleDraft,
-    mode,
     onSave,
     onCancel,
-    onUpdateDraft,
 }: ArticleViewProps) => {
-    const { colorMode } = useColorMode();
+    const { selectedArticle: article, articleDraft, mode, updateArticleDraft } = useArticle();
 
     if (!article) {
         return (
@@ -47,100 +40,141 @@ export const ArticleView = ({
 
     return (
         <VStack h="full" gap={0} align="stretch">
-            {/* Article Header */}
-            <Box p={6} borderBottom="1px solid" borderColor="gray.200" _dark={{ borderColor: "gray.700" }}>
-                {mode === "edit" ? (
-                    <VStack gap={4} align="stretch">
-                        <Input
-                            placeholder="Article title..."
-                            value={articleDraft?.title || ""}
-                            onChange={(e) => onUpdateDraft(prev => prev ? { ...prev, title: e.target.value } : null)}
-                            fontSize="2xl"
-                            fontWeight="bold"
-                            variant="flushed"
-                        />
-                        <Input
-                            placeholder="Summary (optional)..."
-                            value={articleDraft?.summary || ""}
-                            onChange={(e) => onUpdateDraft(prev => prev ? { ...prev, summary: e.target.value } : null)}
-                            fontSize="md"
-                            color="gray.600"
-                            variant="flushed"
-                        />
-                        {/* Action buttons for edit mode */}
-                        <HStack gap={2} justify="flex-end">
-                            <Button
-                                size="sm"
-                                colorScheme="green"
-                                onClick={onSave}
-                            >
-                                <FaSave /> Save
-                            </Button>
-                            <Button
-                                size="sm"
-                                variant="outline"
-                                onClick={onCancel}
-                            >
-                                <FaTimes /> Cancel
-                            </Button>
-                        </HStack>
-                    </VStack>
-                ) : (
-                    <VStack gap={2} align="start">
-                        <Text fontSize="2xl" fontWeight="bold">
-                            {article.title || "Untitled"}
-                        </Text>
-                        {article.summary && (
-                            <Text fontSize="md" color="gray.600" _dark={{ color: "gray.400" }}>
-                                {article.summary}
-                            </Text>
-                        )}
-                        <HStack fontSize="sm" color="gray.500" gap={4}>
-                            {article.created_at && (
-                                <Text>
-                                    Created at {new Date(article.created_at).toLocaleString()}
-                                </Text>
-                            )}
-                            {article.updated_at && (
-                                <Text>
-                                    Updated at {new Date(article.updated_at).toLocaleString()}
-                                </Text>
-                            )}
-                        </HStack>
-                    </VStack>
-                )}
-            </Box>
+            <ArticleViewHeader onSave={onSave} onCancel={onCancel} />
 
             {/* Article Content */}
             <Box flex={1} p={6} overflow="auto">
                 {mode === "edit" ? (
-                    <textarea
-                        placeholder="Write your article content here..."
+                    <Textarea
+                        placeholder="Write your article content here... (Markdown supported)"
                         value={articleDraft?.content || ""}
-                        onChange={(e) => onUpdateDraft(prev => prev ? { ...prev, content: e.target.value } : null)}
-                        style={{
-                            width: "100%",
-                            height: "100%",
-                            border: "1px solid #e2e8f0",
-                            borderRadius: "6px",
-                            padding: "12px",
-                            fontSize: "14px",
-                            lineHeight: "1.5",
-                            resize: "none",
-                            outline: "none",
-                            backgroundColor: colorMode === "dark" ? "#2d3748" : "#ffffff",
-                            color: colorMode === "dark" ? "#ffffff" : "#000000",
-                        }}
+                        onChange={(e) => updateArticleDraft("content", e.target.value)}
+                        h="full"
+                        minH="300px"
+                        resize="none"
+                        fontSize="sm"
+                        lineHeight="1.6"
+                        fontFamily="mono"
+                        borderColor="gray.300"
+                        _dark={{ borderColor: "gray.600", bg: "gray.800" }}
+                        _focus={{ borderColor: "blue.400", boxShadow: "0 0 0 1px var(--chakra-colors-blue-400)" }}
                     />
                 ) : (
                     <Box
+                        className="markdown-content"
                         fontSize="md"
-                        lineHeight="1.6"
-                        whiteSpace="pre-wrap"
+                        lineHeight="1.8"
                         color="gray.800"
                         _dark={{ color: "gray.200" }}
+                        css={{
+                            "& > *:first-child": { marginTop: 0 },
+                            "& > *:last-child": { marginBottom: 0 },
+                        }}
                     >
-                        {article.content || "No content available."}
+                        {article.content ? (
+                            <ReactMarkdown
+                                components={{
+                                    h1: ({ children }) => (
+                                        <Heading as="h1" size="2xl" mt={6} mb={4} borderBottom="1px solid" borderColor="gray.200" pb={2} _dark={{ borderColor: "gray.700" }}>
+                                            {children}
+                                        </Heading>
+                                    ),
+                                    h2: ({ children }) => (
+                                        <Heading as="h2" size="xl" mt={5} mb={3} borderBottom="1px solid" borderColor="gray.200" pb={2} _dark={{ borderColor: "gray.700" }}>
+                                            {children}
+                                        </Heading>
+                                    ),
+                                    h3: ({ children }) => (
+                                        <Heading as="h3" size="lg" mt={4} mb={2}>
+                                            {children}
+                                        </Heading>
+                                    ),
+                                    h4: ({ children }) => (
+                                        <Heading as="h4" size="md" mt={3} mb={2}>
+                                            {children}
+                                        </Heading>
+                                    ),
+                                    p: ({ children }) => (
+                                        <Text mb={4} lineHeight="1.8">
+                                            {children}
+                                        </Text>
+                                    ),
+                                    a: ({ href, children }) => (
+                                        <Link href={href} color="blue.500" _hover={{ textDecoration: "underline" }} target="_blank" rel="noopener noreferrer">
+                                            {children}
+                                        </Link>
+                                    ),
+                                    ul: ({ children }) => (
+                                        <Box as="ul" pl={6} mb={4} listStyleType="disc">
+                                            {children}
+                                        </Box>
+                                    ),
+                                    ol: ({ children }) => (
+                                        <Box as="ol" pl={6} mb={4} listStyleType="decimal">
+                                            {children}
+                                        </Box>
+                                    ),
+                                    li: ({ children }) => (
+                                        <Box as="li" mb={1}>
+                                            {children}
+                                        </Box>
+                                    ),
+                                    blockquote: ({ children }) => (
+                                        <Box
+                                            as="blockquote"
+                                            pl={4}
+                                            borderLeft="4px solid"
+                                            borderColor="blue.400"
+                                            color="gray.600"
+                                            _dark={{ color: "gray.400" }}
+                                            fontStyle="italic"
+                                            my={4}
+                                        >
+                                            {children}
+                                        </Box>
+                                    ),
+                                    code: ({ children, className }) => {
+                                        const isInline = !className;
+                                        if (isInline) {
+                                            return (
+                                                <Code
+                                                    px={1.5}
+                                                    py={0.5}
+                                                    bg="gray.100"
+                                                    _dark={{ bg: "gray.700" }}
+                                                    borderRadius="md"
+                                                    fontSize="sm"
+                                                >
+                                                    {children}
+                                                </Code>
+                                            );
+                                        }
+                                        return (
+                                            <Box
+                                                as="pre"
+                                                p={4}
+                                                bg="gray.900"
+                                                color="gray.100"
+                                                borderRadius="md"
+                                                overflowX="auto"
+                                                my={4}
+                                                fontSize="sm"
+                                                fontFamily="mono"
+                                            >
+                                                <code>{children}</code>
+                                            </Box>
+                                        );
+                                    },
+                                    hr: () => (
+                                        <Box as="hr" my={6} borderColor="gray.300" _dark={{ borderColor: "gray.600" }} />
+                                    ),
+                                }}
+                            >
+                                {article.content}
+                            </ReactMarkdown>
+                        ) : (
+                            <Text color="gray.500">No content available.</Text>
+                        )}
                     </Box>
                 )}
             </Box>

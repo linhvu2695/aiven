@@ -204,12 +204,8 @@ export const KnowledgePage = () => {
                 {/* Article View */}
                 <Box flex={1} overflow="hidden">
                     <ArticleView
-                        article={selectedArticle}
-                        articleDraft={articleDraft}
-                        mode={mode}
                         onSave={saveArticle}
                         onCancel={handleCancel}
-                        onUpdateDraft={setArticleDraft}
                     />
                 </Box>
             </Flex>
