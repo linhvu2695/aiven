@@ -9,7 +9,7 @@ from datetime import datetime
 from graphiti_core import Graphiti as GraphitiCore
 from graphiti_core.nodes import EpisodeType
 
-from backend.app.classes.chat import ChatMessage
+from app.classes.chat import ChatMessage
 
 
 class Neo4j:
@@ -120,7 +120,7 @@ class Graphiti:
         self,
         name: str,
         text: str,
-        description: str,
+        description: Optional[str] = None,
         reference_time: Optional[datetime] = None,
         **kwargs
     ):
@@ -143,7 +143,7 @@ class Graphiti:
         return await self.graphiti.add_episode(
             name=name,
             episode_body=text,
-            source_description=description,
+            source_description=description or "",
             source=EpisodeType.text,
             reference_time=reference_time or datetime.now(),
             **kwargs
@@ -153,7 +153,7 @@ class Graphiti:
         self,
         name: str,
         data: dict,
-        description: str,
+        description: Optional[str] = None,
         reference_time: Optional[datetime] = None,
         **kwargs
     ):
@@ -176,7 +176,7 @@ class Graphiti:
         return await self.graphiti.add_episode(
             name=name,
             episode_body=json.dumps(data),
-            source_description=description,
+            source_description=description or "",
             source=EpisodeType.json,
             reference_time=reference_time or datetime.now(),
             **kwargs
@@ -186,7 +186,7 @@ class Graphiti:
         self,
         name: str,
         messages: list[ChatMessage],
-        description: str,
+        description: Optional[str] = None,
         reference_time: Optional[datetime] = None,
         **kwargs
     ):
@@ -211,7 +211,7 @@ class Graphiti:
         return await self.graphiti.add_episode(
             name=name,
             episode_body=body,
-            source_description=description,
+            source_description=description or "",
             source=EpisodeType.message,
             reference_time=reference_time or datetime.now(),
             **kwargs
