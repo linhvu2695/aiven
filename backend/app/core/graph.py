@@ -9,6 +9,8 @@ from datetime import datetime
 from graphiti_core import Graphiti as GraphitiCore
 from graphiti_core.nodes import EpisodeType
 
+from backend.app.classes.chat import ChatMessage
+
 
 class Neo4j:
     _instance = None
@@ -180,11 +182,10 @@ class Graphiti:
             **kwargs
         )
 
-    async def add_message_episode(
+    async def add_messages_episode(
         self,
         name: str,
-        role: str,
-        content: str,
+        messages: list[ChatMessage],
         description: str,
         reference_time: Optional[datetime] = None,
         **kwargs
@@ -202,10 +203,14 @@ class Graphiti:
         """
         if not self._indices_built:
             await self.build_indices_and_constraints()
+
+        body = ""
+        for message in messages:
+            body += f"{message.role}: {message.content}\n"
         
         return await self.graphiti.add_episode(
             name=name,
-            episode_body=json.dumps({"role": role, "content": content}),
+            episode_body=body,
             source_description=description,
             source=EpisodeType.message,
             reference_time=reference_time or datetime.now(),
