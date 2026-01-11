@@ -7,6 +7,7 @@ IMAGE_PRESIGNED_URL_EXPIRATION = 60 * 60  # 1 hour
 class ImageGenModel(str, Enum):
     # https://ai.google.dev/gemini-api/docs/imagen
     GEMINI_2_5_FLASH_IMAGE = "gemini-2.5-flash-image"
+    GEMINI_3_PRO_IMAGE_PREVIEW = "gemini-3-pro-image-preview"
 
     # https://platform.openai.com/docs/guides/images-vision
     GPT_IMAGE_1 = "gpt-image-1"
@@ -19,4 +20,5 @@ OPENAI_MODELS = {
 
 GEMINI_MODELS = {
     ImageGenModel.GEMINI_2_5_FLASH_IMAGE,
+    ImageGenModel.GEMINI_3_PRO_IMAGE_PREVIEW,
 }
