@@ -107,48 +107,48 @@ export const AgentManagementPage = () => {
                     </HStack>
 
                     {/* Grid */}
-                    {paginatedAgents.length === 0 ? (
-                        <VStack
-                            as="section"
-                            align="center"
-                            justify="center"
-                            minH="30vh"
-                            w="full"
-                            gap={3}
-                        >
-                            <FaUserSlash size={48} color="#888" />
-                            <Text fontSize="lg" color="gray.500">
-                                No agents found
-                            </Text>
-                        </VStack>
-                    ) : (
-                        <SimpleGrid as="section" columns={{ sm: 2, md: 3, lg: 5 }} gap={6}>
-                            {/* Add Agent Button as first cell */}
-                            <Tooltip content="Create new agent">
-                                <Box
-                                    borderRadius="lg"
-                                    overflow="hidden"
-                                    position="relative"
-                                    h="300px"
-                                    display="flex"
-                                    alignItems="center"
-                                    justifyContent="center"
-                                    cursor="pointer"
-                                    _hover={{
-                                        bg:
-                                            colorMode === "dark"
-                                                ? "gray.900"
-                                                : "gray.200",
-                                        transform: "scale(1.05)",
-                                        transition: "transform 0.2s",
-                                    }}
-                                    onClick={onOpen}
-                                >
-                                    <FaPlus size={48} color="gray.900" />
-                                </Box>
-                            </Tooltip>
+                    <SimpleGrid as="section" columns={{ sm: 2, md: 3, lg: 5 }} gap={6}>
+                        {/* Add Agent Button as first cell */}
+                        <Tooltip content="Create new agent">
+                            <Box
+                                borderRadius="lg"
+                                overflow="hidden"
+                                position="relative"
+                                h="300px"
+                                display="flex"
+                                alignItems="center"
+                                justifyContent="center"
+                                cursor="pointer"
+                                _hover={{
+                                    bg:
+                                        colorMode === "dark"
+                                            ? "gray.900"
+                                            : "gray.200",
+                                    transform: "scale(1.05)",
+                                    transition: "transform 0.2s",
+                                }}
+                                onClick={onOpen}
+                            >
+                                <FaPlus size={48} color="gray.900" />
+                            </Box>
+                        </Tooltip>
 
-                            {paginatedAgents.map((agent) => (
+                        {paginatedAgents.length === 0 ? (
+                            <VStack
+                                align="center"
+                                justify="center"
+                                minH="300px"
+                                w="full"
+                                gap={3}
+                                gridColumn={{ sm: "span 2", md: "span 3", lg: "span 5" }}
+                            >
+                                <FaUserSlash size={48} color="#888" />
+                                <Text fontSize="lg" color="gray.500">
+                                    No agents found
+                                </Text>
+                            </VStack>
+                        ) : (
+                            paginatedAgents.map((agent) => (
                                 <AgentGridItem
                                     key={agent.id}
                                     agentInfo={agent}
@@ -158,9 +158,9 @@ export const AgentManagementPage = () => {
                                     }}
                                     onDelete={() => fetchAgents()}
                                 />
-                            ))}
-                        </SimpleGrid>
-                    )}
+                            ))
+                        )}
+                    </SimpleGrid>
 
                     {/* Paging */}
                     {totalPages > 0 && (
