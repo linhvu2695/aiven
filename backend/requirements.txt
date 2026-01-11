@@ -17,6 +17,7 @@ redis==6.2.0
 
 # Graph Database
 neo4j==6.0.3
+graphiti-core==0.25.3
 
 # Google Cloud Storage
 google-cloud-storage==3.1.1
