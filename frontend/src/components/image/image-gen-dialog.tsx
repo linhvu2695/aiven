@@ -12,6 +12,7 @@ import { toaster } from "../ui/toaster";
 import { Dropdown } from "@/components/ui/dropdown";
 import { ASPECT_RATIO_OPTIONS } from "@/types/image";
 import { ImageGenProviderSelector } from "./image-gen-provider-selector";
+import { ImageGenPromptSelector } from "./image-gen-prompt-selector";
 import { ImageGenProvider, useImageGen } from "@/context/image-gen-ctx";
 import { useImage } from "@/context/image-ctx";
 import { useEffect } from "react";
@@ -196,6 +197,14 @@ const ImageGenDialogContent = ({ isOpen, onClose, onSuccess }: ImageGenDialogPro
                                         <FaPaperPlane size="3rem" />
                                     </Button>
                                 </Box>
+
+                                {/* Prompt Templates - Only show when editing existing image */}
+                                {selectedImage?.id && (
+                                    <ImageGenPromptSelector 
+                                        onSelectPrompt={setPrompt}
+                                        disabled={isGenerating}
+                                    />
+                                )}
 
                                 {/* Settings Panel */}
                                 <Box

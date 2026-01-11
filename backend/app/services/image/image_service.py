@@ -1,6 +1,7 @@
 import logging
 import base64
 import io
+import time
 from datetime import datetime, timezone, timedelta
 from typing import Dict, Any
 from PIL import Image as PILImage
@@ -504,12 +505,14 @@ class ImageService:
             image_data = await FirebaseStorageRepository().download(image_response.image.storage_path)
 
         # Generate image
+        start_time = time.perf_counter()
         genimage_response = gen_provider.generate_image(GenImageRequest(
             prompt=request.prompt, 
             image_data=image_data,
             model=request.model,
             aspect_ratio=request.aspect_ratio
             ))
+        generation_time_s = time.perf_counter() - start_time
 
         if not genimage_response.success or not genimage_response.image_data:
             return ImageGenerateResponse(success=False, image_id="", message=genimage_response.message)
@@ -520,7 +523,7 @@ class ImageService:
                 image_type=ImageType.GENERAL,
                 source_type=ImageSourceType.AI_GENERATE,
                 file_data=genimage_response.image_data,
-                description=f"Generated image for prompt: {request.prompt}. Model: {request.model.value}",
+                description=f"Generated image for prompt: {request.prompt}. Model: {request.model.value}. Generation time: {generation_time_s:.2f}s",
             ))
 
         if not create_image_response.success:
