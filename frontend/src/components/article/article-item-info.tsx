@@ -7,4 +7,5 @@ export interface ArticleItemInfo {
     parent: string;  // Parent article ID, "0" for root level
     created_at?: Date;
     updated_at?: Date;
+    added_to_graph?: boolean;
 } 

@@ -10,6 +10,7 @@ export type Article = {
     parent: string;  // Parent article ID, "0" for root level
     created_at?: string;
     updated_at?: string;
+    added_to_graph?: boolean;
 };
 
 export type ViewMode = "view" | "edit";

@@ -3,13 +3,17 @@ from datetime import datetime, timezone
 
 from bson.objectid import ObjectId
 from app.classes.article import (
+    AddArticleToGraphRequest,
+    AddArticleToGraphResponse,
     CreateOrUpdateArticleRequest,
     CreateOrUpdateArticleResponse,
     ArticleInfo,
     DeleteArticleResponse,
     SearchArticlesResponse,
 )
+from app.classes.graph import AddTextEpisodeRequest
 from app.core.database import MongoDB
+from app.services.graph.graphiti_service import GraphitiService
 
 ARTICLE_COLLECTION_NAME = "articles"
 
@@ -60,6 +64,7 @@ class ArticleService:
             parent=data.get("parent", "0"),
             created_at=data.get("created_at", datetime.now(timezone.utc)),
             updated_at=data.get("updated_at", datetime.now(timezone.utc)),
+            added_to_graph=data.get("added_to_graph", False),
         )
 
     async def create_or_update_article(
@@ -112,6 +117,7 @@ class ArticleService:
                 parent=doc.get("parent", "0"),
                 created_at=doc.get("created_at", datetime.now(timezone.utc)),
                 updated_at=doc.get("updated_at", datetime.now(timezone.utc)),
+                added_to_graph=doc.get("added_to_graph", False),
             )
             for doc in documents
         ]
@@ -141,3 +147,54 @@ class ArticleService:
                 return DeleteArticleResponse(success=False, message=f"Failed to delete article {id}")
         except Exception as e:
             return DeleteArticleResponse(success=False, message=str(e))
+
+    async def add_article_to_graph(
+        self, request: AddArticleToGraphRequest
+    ) -> AddArticleToGraphResponse:
+        """
+        Add an article to the knowledge graph via Graphiti.
+        """
+        # Get the article
+        article = await self.get_article(request.article_id)
+        if not article:
+            return AddArticleToGraphResponse(
+                success=False, message=f"Article {request.article_id} not found"
+            )
+        
+        # Check if already added to graph (skip if force to re-add)
+        if article.added_to_graph and not request.force_readd:
+            return AddArticleToGraphResponse(
+                success=True, message="Article already added to graph"
+            )
+        
+        # Concatenate title and content with title as markdown heading
+        graph_content = f"# {article.title}\n\n{article.content}"
+        
+        # Add to graph via Graphiti
+        graphiti_service = GraphitiService()
+        graph_request = AddTextEpisodeRequest(
+            title=article.title,
+            content=graph_content,
+            description=f"Article: {article.title}",
+        )
+        
+        response = await graphiti_service.add_text_episode(graph_request)
+        
+        if not response.success:
+            return AddArticleToGraphResponse(success=False, message=response.message)
+        
+        # Update the article to mark it as added to graph
+        try:
+            await MongoDB().update_document(
+                ARTICLE_COLLECTION_NAME,
+                request.article_id,
+                {"added_to_graph": True},
+            )
+            return AddArticleToGraphResponse(
+                success=True, message="Article added to graph successfully"
+            )
+        except Exception as e:
+            return AddArticleToGraphResponse(
+                success=False,
+                message=f"Failed to update article after adding to graph: {str(e)}",
+            )

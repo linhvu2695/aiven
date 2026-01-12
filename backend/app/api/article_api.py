@@ -1,5 +1,12 @@
 from fastapi import APIRouter, HTTPException
-from app.classes.article import CreateOrUpdateArticleRequest, CreateOrUpdateArticleResponse, DeleteArticleResponse, SearchArticlesResponse
+from app.classes.article import (
+    AddArticleToGraphRequest,
+    AddArticleToGraphResponse,
+    CreateOrUpdateArticleRequest,
+    CreateOrUpdateArticleResponse,
+    DeleteArticleResponse,
+    SearchArticlesResponse,
+)
 from app.services.article.article_service import ArticleService
 
 router = APIRouter()
@@ -23,4 +30,13 @@ async def delete_article(id: str):
     if response.success:
         return response
     else:
-        raise HTTPException(status_code=400, detail=response.message) 
+        raise HTTPException(status_code=400, detail=response.message)
+
+@router.post("/addgraph", response_model=AddArticleToGraphResponse)
+async def add_article_to_graph(request: AddArticleToGraphRequest):
+    response = await ArticleService().add_article_to_graph(request)
+
+    if response.success:
+        return response
+    else:
+        raise HTTPException(status_code=400, detail=response.message)
