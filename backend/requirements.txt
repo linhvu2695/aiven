@@ -5,8 +5,8 @@ uvicorn==0.34.0
 starlette==0.46.1
 
 # Data Validation & Settings
-pydantic==2.11.1
-pydantic_core==2.33.0
+pydantic==2.11.5
+pydantic_core==2.33.2
 pydantic-settings==2.8.1
 annotated-types==0.7.0
 

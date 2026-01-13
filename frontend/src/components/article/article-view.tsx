@@ -9,6 +9,7 @@ import {
     Code,
 } from "@chakra-ui/react";
 import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 import { useArticle } from "@/context/article-ctx";
 import { ArticleViewHeader } from "./article-view-header";
 
@@ -73,6 +74,7 @@ export const ArticleView = ({
                     >
                         {article.content ? (
                             <ReactMarkdown
+                                remarkPlugins={[remarkGfm]}
                                 components={{
                                     h1: ({ children }) => (
                                         <Heading as="h1" size="2xl" mt={6} mb={4} borderBottom="1px solid" borderColor="gray.200" pb={2} _dark={{ borderColor: "gray.700" }}>
@@ -167,6 +169,72 @@ export const ArticleView = ({
                                     },
                                     hr: () => (
                                         <Box as="hr" my={6} borderColor="gray.300" _dark={{ borderColor: "gray.600" }} />
+                                    ),
+                                    table: ({ children }) => (
+                                        <Box my={4} overflowX="auto" w="full">
+                                            <Box
+                                                as="table"
+                                                w="full"
+                                                borderCollapse="collapse"
+                                                border="1px solid"
+                                                borderColor="gray.300"
+                                                _dark={{ borderColor: "gray.600" }}
+                                                borderRadius="md"
+                                                overflow="hidden"
+                                                minW="full"
+                                            >
+                                                {children}
+                                            </Box>
+                                        </Box>
+                                    ),
+                                    thead: ({ children }) => (
+                                        <Box as="thead" bg="gray.100" _dark={{ bg: "gray.700" }}>
+                                            {children}
+                                        </Box>
+                                    ),
+                                    tbody: ({ children }) => (
+                                        <Box as="tbody">
+                                            {children}
+                                        </Box>
+                                    ),
+                                    tr: ({ children }) => (
+                                        <Box
+                                            as="tr"
+                                            borderBottom="1px solid"
+                                            borderColor="gray.300"
+                                            _dark={{ borderColor: "gray.600" }}
+                                            _last={{ borderBottom: "none" }}
+                                        >
+                                            {children}
+                                        </Box>
+                                    ),
+                                    th: ({ children }) => (
+                                        <Box
+                                            as="th"
+                                            px={4}
+                                            py={2}
+                                            textAlign="left"
+                                            fontWeight="semibold"
+                                            borderRight="1px solid"
+                                            borderColor="gray.300"
+                                            _dark={{ borderColor: "gray.600" }}
+                                            _last={{ borderRight: "none" }}
+                                        >
+                                            {children}
+                                        </Box>
+                                    ),
+                                    td: ({ children }) => (
+                                        <Box
+                                            as="td"
+                                            px={4}
+                                            py={2}
+                                            borderRight="1px solid"
+                                            borderColor="gray.300"
+                                            _dark={{ borderColor: "gray.600" }}
+                                            _last={{ borderRight: "none" }}
+                                        >
+                                            {children}
+                                        </Box>
                                     ),
                                 }}
                             >
