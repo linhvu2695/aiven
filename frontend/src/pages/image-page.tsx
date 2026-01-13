@@ -21,8 +21,9 @@ import { ImageCard, ImageDetailDialog, ImageViewDialog, ImageGenDialog } from "@
 import { useImage } from "@/context/image-ctx";
 import type { ImageWithUrl } from "@/types/image";
 import { useImageView } from "@/context/image-view-ctx";
-import { FaArrowLeft, FaArrowRight, FaListUl, FaMagic } from "react-icons/fa";
+import { FaArrowLeft, FaArrowRight, FaListUl, FaMagic, FaUpload } from "react-icons/fa";
 import { Tooltip } from "@/components/ui";
+import { ImageUploadDialog } from "@/components/image";
 
 export const ImagePage = () => {
     const [images, setImages] = useState<ImageWithUrl[]>([]);
@@ -32,6 +33,7 @@ export const ImagePage = () => {
     const [totalImages, setTotalImages] = useState(0);
     const { openImageDialog, isGenDialogOpen, setIsGenDialogOpen } = useImage();
     const { pageSize, openViewDialog, getViewRatioSize } = useImageView();
+    const [isUploadDialogOpen, setIsUploadDialogOpen] = useState(false);
 
     const fetchImages = async (page: number = currentPage) => {
         try {
@@ -134,6 +136,19 @@ export const ImagePage = () => {
                     }}
                 />
 
+                {/* Upload Image */}
+                <Tooltip content="Upload Image">
+                    <IconButton
+                        aria-label="Upload Image"
+                        size="md"
+                        variant="ghost"
+                        borderRadius={"full"}
+                        onClick={() => setIsUploadDialogOpen(true)}
+                    >
+                        <FaUpload />
+                    </IconButton>
+                </Tooltip>
+
                 {/* Edit View */}
                 <Tooltip content="Edit View">
                     <IconButton
@@ -231,6 +246,11 @@ export const ImagePage = () => {
             <ImageGenDialog 
                 isOpen={isGenDialogOpen} 
                 onClose={() => setIsGenDialogOpen(false)}
+                onSuccess={() => fetchImages(currentPage)}
+            />
+            <ImageUploadDialog
+                isOpen={isUploadDialogOpen}
+                onClose={() => setIsUploadDialogOpen(false)}
                 onSuccess={() => fetchImages(currentPage)}
             />
         </Box>

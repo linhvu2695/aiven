@@ -1,15 +1,44 @@
 import logging
 from typing import Optional
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, UploadFile, File, Form
 from fastapi.responses import JSONResponse
 from app.services.image.image_service import ImageService
-from app.classes.image import DeleteImageResponse, ImageGenerateRequest, ImageGenerateResponse, ImageListRequest, ImageListResponse
+from app.classes.image import CreateImageRequest, DeleteImageResponse, ImageCreateResponse, ImageGenerateRequest, ImageGenerateResponse, ImageListRequest, ImageListResponse, ImageSourceType, ImageType
 from app.services.image.image_gen.image_gen_aspect_ratio import ImageGenAspectRatio
 from app.services.image.image_constants import ImageGenModel
 
 MAX_IMAGES_LIMIT = 50
 
 router = APIRouter()
+
+@router.post("/upload", response_model=ImageCreateResponse)
+async def upload_image(
+    file: UploadFile = File(...),
+    title: Optional[str] = Form(None),
+    description: Optional[str] = Form(None),
+):
+    """Upload an image file"""
+    try:
+        file_data = await file.read()
+        request = CreateImageRequest(
+            filename=file.filename or "uploaded_image.jpg",
+            original_filename=file.filename,
+            title=title,
+            description=description,
+            image_type=ImageType.GENERAL,
+            source_type=ImageSourceType.UPLOAD,
+            file_data=file_data,
+        )
+        
+        response = await ImageService().create_image(request)
+        if not response.success:
+            raise HTTPException(status_code=400, detail=response.message)
+        return response
+        
+    except Exception as e:
+        logging.getLogger("uvicorn.error").error(f"Failed to upload image: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to upload image: {str(e)}")
+
 
 @router.get("/models")
 async def get_models():
