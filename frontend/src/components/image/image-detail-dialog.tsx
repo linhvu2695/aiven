@@ -16,7 +16,7 @@ import { useState } from "react";
 import { ImageGenDialog } from "./image-gen-dialog";
 
 export const ImageDetailDialog = () => {
-    const { selectedImage, isDialogOpen, closeImageDialog } = useImage();
+    const { selectedImage, isDialogOpen, closeImageDialog, refreshImages } = useImage();
     const [isImageGenDialogOpen, setIsImageGenDialogOpen] = useState(false);
 
     const handleEditImage = () => {
@@ -24,9 +24,10 @@ export const ImageDetailDialog = () => {
     };
 
     const handleImageGenSuccess = () => {
-        // Close both dialogs and refresh
+        // Close both dialogs and refresh the image list
         setIsImageGenDialogOpen(false);
         closeImageDialog();
+        refreshImages();
     };
 
     return (

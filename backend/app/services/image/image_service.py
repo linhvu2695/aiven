@@ -87,9 +87,11 @@ class ImageService:
                     color_mode=img.mode,
                 )
 
-                # Extract DPI if available
+                # Extract DPI if available (convert IFDRational to float)
                 if hasattr(img, "info") and "dpi" in img.info:
-                    metadata.dpi = img.info["dpi"]
+                    dpi = img.info["dpi"]
+                    if isinstance(dpi, tuple) and len(dpi) == 2:
+                        metadata.dpi = (float(dpi[0]), float(dpi[1]))
 
                 # Extract EXIF data if available
                 if hasattr(img, "getexif"):

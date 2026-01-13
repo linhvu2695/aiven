@@ -31,7 +31,7 @@ export const ImagePage = () => {
     const [searchQuery, setSearchQuery] = useState("");
     const [currentPage, setCurrentPage] = useState(1);
     const [totalImages, setTotalImages] = useState(0);
-    const { openImageDialog, isGenDialogOpen, setIsGenDialogOpen } = useImage();
+    const { openImageDialog, isGenDialogOpen, setIsGenDialogOpen, registerRefreshCallback } = useImage();
     const { pageSize, openViewDialog, getViewRatioSize } = useImageView();
     const [isUploadDialogOpen, setIsUploadDialogOpen] = useState(false);
 
@@ -98,6 +98,11 @@ export const ImagePage = () => {
             setLoading(false);
         }
     };
+
+    // Register the refresh callback with the context
+    useEffect(() => {
+        registerRefreshCallback(() => fetchImages(currentPage));
+    }, [currentPage, pageSize, registerRefreshCallback]);
 
     useEffect(() => {
         fetchImages(currentPage);
