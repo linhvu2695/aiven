@@ -3,12 +3,15 @@ from unittest.mock import patch, MagicMock, AsyncMock
 from datetime import datetime, timezone
 from app.services.article.article_service import ArticleService
 from app.classes.article import (
+    AddArticleToGraphRequest,
+    AddArticleToGraphResponse,
     ArticleInfo,
     SearchArticlesResponse,
     CreateOrUpdateArticleRequest,
     CreateOrUpdateArticleResponse,
     DeleteArticleResponse,
 )
+from app.classes.graph import AddTextEpisodeResponse
 
 # Test constants for MongoDB ObjectIds
 TEST_ARTICLE_ID = "000000000000000000000001"
@@ -512,3 +515,214 @@ class TestArticleService:
             assert TEST_CHILD_1_ID in deletion_calls
             assert TEST_CHILD_2_ID in deletion_calls
             assert TEST_PARENT_ID not in deletion_calls  # Should not reach parent deletion
+
+
+    @pytest.mark.asyncio
+    async def test_add_article_to_graph_article_not_found(self, article_service: ArticleService):
+        """Test add_article_to_graph when article doesn't exist"""
+        request = AddArticleToGraphRequest(article_id="nonexistent_id")
+
+        with patch("app.services.article.article_service.MongoDB") as mock_mongodb_class:
+            mock_mongodb_instance = MagicMock()
+            mock_mongodb_class.return_value = mock_mongodb_instance
+            mock_mongodb_instance.get_document = AsyncMock(return_value=None)
+
+            response = await article_service.add_article_to_graph(request)
+
+            assert isinstance(response, AddArticleToGraphResponse)
+            assert response.success is False
+            assert "not found" in response.message
+
+
+    @pytest.mark.asyncio
+    async def test_add_article_to_graph_already_added(self, article_service: ArticleService):
+        """Test add_article_to_graph when article is already in graph"""
+        request = AddArticleToGraphRequest(article_id=TEST_ARTICLE_ID, force_readd=False)
+        mock_article_data = {
+            "_id": TEST_ARTICLE_ID,
+            "title": "Test Article",
+            "content": "Test content",
+            "summary": "Test summary",
+            "tags": [],
+            "parent": "0",
+            "added_to_graph": True,
+        }
+
+        with patch("app.services.article.article_service.MongoDB") as mock_mongodb_class:
+            mock_mongodb_instance = MagicMock()
+            mock_mongodb_class.return_value = mock_mongodb_instance
+            mock_mongodb_instance.get_document = AsyncMock(return_value=mock_article_data)
+
+            response = await article_service.add_article_to_graph(request)
+
+            assert isinstance(response, AddArticleToGraphResponse)
+            assert response.success is True
+            assert "already added" in response.message
+
+
+    @pytest.mark.asyncio
+    async def test_add_article_to_graph_force_readd(self, article_service: ArticleService):
+        """Test add_article_to_graph with force_readd=True re-adds article"""
+        request = AddArticleToGraphRequest(article_id=TEST_ARTICLE_ID, force_readd=True)
+        mock_article_data = {
+            "_id": TEST_ARTICLE_ID,
+            "title": "Test Article",
+            "content": "Test content",
+            "summary": "Test summary",
+            "tags": [],
+            "parent": "0",
+            "added_to_graph": True,
+        }
+
+        with patch("app.services.article.article_service.MongoDB") as mock_mongodb_class:
+            mock_mongodb_instance = MagicMock()
+            mock_mongodb_class.return_value = mock_mongodb_instance
+            mock_mongodb_instance.get_document = AsyncMock(return_value=mock_article_data)
+            mock_mongodb_instance.update_document = AsyncMock(return_value=True)
+
+            with patch("app.services.article.article_service.GraphitiService") as mock_graphiti_class:
+                mock_graphiti_instance = MagicMock()
+                mock_graphiti_class.return_value = mock_graphiti_instance
+                mock_graphiti_instance.add_text_episode = AsyncMock(
+                    return_value=AddTextEpisodeResponse(
+                        success=True,
+                        episode_uuid="test-uuid",
+                        message="Success"
+                    )
+                )
+
+                response = await article_service.add_article_to_graph(request)
+
+                assert isinstance(response, AddArticleToGraphResponse)
+                assert response.success is True
+                assert response.message == ""
+                mock_graphiti_instance.add_text_episode.assert_called_once()
+
+
+    @pytest.mark.asyncio
+    async def test_add_article_to_graph_success(self, article_service: ArticleService):
+        """Test successful add_article_to_graph"""
+        request = AddArticleToGraphRequest(article_id=TEST_ARTICLE_ID)
+        mock_article_data = {
+            "_id": TEST_ARTICLE_ID,
+            "title": "Test Article",
+            "content": "Test content",
+            "summary": "Test summary",
+            "tags": [],
+            "parent": "0",
+            "added_to_graph": False,
+        }
+
+        with patch("app.services.article.article_service.MongoDB") as mock_mongodb_class:
+            mock_mongodb_instance = MagicMock()
+            mock_mongodb_class.return_value = mock_mongodb_instance
+            mock_mongodb_instance.get_document = AsyncMock(return_value=mock_article_data)
+            mock_mongodb_instance.update_document = AsyncMock(return_value=True)
+
+            with patch("app.services.article.article_service.GraphitiService") as mock_graphiti_class:
+                mock_graphiti_instance = MagicMock()
+                mock_graphiti_class.return_value = mock_graphiti_instance
+                mock_graphiti_instance.add_text_episode = AsyncMock(
+                    return_value=AddTextEpisodeResponse(
+                        success=True,
+                        episode_uuid="test-uuid-123",
+                        message="Success"
+                    )
+                )
+
+                response = await article_service.add_article_to_graph(request)
+
+                assert isinstance(response, AddArticleToGraphResponse)
+                assert response.success is True
+                assert response.message == ""
+
+                # Verify GraphitiService was called with correct content
+                call_args = mock_graphiti_instance.add_text_episode.call_args
+                graph_request = call_args[0][0]
+                assert graph_request.title == "Test Article"
+                assert "# Test Article" in graph_request.content
+                assert "Test content" in graph_request.content
+
+                # Verify MongoDB was updated
+                mock_mongodb_instance.update_document.assert_called_once()
+
+
+    @pytest.mark.asyncio
+    async def test_add_article_to_graph_graphiti_failure(self, article_service: ArticleService):
+        """Test add_article_to_graph when GraphitiService fails"""
+        request = AddArticleToGraphRequest(article_id=TEST_ARTICLE_ID)
+        mock_article_data = {
+            "_id": TEST_ARTICLE_ID,
+            "title": "Test Article",
+            "content": "Test content",
+            "summary": "Test summary",
+            "tags": [],
+            "parent": "0",
+            "added_to_graph": False,
+        }
+
+        with patch("app.services.article.article_service.MongoDB") as mock_mongodb_class:
+            mock_mongodb_instance = MagicMock()
+            mock_mongodb_class.return_value = mock_mongodb_instance
+            mock_mongodb_instance.get_document = AsyncMock(return_value=mock_article_data)
+
+            with patch("app.services.article.article_service.GraphitiService") as mock_graphiti_class:
+                mock_graphiti_instance = MagicMock()
+                mock_graphiti_class.return_value = mock_graphiti_instance
+                mock_graphiti_instance.add_text_episode = AsyncMock(
+                    return_value=AddTextEpisodeResponse(
+                        success=False,
+                        episode_uuid=None,
+                        message="Neo4j connection error"
+                    )
+                )
+
+                response = await article_service.add_article_to_graph(request)
+
+                assert isinstance(response, AddArticleToGraphResponse)
+                assert response.success is False
+                assert "Neo4j connection error" in response.message
+
+                # Verify MongoDB update was NOT called since graphiti failed
+                mock_mongodb_instance.update_document.assert_not_called()
+
+
+    @pytest.mark.asyncio
+    async def test_add_article_to_graph_mongodb_update_failure(self, article_service: ArticleService):
+        """Test add_article_to_graph when MongoDB update fails after graphiti success"""
+        request = AddArticleToGraphRequest(article_id=TEST_ARTICLE_ID)
+        mock_article_data = {
+            "_id": TEST_ARTICLE_ID,
+            "title": "Test Article",
+            "content": "Test content",
+            "summary": "Test summary",
+            "tags": [],
+            "parent": "0",
+            "added_to_graph": False,
+        }
+
+        with patch("app.services.article.article_service.MongoDB") as mock_mongodb_class:
+            mock_mongodb_instance = MagicMock()
+            mock_mongodb_class.return_value = mock_mongodb_instance
+            mock_mongodb_instance.get_document = AsyncMock(return_value=mock_article_data)
+            mock_mongodb_instance.update_document = AsyncMock(
+                side_effect=Exception("MongoDB update error")
+            )
+
+            with patch("app.services.article.article_service.GraphitiService") as mock_graphiti_class:
+                mock_graphiti_instance = MagicMock()
+                mock_graphiti_class.return_value = mock_graphiti_instance
+                mock_graphiti_instance.add_text_episode = AsyncMock(
+                    return_value=AddTextEpisodeResponse(
+                        success=True,
+                        episode_uuid="test-uuid",
+                        message="Success"
+                    )
+                )
+
+                response = await article_service.add_article_to_graph(request)
+
+                assert isinstance(response, AddArticleToGraphResponse)
+                assert response.success is False
+                assert "Failed to update article after adding to graph" in response.message
+                assert "MongoDB update error" in response.message

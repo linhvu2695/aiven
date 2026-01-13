@@ -191,7 +191,7 @@ class ArticleService:
                 {"added_to_graph": True},
             )
             return AddArticleToGraphResponse(
-                success=True, message="Article added to graph successfully"
+                success=True, message=""
             )
         except Exception as e:
             return AddArticleToGraphResponse(
