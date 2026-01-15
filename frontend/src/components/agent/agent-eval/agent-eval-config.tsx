@@ -102,7 +102,7 @@ export const AgentEvalConfig = () => {
                 <Button
                     onClick={onFunctionDialogOpen}
                     variant="outline"
-                    colorPalette="teal"
+                    colorPalette="primary"
                     borderRadius="12px"
                     w="fit-content"
                 >

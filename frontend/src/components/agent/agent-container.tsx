@@ -29,7 +29,7 @@ export const AgentContainer = () => {
                     borderRadius={"18px"}
                     _hover={{
                         transform: "scale(1.1)",
-                        bgColor: "teal.500",
+                        bgColor: "primary.500",
                         boxShadow: "0px 4px 10px rgba(0, 0, 0, 0.1)",
                     }}
                     onClick={onOpen}

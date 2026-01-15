@@ -187,7 +187,7 @@ const ImageGenDialogContent = ({ isOpen, onClose, onSuccess }: ImageGenDialogPro
                                         transition="all 0.3s ease"
                                         _hover={{
                                             transform: "scale(1.1)",
-                                            bgColor: "teal.500",
+                                            bgColor: "primary.500",
                                             boxShadow: "0px 4px 10px rgba(0, 0, 0, 0.1)",
                                         }}
                                         onClick={handleGenerateImage}

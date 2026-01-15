@@ -140,7 +140,7 @@ export const VideoPage = () => {
                 <Box flex={1} overflow="auto">
                     {loading ? (
                         <Center h="100%">
-                            <Spinner size="xl" color="teal.500" />
+                            <Spinner size="xl" color="primary.500" />
                         </Center>
                     ) : videos.length === 0 ? (
                         <Center h="100%">

@@ -69,7 +69,7 @@ const parseMessageContent = (msg: ChatMessageInfo): ParsedMessageContent => {
 };
 
 const roleBgColor: Record<string, string> = {
-    user: "teal.500",
+    user: "primary.500",
     assistant: "gray.600",
 };
 
@@ -92,7 +92,7 @@ const MessageContent = ({ content }: { content: string }) => (
                 <Box
                     as="code"
                     bg="gray.700"
-                    color="teal.200"
+                    color="primary.200"
                     px={2}
                     py={1}
                     borderRadius="md"
@@ -164,8 +164,8 @@ const MessageBubble = ({
                 borderWidth="1px"
                 borderColor="white"
                 _hover={{
-                    boxShadow: "0px 0px 8px teal",
-                    borderColor: "teal.500",
+                    boxShadow: "0px 0px 8px var(--chakra-colors-primary-500)",
+                    borderColor: "primary.500",
                 }}
                 cursor="pointer"
             />

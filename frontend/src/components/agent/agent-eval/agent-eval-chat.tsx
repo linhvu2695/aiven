@@ -44,18 +44,18 @@ const RoleAvatarOption = ({
             cursor="pointer"
             p={2}
             borderRadius="md"
-            bg={isSelected ? "teal.600" : "gray.700"}
+            bg={isSelected ? "primary.600" : "gray.700"}
             _hover={{
-                bg: isSelected ? "teal.600" : "gray.600",
+                bg: isSelected ? "primary.600" : "gray.600",
             }}
             onClick={onSelect}
             flex={1}
         >
             <Avatar.Root size={"md"}>
-                <Avatar.Image
-                    src={avatarSrc}
-                    borderColor={isSelected ? "teal.400" : "gray.500"}
-                />
+                    <Avatar.Image
+                                        src={avatarSrc}
+                                        borderColor={isSelected ? "primary.400" : "gray.500"}
+                                    />
                 {showFallback && <Avatar.Fallback name={fallbackName} />}
             </Avatar.Root>
             <Text fontSize="xs" color="white">
@@ -137,7 +137,7 @@ export const AgentEvalChat = () => {
                                     <Avatar.Image
                                         src={selectedRole === "user" ? DEFAULT_USER_AVATAR : agent?.avatar_image_url}
                                         borderWidth="2px"
-                                        borderColor={selectedRole === "user" ? "teal.500" : "teal.400"}
+                                        borderColor={selectedRole === "user" ? "primary.500" : "primary.400"}
                                     />
                                     {!agent?.avatar_image_url && selectedRole === "assistant" && (
                                         <Avatar.Fallback name={agent?.name} />
@@ -202,8 +202,8 @@ export const AgentEvalChat = () => {
                         bg={colorMode === "dark" ? "gray.800" : "gray.200"}
                         borderRadius="12px"
                         _focus={{
-                            borderColor: "teal.500",
-                            boxShadow: "0 0 0 1px teal.500",
+                            borderColor: "primary.500",
+                            boxShadow: "0 0 0 1px var(--chakra-colors-primary-500)",
                         }}
                     />
 
@@ -217,7 +217,7 @@ export const AgentEvalChat = () => {
                         variant="solid"
                         _hover={{
                             transform: "scale(1.1)",
-                            bgColor: "teal.500",
+                            bgColor: "primary.500",
                         }}
                         transition="transform 0.2s"
                     >

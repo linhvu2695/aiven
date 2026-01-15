@@ -195,7 +195,7 @@ export const AgentEvalContainer = () => {
             <Box p={4} borderBottom="1px" borderColor="border.default">
                 <Heading size="xl" color="fg.default">
                     <HStack gap={3}>
-                        <FaScaleBalanced color="teal.500" />
+                        <FaScaleBalanced color="var(--chakra-colors-primary-500)" />
                         <Text>Evaluate {agent?.name || "Agent"}</Text>
                     </HStack>
                 </Heading>
@@ -230,12 +230,12 @@ export const AgentEvalContainer = () => {
                         w="95%"
                         borderRadius="12px"
                         bgGradient="to-r"
-                        gradientFrom="teal.700"
-                        gradientTo="teal.500"
+                        gradientFrom="primary.700"
+                        gradientTo="primary.500"
                         _hover={{
                             bgGradient: "to-r",
-                            gradientFrom: "teal.600",
-                            gradientTo: "teal.400",
+                            gradientFrom: "primary.600",
+                            gradientTo: "primary.400",
                             boxShadow: "0px 4px 10px rgba(0, 0, 0, 0.1)",
                         }}
                         onClick={() => handleEvaluate(agent, messages, expectedFunctionCalls, trajectoryMatch, toolArgsMatch, llmAsJudge, setIsEvaluating, setEvalResult)}

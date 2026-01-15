@@ -93,9 +93,9 @@ export const Dropdown = ({
                                     _dark: { bg: "gray.700" } 
                                 }}
                                 _selected={{ 
-                                    bg: "teal.50", 
-                                    color: "teal.600",
-                                    _dark: { bg: "teal.900", color: "teal.300" }
+                                    bg: "primary.50", 
+                                    color: "primary.600",
+                                    _dark: { bg: "primary.900", color: "primary.300" }
                                 }}
                                 cursor="pointer"
                                 transition="all 0.2s"

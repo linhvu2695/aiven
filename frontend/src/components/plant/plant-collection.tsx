@@ -154,7 +154,7 @@ export const PlantCollection = ({ onAddPlant, refreshTrigger, onPlantsLoaded }: 
                 <Card.Root h="400px">
                     <Card.Body>
                         <VStack justify="center" h="100%" gap={4}>
-                            <Spinner size="xl" color="teal.500" />
+                            <Spinner size="xl" color="primary.500" />
                             <Text color="fg.muted">Loading your plants...</Text>
                         </VStack>
                     </Card.Body>
@@ -215,7 +215,7 @@ export const PlantCollection = ({ onAddPlant, refreshTrigger, onPlantsLoaded }: 
                                 onClick={onAddPlant}
                                 _hover={{
                                     transform: "scale(1.1)",
-                                    bgColor: "teal.500",
+                                    bgColor: "primary.500",
                                 }}
                             >
                                 <FaPlus /> Add Your First Plant

@@ -65,7 +65,7 @@ export const VideoGenProviderSelector = () => {
         <VStack spaceY={4}>
             {/* Video Gen Provider Selector */}
             <RadioCard.Root
-                colorPalette="teal"
+                colorPalette="primary"
                 value={provider}
                 onValueChange={
                     !isGenerating

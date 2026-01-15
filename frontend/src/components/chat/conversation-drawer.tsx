@@ -178,7 +178,7 @@ export const ConversationDrawer = ({
                                         <HStack 
                                             gap={0} 
                                             align="stretch"
-                                            _hover={{ bg: { _dark: "teal.800", base: "gray.200" }}}
+                                            _hover={{ bg: { _dark: "primary.800", base: "gray.200" }}}
                                         >
                                             <Button
                                                 variant="ghost"

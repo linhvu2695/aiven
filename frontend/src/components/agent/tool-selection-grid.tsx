@@ -40,12 +40,12 @@ export const ToolSelectionGrid = ({
                             position="relative"
                             p={4}
                             border={isAssigned ? "2px solid" : "1px solid"}
-                            borderColor={isAssigned ? "teal.800" : "gray.700"}
+                            borderColor={isAssigned ? "primary.800" : "gray.700"}
                             borderRadius="md"
                             cursor="pointer"
                             transition="all 0.2s"
                             _hover={{
-                                bg: { base: "teal.500", _dark: "teal.700" },
+                                bg: { base: "primary.500", _dark: "primary.700" },
                                 borderColor: "transparent",
                             }}
                             onClick={() =>
@@ -80,7 +80,7 @@ export const ToolSelectionGrid = ({
                                     bottom={2}
                                     right={2}
                                     color={
-                                        isAssigned ? "green.600" : "teal.600"
+                                        isAssigned ? "green.600" : "primary.600"
                                     }
                                 >
                                     <FaCheck size={16} />

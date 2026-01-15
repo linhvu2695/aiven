@@ -242,11 +242,11 @@ export const PlantDetailInfo = ({ plant, onPlantUpdate }: PlantDetailInfoProps) 
                                 <IconButton
                                     size="sm"
                                     variant="outline"
-                                    colorScheme="teal"
+                                    colorPalette="primary"
                                     aria-label="Edit plant"
                                     onClick={handleEdit}
                                     _hover={{
-                                        bg: "teal.600",
+                                        bg: "primary.600",
                                         transform: "scale(1.1)",
                                     }}
                                 >
@@ -466,11 +466,11 @@ export const PlantDetailInfo = ({ plant, onPlantUpdate }: PlantDetailInfoProps) 
                         Cancel
                     </Button>
                     <Button
-                        colorScheme="teal"
+                        colorPalette="primary"
                         onClick={handleSave}
                         loading={isSaving}
                         _hover={{
-                            bg: "teal.600",
+                            bg: "primary.600",
                             transform: "scale(1.1)",
                         }}
                     >

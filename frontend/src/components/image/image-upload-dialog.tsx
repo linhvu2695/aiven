@@ -181,7 +181,7 @@ export const ImageUploadDialog = ({ isOpen, onClose, onSuccess }: ImageUploadDia
                                         onClick={() => fileInputRef.current?.click()}
                                         _hover={{ 
                                             bg: colorMode === "dark" ? "whiteAlpha.100" : "blackAlpha.50",
-                                            borderColor: "teal.400"
+                                            borderColor: "primary.400"
                                         }}
                                         transition="all 0.2s"
                                         minH="200px"
@@ -248,13 +248,13 @@ export const ImageUploadDialog = ({ isOpen, onClose, onSuccess }: ImageUploadDia
                                     Cancel
                                 </Button>
                                 <Button
-                                    colorScheme="teal"
+                                    colorPalette="primary"
                                     onClick={handleUpload}
                                     loading={isUploading}
                                     disabled={isUploading || !selectedImage}
                                     _hover={{
                                         transform: "scale(1.02)",
-                                        bgColor: "teal.500",
+                                        bgColor: "primary.500",
                                     }}
                                 >
                                     <FaCloudUploadAlt /> Upload

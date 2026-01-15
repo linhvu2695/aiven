@@ -20,7 +20,7 @@ export const getHealthStatusColor = (status: PlantHealthStatus): string => {
         case PlantHealthStatus.EXCELLENT:
             return "green";
         case PlantHealthStatus.GOOD:
-            return "teal";
+            return "primary";
         case PlantHealthStatus.FAIR:
             return "yellow";
         case PlantHealthStatus.POOR:
@@ -41,7 +41,7 @@ export const getSpeciesIcon = (species: PlantSpecies) => {
         case PlantSpecies.CACTUS:
             return <GiCactus color="green.600" size={16} />;
         case PlantSpecies.SUCCULENT:
-            return <GiFlowerPot color="teal.500" size={16} />;
+            return <GiFlowerPot color="var(--chakra-colors-primary-500)" size={16} />;
         case PlantSpecies.FLOWERING:
             return <IoFlower color="pink.500" size={16} />;
         case PlantSpecies.TROPICAL:

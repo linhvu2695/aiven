@@ -82,7 +82,7 @@ export const ImageDetailDialog = () => {
                                                     padding={4}
                                                     _hover={{ 
                                                         transform: "scale(1.1)",
-                                                        bgColor: "teal.500", 
+                                                        bgColor: "primary.500", 
                                                     }}
                                                     onClick={handleEditImage}
                                                 >

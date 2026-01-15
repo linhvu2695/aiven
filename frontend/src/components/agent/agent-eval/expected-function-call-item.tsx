@@ -48,7 +48,7 @@ export const ExpectedFunctionCallItem = ({
                         aria-label="Configure function call"
                         size="sm"
                         variant="ghost"
-                        colorPalette="teal"
+                        colorPalette="primary"
                         onClick={onConfigDialogOpen}
                     >
                         <FaCog />
