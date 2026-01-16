@@ -291,7 +291,7 @@ const ChatContainerContent = () => {
             <Box p={4} borderBottom="1px" borderColor="border.default">
                 <Heading size="lg" color="fg.default">
                     <HStack gap={3}>
-                        <FaComment color="teal.500" />
+                        <FaComment color="var(--chakra-colors-primary-500)" />
                         <Text>Chat with {agent?.name || "Agent"}</Text>
                     </HStack>
                 </Heading>
@@ -314,7 +314,7 @@ const ChatContainerContent = () => {
                         alignItems="center"
                         py={2}
                     >
-                        <Spinner size="lg" color="teal.400" />
+                        <Spinner size="lg" color="primary.400" />
                     </Stack>
                 )}
                 <div ref={messagesEndRef} />
@@ -335,7 +335,7 @@ const ChatContainerContent = () => {
                         title="Start new conversation"
                         _hover={{
                             transform: "scale(1.1)",
-                            bgColor: "teal.500",
+                            bgColor: "primary.500",
                         }}
                     >
                         <LuRefreshCw size={"1.5rem"} />
@@ -373,7 +373,7 @@ const ChatContainerContent = () => {
                         transition="all 0.3s ease"
                         _hover={{
                             transform: "scale(1.1)",
-                            bgColor: "teal.500",
+                            bgColor: "primary.500",
                             boxShadow: "0px 4px 10px rgba(0, 0, 0, 0.1)",
                         }}
                         onClick={() => handleSendMessage()}

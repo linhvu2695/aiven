@@ -157,7 +157,7 @@ export const ArticleTreeItem = ({
                 pl={level * 8 + 4}
                 bg={
                     isSelected
-                        ? "teal.800"
+                        ? "primary.800"
                         : isOver
                         ? "blue.800"
                         : "transparent"
@@ -165,13 +165,13 @@ export const ArticleTreeItem = ({
                 color={isSelected ? "white" : "inherit"}
                 _hover={{
                     bg: isSelected
-                        ? "teal.800"
+                        ? "primary.800"
                         : isOver
                         ? "blue.800"
                         : "gray.100",
                     _dark: {
                         bg: isSelected
-                            ? "teal.800"
+                            ? "primary.800"
                             : isOver
                             ? "blue.800"
                             : "gray.900",

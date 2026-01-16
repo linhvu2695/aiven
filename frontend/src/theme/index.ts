@@ -4,6 +4,21 @@ const theme = defineConfig({
     theme: {
         tokens: {
             colors: {
+                // Primary color palette (teal-based)
+                // To change the app's accent color, update these values
+                primary: {
+                    50: { value: "#e6fffa" },
+                    100: { value: "#b2f5ea" },
+                    200: { value: "#81e6d9" },
+                    300: { value: "#4fd1c5" },
+                    400: { value: "#38b2ac" },
+                    500: { value: "#319795" },
+                    600: { value: "#2c7a7b" },
+                    700: { value: "#285e61" },
+                    800: { value: "#234e52" },
+                    900: { value: "#1d4044" },
+                    950: { value: "#112827" },
+                },
                 brand: {
                     50: { value: "#e6f6ff" },
                     100: { value: "#b3e0ff" },
@@ -51,6 +66,22 @@ const theme = defineConfig({
                 "button.primary.text": {
                     default: { value: "white" },
                     _dark: { value: "black" },
+                },
+                // Accent colors using primary palette
+                "accent": {
+                    value: "{colors.primary.500}",
+                },
+                "accent.muted": {
+                    value: "{colors.primary.400}",
+                },
+                "accent.subtle": {
+                    value: "{colors.primary.300}",
+                },
+                "accent.emphasized": {
+                    value: "{colors.primary.600}",
+                },
+                "accent.fg": {
+                    value: "{colors.primary.200}",
                 },
             },
         },

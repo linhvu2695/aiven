@@ -37,7 +37,7 @@ export const PlantCard = ({ plant, onViewDetails }: PlantCardProps) => {
             _hover={{
                 transform: "translateY(-4px)",
                 shadow: "xl",
-                borderColor: "teal.300"
+                borderColor: "primary.300"
             }}
             transition="all 0.2s"
             border="1px solid"

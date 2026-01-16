@@ -106,7 +106,7 @@ export const VideoCard = ({
                                             isPlaying ? "Pause" : "Play"
                                         }
                                         size="xl"
-                                        colorScheme="teal"
+                                        colorPalette="primary"
                                         rounded="full"
                                         onClick={handleTogglePlayPause}
                                         opacity={isHovered ? 1 : 0}
@@ -178,7 +178,7 @@ export const VideoCard = ({
                                         <IconButton
                                             aria-label="Play video"
                                             size="xl"
-                                            colorScheme="teal"
+                                            colorPalette="primary"
                                             rounded="full"
                                             onClick={handlePlayClick}
                                             opacity={isHovered ? 1 : 0.7}

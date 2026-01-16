@@ -31,8 +31,8 @@ const ViewOptionButton = <T,>({ value, currentValue, label, onClick }: ViewOptio
             cursor="pointer"
             borderRadius="md"
             borderWidth="1px"
-            bg={isSelected ? "teal" : "transparent"}
-            _hover={{bg: "teal"}}
+            bg={isSelected ? "primary.500" : "transparent"}
+            _hover={{bg: "primary.500"}}
             transition="all 0.2s"
             onClick={onClick}
             flex={1}
@@ -96,9 +96,9 @@ export const ImageViewDialog = () => {
                                                     p={2}
                                                     borderRadius="md"
                                                     cursor="pointer"
-                                                    bg={pageSize === size ? "teal" : "transparent"}
+                                                    bg={pageSize === size ? "primary.500" : "transparent"}
                                                     fontWeight={pageSize === size ? "semibold" : "normal"}
-                                                    _hover={{bg: "teal"}}
+                                                    _hover={{bg: "primary.500"}}
                                                     transition="all 0.2s"
                                                     onClick={() => setPageSize(size)}
                                                 >

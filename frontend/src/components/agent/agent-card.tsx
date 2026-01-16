@@ -301,7 +301,7 @@ export const AgentCard = ({
                             />
                             {isAvatarLoading ? (
                                 <Avatar.Fallback>
-                                    <Spinner size="sm" color="teal.500" />
+                                    <Spinner size="sm" color="primary.500" />
                                 </Avatar.Fallback>
                             ) : (
                                 <Avatar.Fallback name={agent?.name} />
@@ -321,7 +321,7 @@ export const AgentCard = ({
                                 justifyContent={"center"}
                                 onClick={handleAvatarClick}
                             >
-                                <FaPencilAlt color="teal" />
+                                <FaPencilAlt color="var(--chakra-colors-primary-500)" />
                             </IconButton>
                         )}
                         {isEditing && (
@@ -471,7 +471,7 @@ export const AgentCard = ({
                                     {agentDraft.tools.map((toolId) => (
                                         <Badge
                                             key={toolId}
-                                            colorScheme="teal"
+                                            colorPalette="primary"
                                             variant="solid"
                                             px={3}
                                             py={1}
@@ -514,13 +514,13 @@ export const AgentCard = ({
                                 <IconButton
                                     size="sm"
                                     variant="outline"
-                                    colorScheme="teal"
+                                    colorPalette="primary"
                                     onClick={openToolPopup}
                                     aria-label="Add Tools"
                                     _hover={{
-                                        bg: "teal.500",
+                                        bg: "primary.500",
                                         color: "black",
-                                        borderColor: "teal.500",
+                                        borderColor: "primary.500",
                                     }}
                                 >
                                     <FaPlus />
@@ -543,7 +543,7 @@ export const AgentCard = ({
                             <Button
                                 variant="outline"
                                 colorScheme="gray"
-                                bgColor={isEditing ? "teal.500" : ""}
+                                bgColor={isEditing ? "primary.500" : ""}
                                 color={isEditing ? "black" : ""}
                                 onClick={() => setIsEditing(true)}
                             >
@@ -568,14 +568,14 @@ export const AgentCard = ({
 
                         {/* Save */}
                         <Button
-                            colorScheme="teal"
+                            colorPalette="primary"
                             variant="solid"
                             disabled={!isEditing || !agentDraft?.name}
                             onClick={handleSaveAgent}
                             transition="all 0.3s ease"
                             _hover={{
                                 transform: "scale(1.1)",
-                                bgColor: "teal.500",
+                                bgColor: "primary.500",
                                 boxShadow: "0px 4px 10px rgba(0, 0, 0, 0.1)",
                             }}
                         >
@@ -616,7 +616,7 @@ export const AgentCard = ({
                                     Cancel
                                 </Button>
                                 <Button
-                                    colorScheme="teal"
+                                    colorPalette="primary"
                                     onClick={handleAddSelectedTools}
                                     disabled={selectedToolIds.size === 0}
                                 >

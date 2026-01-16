@@ -129,7 +129,7 @@ export const FunctionSelectionGrid = ({
                             opacity={isEnabled ? 1 : 0.5}
                             transition="all 0.2s"
                             _hover={isEnabled ? {
-                                bg: { base: "teal.500", _dark: "teal.700" },
+                                bg: { base: "primary.500", _dark: "primary.700" },
                                 borderColor: "transparent",
                             } : {}}
                             onClick={() => handleFunctionSelect(func.name)}

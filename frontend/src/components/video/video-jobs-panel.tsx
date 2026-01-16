@@ -223,7 +223,7 @@ export const VideoJobsPanel = () => {
                 >
                     {loading && jobs.length === 0 ? (
                         <Center py={8}>
-                            <Spinner size="md" color="teal.500" />
+                            <Spinner size="md" color="primary.500" />
                         </Center>
                     ) : (
                         <Flex gap={3} wrap="nowrap">

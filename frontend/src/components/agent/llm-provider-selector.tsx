@@ -87,7 +87,7 @@ export const LLMProviderSelector = ({
         <VStack spaceY={4} padding={4}>
             {/* LLM Provider Selector */}
             <RadioCard.Root
-                colorPalette="teal"
+                colorPalette="primary"
                 value={provider}
                 onValueChange={
                     mode === "edit"

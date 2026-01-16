@@ -59,9 +59,9 @@ export const ImageGenPromptSelector = ({ onSelectPrompt, disabled }: ImageGenPro
                             transition="all 0.2s ease"
                             _hover={{
                                 transform: "scale(1.1)",
-                                bgColor: "teal.500",
+                                bgColor: "primary.500",
                                 color: "white",
-                                borderColor: "teal.500",
+                                borderColor: "primary.500",
                             }}
                         >
                             <template.icon />

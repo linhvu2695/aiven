@@ -188,7 +188,7 @@ const AgentButton = ({
                 onClick={onClick}
                 size={"sm"}
                 variant="solid"
-                _hover={{ transform: "scale(1.1)", bgColor: "teal.500" }}
+                _hover={{ transform: "scale(1.1)", bgColor: "primary.500" }}
                 transition="transform 0.2s"
             >
                 {icon}
@@ -207,7 +207,7 @@ const AgentButton = ({
                 pointerEvents="none"
             >
                 <Box
-                    bg="teal.500"
+                    bg="primary.500"
                     color="white"
                     px={3}
                     py={1.5}

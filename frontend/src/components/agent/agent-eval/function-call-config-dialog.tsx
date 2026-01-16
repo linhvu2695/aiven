@@ -107,7 +107,7 @@ export const FunctionCallConfigDialog = ({
                                     Cancel
                                 </Button>
                                 <Button
-                                    colorPalette="teal"
+                                    colorPalette="primary"
                                     onClick={handleSave}
                                 >
                                     Save

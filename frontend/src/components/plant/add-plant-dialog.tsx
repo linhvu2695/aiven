@@ -311,7 +311,7 @@ export const AddPlantDialog = ({ isOpen, onClose, onPlantAdded }: AddPlantDialog
                                                 textAlign="center"
                                                 cursor="pointer"
                                                 onClick={() => fileInputRef.current?.click()}
-                                                _hover={{ bg: "teal.950" }}
+                                                _hover={{ bg: "primary.950" }}
                                                 h="100%"
                                                 display="flex"
                                                 alignItems="center"
@@ -348,7 +348,7 @@ export const AddPlantDialog = ({ isOpen, onClose, onPlantAdded }: AddPlantDialog
                                                 w="full"
                                                 _hover={{
                                                     transform: "scale(1.02)",
-                                                    bgColor: "teal.500",
+                                                    bgColor: "primary.500",
                                                 }}
                                             >
                                                 <FaMagic /> AI Auto-Fill from Photo
@@ -487,7 +487,7 @@ export const AddPlantDialog = ({ isOpen, onClose, onPlantAdded }: AddPlantDialog
                                 }
                                 _hover={{
                                     transform: "scale(1.1)",
-                                    bgColor: "teal.500",
+                                    bgColor: "primary.500",
                                 }}
                             >
                                 <FaPlus /> Add Plant

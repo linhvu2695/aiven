@@ -65,7 +65,7 @@ export const ImageGenProviderSelector = () => {
         <VStack spaceY={4}>
             {/* Image Gen Provider Selector */}
             <RadioCard.Root
-                colorPalette="teal"
+                colorPalette="primary"
                 value={provider}
                 onValueChange={
                     !isGenerating

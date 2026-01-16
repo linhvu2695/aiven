@@ -50,7 +50,7 @@ function Navbar() {
                                 <IconButton
                                     aria-label="Start new chat"
                                     variant={isActive("/chat") ? "solid" : "ghost"}
-                                    colorPalette={isActive("/chat") ? "teal" : undefined}
+                                    colorPalette={isActive("/chat") ? "primary" : undefined}
                                     size="xl"
                                     onClick={() => {
                                         resetMessages();
@@ -66,7 +66,7 @@ function Navbar() {
                                 <IconButton
                                     aria-label="Agent management"
                                     variant={isActive("/agent") ? "solid" : "ghost"}
-                                    colorPalette={isActive("/agent") ? "teal" : undefined}
+                                    colorPalette={isActive("/agent") ? "primary" : undefined}
                                     size="xl"
                                     onClick={() => navigate("/agent")}
                                 >
@@ -79,7 +79,7 @@ function Navbar() {
                                 <IconButton
                                     aria-label="Image library"
                                     variant={isActive("/image") ? "solid" : "ghost"}
-                                    colorPalette={isActive("/image") ? "teal" : undefined}
+                                    colorPalette={isActive("/image") ? "primary" : undefined}
                                     size="xl"
                                     onClick={() => navigate("/image")}
                                 >
@@ -92,7 +92,7 @@ function Navbar() {
                                 <IconButton
                                     aria-label="Video library"
                                     variant={isActive("/video") ? "solid" : "ghost"}
-                                    colorPalette={isActive("/video") ? "teal" : undefined}
+                                    colorPalette={isActive("/video") ? "primary" : undefined}
                                     size="xl"
                                     onClick={() => navigate("/video")}
                                 >
@@ -105,7 +105,7 @@ function Navbar() {
                                 <IconButton
                                     aria-label="Knowledge"
                                     variant={isActive("/knowledge") ? "solid" : "ghost"}
-                                    colorPalette={isActive("/knowledge") ? "teal" : undefined}
+                                    colorPalette={isActive("/knowledge") ? "primary" : undefined}
                                     size="xl"
                                     onClick={() => navigate("/knowledge")}
                                 >
@@ -118,7 +118,7 @@ function Navbar() {
                                 <IconButton
                                     aria-label="Plant"
                                     variant={isActive("/plant") ? "solid" : "ghost"}
-                                    colorPalette={isActive("/plant") ? "teal" : undefined}
+                                    colorPalette={isActive("/plant") ? "primary" : undefined}
                                     size="xl"
                                     onClick={() => navigate("/plant")}
                                 >
