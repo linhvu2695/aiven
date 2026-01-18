@@ -12,7 +12,6 @@ import {
     IconButton,
     Spinner,
     Box,
-    Badge,
     CloseButton,
     Flex,
     Dialog,
@@ -22,9 +21,10 @@ import { LLMProviderSelector } from "./llm-provider-selector";
 import { ToolSelectionGrid } from "./tool-selection-grid";
 import { useAgent } from "@/context/agent-ctx";
 import type { ToolInfo } from "@/types/tool";
+import { Tooltip } from "../ui/tooltip";
 import { useState, useRef, useEffect } from "react";
 import { BASE_URL } from "@/App";
-import { FaPencilAlt, FaPlus } from "react-icons/fa";
+import { FaPencilAlt, FaPlus, FaTimes } from "react-icons/fa";
 import { toaster } from "../ui/toaster";
 
 const missingAgentFieldWarning = (field: string) => (
@@ -467,39 +467,49 @@ export const AgentCard = ({
                             {/* Current Tools */}
                             {agentDraft?.tools &&
                             agentDraft.tools.length > 0 ? (
-                                <Flex wrap="wrap" gap={2} mb={2}>
-                                    {agentDraft.tools.map((toolId) => (
-                                        <Badge
-                                            key={toolId}
-                                            colorPalette="primary"
-                                            variant="solid"
-                                            px={3}
-                                            py={1}
-                                            borderRadius="4xl"
-                                            display="flex"
-                                            justifyContent="center"
-                                            alignItems="center"
-                                            gap={2}
-                                        >
-                                            <Text fontSize="sm">
-                                                {toolId}
-                                            </Text>
-                                            {isEditing && (
-                                                <CloseButton
-                                                    size="xs"
-                                                    borderRadius="4xl"
-                                                    onClick={() =>
-                                                        handleRemoveTool(toolId)
-                                                    }
-                                                    color="black"
-                                                    _hover={{
-                                                        bg: "red.500",
-                                                        color: "white",
-                                                    }}
-                                                />
-                                            )}
-                                        </Badge>
-                                    ))}
+                                <Flex wrap="wrap" gap={4} mb={2} alignItems="center">
+                                    {agentDraft.tools.map((toolId) => {
+                                        const tool = availableTools.find(t => t.id === toolId);
+                                        return (
+                                            <Tooltip
+                                                key={toolId}
+                                                content={tool?.name || toolId}
+                                                showArrow
+                                            >
+                                                <Box
+                                                    display="flex"
+                                                    alignItems="center"
+                                                    justifyContent="center"
+                                                    cursor="default"
+                                                    position="relative"
+                                                    p={1}
+                                                >
+                                                    <Text fontSize="2xl">
+                                                        {tool?.emoji || "🔧"}
+                                                    </Text>
+                                                    {isEditing && (
+                                                        <IconButton
+                                                            aria-label="Remove tool"
+                                                            size="2xs"
+                                                            variant="ghost"
+                                                            bg="transparent"
+                                                            position="absolute"
+                                                            color="red.500"
+                                                            top={-2}
+                                                            right={-3}
+                                                            onClick={() =>
+                                                                handleRemoveTool(toolId)
+                                                            }
+                                                            opacity={0.7}
+                                                            _hover={{ opacity: 1 }}
+                                                        >
+                                                            <FaTimes />
+                                                        </IconButton>
+                                                    )}
+                                                </Box>
+                                            </Tooltip>
+                                        );
+                                    })}
                                 </Flex>
                             ) : (
                                 !isEditing && (
