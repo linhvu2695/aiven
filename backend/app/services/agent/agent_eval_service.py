@@ -1,17 +1,51 @@
 import logging
-from typing import Optional
+from typing import Dict, List, Optional
 from langchain_core.runnables import RunnableConfig
+from langchain_core.tools import BaseTool, StructuredTool
 from langgraph.prebuilt import create_react_agent
 
-from app.classes.agent import AgentInfo, EvaluateAgentRequest, EvaluateAgentResponse
+from app.classes.agent import EvaluateAgentRequest, EvaluateAgentResponse
 from app.services.agent.agent_service import AgentService
 from app.services.tool.tool_service import ToolService
 from app.services.chat.chat_service import ChatService
-from app.core.config import settings
 from app.utils.string.string_utils import is_empty_string
 from app.utils.chat.chat_utils import convert_chat_messages
 from agentevals.trajectory.match import create_trajectory_match_evaluator
 from agentevals.trajectory.llm import create_trajectory_llm_as_judge, TRAJECTORY_ACCURACY_PROMPT, TRAJECTORY_ACCURACY_PROMPT_WITH_REFERENCE
+
+
+def apply_tool_mocks(
+    tools: List[BaseTool], 
+    mocks: Optional[Dict[str, str]]
+) -> List[BaseTool]:
+    """
+    Apply mocks to a list of LangChain tools.
+    
+    Args:
+        tools: List of BaseTool from MCP
+        mocks: Dict mapping tool_name -> mock_response (str), or None
+        
+    Returns:
+        List of tools with mocked ones replaced
+    """
+    if not mocks:
+        return tools
+    
+    result = []
+    for tool in tools:
+        if tool.name in mocks:
+            mock_response = mocks[tool.name]
+            logging.getLogger("uvicorn.info").info(f"Applying mock for tool '{tool.name}'")
+            mocked_tool = StructuredTool.from_function(
+                func=lambda response=mock_response: response,
+                name=tool.name,
+                description=tool.description,
+            )
+            result.append(mocked_tool)
+        else:
+            result.append(tool)
+    
+    return result
 
 
 class AgentEvalService:
@@ -76,6 +110,11 @@ class AgentEvalService:
             functions = []
             if agent.tools is not None and len(agent.tools) > 0:
                 functions = await ToolService().load_mcp_functions(agent.tools)
+            
+            # Step 2.5: Apply tool mocks from request (if any)
+            if request.tool_mocks:
+                logging.getLogger("uvicorn.info").info(f"Applying tool mocks: {list(request.tool_mocks.keys())}")
+                functions = apply_tool_mocks(functions, request.tool_mocks)
 
             # Step 3: Create LangGraph react agent
             logging.getLogger("uvicorn.info").info("Step 3: Creating LangGraph react agent")

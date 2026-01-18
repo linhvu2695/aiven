@@ -1,5 +1,5 @@
 from enum import Enum
-from typing import Optional, List
+from typing import Dict, Optional, List
 from pydantic import BaseModel
 from app.services.chat.chat_constants import LLMModel
 from app.classes.image import ImageInfo, ImageType
@@ -68,6 +68,7 @@ class EvaluateAgentRequest(BaseModel):
     trajectory_match_mode: TrajectoryMatchMode = TrajectoryMatchMode.STRICT
     tool_args_match_mode: ToolArgsMatchMode = ToolArgsMatchMode.EXACT
     llm_as_a_judge: bool = False # if True, LLM-as-a-Judge will be used instead of TrajectoryMatch
+    tool_mocks: Optional[Dict[str, str]] = None  # Map of tool_name -> mock_response
 
 class EvaluateAgentResponse(BaseModel):
     success: bool
