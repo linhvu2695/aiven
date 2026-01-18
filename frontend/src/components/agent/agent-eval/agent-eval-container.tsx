@@ -17,6 +17,7 @@ import { toaster, Tooltip } from "../../ui";
 import { AgentEvalChat } from "./agent-eval-chat";
 import { AgentEvalConfig } from "./agent-eval-config";
 import { AgentEvalResult } from "./agent-eval-result";
+import { AgentEvalTestSuite } from "./agent-eval-test-suite";
 import { BASE_URL } from "@/App";
 import type { ChatMessageInfo } from "@/components/chat/chat-message-info";
 
@@ -280,8 +281,13 @@ export const AgentEvalContainer = () => {
                 gap={4}
             >
                 <HStack className="agent-eval-input" flex={1} minH={400} minW={0}>
+                    {/* Test Suite */}
+                    <AgentEvalTestSuite />
+
+                    {/* Agent Eval Chat History */}
                     <AgentEvalChat />
 
+                    {/* Agent Eval Config */}
                     <Box
                         flex={1}
                         h="100%"
