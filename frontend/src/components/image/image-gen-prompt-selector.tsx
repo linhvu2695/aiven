@@ -22,7 +22,7 @@ const PROMPT_TEMPLATES: PromptTemplate[] = [
     },
     {
         title: "Building blueprint",
-        prompt: "Create an orthographic blueprint that describes this building in plan.",
+        prompt: "Create an orthographic blueprint that describes this building in plan. The blueprint should have 3 views from different angles and the original image should be attached in the corner.",
         icon: FaBuilding,
     },
     {
