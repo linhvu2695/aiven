@@ -10,7 +10,7 @@ import {
 } from "@chakra-ui/react";
 import { useState } from "react";
 import { FaScaleBalanced } from "react-icons/fa6";
-import { FaPlay, FaUndo } from "react-icons/fa";
+import { FaPlay, FaUndo, FaDownload } from "react-icons/fa";
 import { useAgent } from "@/context/agent-ctx";
 import { useAgentEval, type ToolArgsMatch, type TrajectoryMatch, type MockedFunctionOutputs } from "@/context/agent-eval-ctx";
 import { toaster, Tooltip } from "../../ui";
@@ -176,6 +176,65 @@ const handleEvaluate = async (
     }
 };
 
+// Handler function to export test configuration as JSON
+const handleExportTest = (
+    messages: ChatMessageInfo[] | undefined,
+    expectedFunctionCalls: Array<{
+        function: { name: string };
+        expectedInput: Record<string, any>;
+    }>,
+    mockedFunctionOutputs: MockedFunctionOutputs,
+    trajectoryMatchMode: TrajectoryMatch,
+    toolArgsMatchMode: ToolArgsMatch,
+    llmAsJudge: boolean
+) => {
+    if (!messages || messages.length === 0) {
+        toaster.create({
+            description: "No messages to export",
+            type: "warning",
+        });
+        return;
+    }
+
+    // Build export object
+    const inputMessages = messages.map(serializeMessage);
+    const expectedTrajectory = buildExpectedTrajectory(messages, expectedFunctionCalls, mockedFunctionOutputs);
+    
+    // Convert mocked outputs to tool_mocks format
+    const toolMocks: Record<string, string> = {};
+    for (const [funcName, output] of Object.entries(mockedFunctionOutputs)) {
+        if (Object.keys(output).length > 0) {
+            toolMocks[funcName] = JSON.stringify(output);
+        }
+    }
+
+    const testConfig = {
+        input_messages: inputMessages,
+        expected_trajectory: expectedTrajectory,
+        trajectory_match_mode: trajectoryMatchMode,
+        tool_args_match_mode: toolArgsMatchMode,
+        llm_as_a_judge: llmAsJudge,
+        tool_mocks: Object.keys(toolMocks).length > 0 ? toolMocks : undefined,
+    };
+
+    // Create and download the JSON file
+    const jsonString = JSON.stringify(testConfig, null, 2);
+    const blob = new Blob([jsonString], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `agent-eval-test-${Date.now()}.json`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+
+    toaster.create({
+        description: "Test configuration exported successfully",
+        type: "success",
+    });
+};
+
 export const AgentEvalContainer = () => {
     const { agent } = useAgent();
     const {
@@ -255,6 +314,30 @@ export const AgentEvalContainer = () => {
                     >
                         EVALUATE - {llmAsJudge ? "🤖 LLM As a Judge" : "💫 Trajectory Match"} <FaPlay />
                     </Button>
+
+                    {/* Export button */}
+                    <Tooltip content="Export Test">
+                        <IconButton
+                            aria-label={"Export Test"}
+                            onClick={() => handleExportTest(
+                                messages,
+                                expectedFunctionCalls,
+                                mockedFunctionOutputs,
+                                trajectoryMatch,
+                                toolArgsMatch,
+                                llmAsJudge
+                            )}
+                            size={"sm"}
+                            variant="solid"
+                            disabled={!messages || messages.length === 0}
+                            _hover={{
+                                transform: "scale(1.1)",
+                            }}
+                            transition="transform 0.2s"
+                        >
+                            <FaDownload />
+                        </IconButton>
+                    </Tooltip>
 
                     {/* Reset button */}
                     <Tooltip content="Reset">
