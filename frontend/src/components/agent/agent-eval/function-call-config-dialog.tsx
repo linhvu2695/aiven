@@ -7,6 +7,8 @@ import {
     HStack,
     Text,
     Separator,
+    Badge,
+    Box,
 } from "@chakra-ui/react";
 import { useState, useEffect } from "react";
 import { useAgentEval, type ExpectedFunctionCall } from "@/context/agent-eval-ctx";
@@ -24,31 +26,42 @@ export const FunctionCallConfigDialog = ({
     onClose,
     functionCall,
 }: FunctionCallConfigDialogProps) => {
-    const { expectedFunctionCalls, setExpectedFunctionCalls } = useAgentEval();
+    const { expectedFunctionCalls, setExpectedFunctionCalls, getMockedFunctionOutput, setMockedFunctionOutput, removeMockedFunctionOutput, mockedFunctionOutputs } = useAgentEval();
     const [expectedInput, setExpectedInput] = useState<Record<string, any>>({});
-    const [expectedOutput, setExpectedOutput] = useState<Record<string, any>>({});
+    const [mockOutput, setMockOutput] = useState<Record<string, any>>({});
 
-    // Initialize values from functionCall when dialog opens
+    const functionName = functionCall?.function?.name || "";
+    const isMocked = functionName in mockedFunctionOutputs;
+
+    // Initialize values from functionCall and context when dialog opens
     useEffect(() => {
         if (isOpen) {
             setExpectedInput(functionCall.expectedInput || {});
-            setExpectedOutput(functionCall.expectedOutput || {});
+            setMockOutput(getMockedFunctionOutput(functionName));
         }
-    }, [isOpen, functionCall]);
+    }, [isOpen, functionCall, functionName, getMockedFunctionOutput]);
 
     const handleSave = () => {
-        // Update the function call with new values
+        // Update the function call with expected input
         const updatedFunctionCalls = expectedFunctionCalls.map((fc) =>
             fc.id === functionCall.id
                 ? {
                       ...fc,
                       expectedInput,
-                      expectedOutput,
                   }
                 : fc
         );
-
         setExpectedFunctionCalls(updatedFunctionCalls);
+
+        // Save mock output to context (applies to all calls of this function)
+        setMockedFunctionOutput(functionName, mockOutput);
+
+        onClose();
+    };
+
+    const handleClearMock = () => {
+        removeMockedFunctionOutput(functionName);
+        setMockOutput({});
         onClose();
     };
 
@@ -91,13 +104,52 @@ export const FunctionCallConfigDialog = ({
 
                                 <Separator />
 
-                                {/* Expected Output */}
-                                <SchemaFormSection
-                                    title="Expected Output"
-                                    schema={functionCall?.function?.outputSchema || {}}
-                                    values={expectedOutput}
-                                    onChange={setExpectedOutput}
-                                />
+                                {/* Mock Output */}
+                                <Box
+                                    p={3}
+                                    borderRadius="md"
+                                    border="1px solid"
+                                    borderColor={isMocked ? "orange.400" : "transparent"}
+                                    bg={isMocked ? "orange.50" : "transparent"}
+                                    _dark={{
+                                        borderColor: isMocked ? "orange.500" : "transparent",
+                                        bg: isMocked ? "orange.900/20" : "transparent",
+                                    }}
+                                >
+                                    <VStack align="stretch" gap={2}>
+                                        <HStack justify="space-between" align="center">
+                                            {/* Mock Output title */}
+                                            <HStack gap={2}>
+                                                <Text fontWeight="semibold" fontSize="sm">Mock Output</Text>
+                                                {isMocked && (
+                                                    <Badge colorPalette="orange" size="sm" variant="solid">
+                                                        MOCKED
+                                                    </Badge>
+                                                )}
+                                            </HStack>
+
+                                            {/* Clear Mock button */}
+                                            {isMocked && (
+                                                <Button
+                                                    size="xs"
+                                                    variant="outline"
+                                                    colorPalette="red"
+                                                    onClick={handleClearMock}
+                                                >
+                                                    Clear Mock
+                                                </Button>
+                                            )}
+                                        </HStack>
+
+                                        {/* Mock Output schema */}
+                                        <SchemaFormSection
+                                            title=""
+                                            schema={functionCall?.function?.outputSchema || {}}
+                                            values={mockOutput}
+                                            onChange={setMockOutput}
+                                        />
+                                    </VStack>
+                                </Box>
                             </VStack>
                         </Dialog.Body>
 

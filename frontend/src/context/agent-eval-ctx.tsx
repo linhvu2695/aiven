@@ -15,8 +15,10 @@ export interface ExpectedFunctionCall {
     id: string;
     function: MCPFunction;
     expectedInput: Record<string, any>;
-    expectedOutput: Record<string, any>;
 }
+
+// Map of function_name -> mock_output (applies to all calls of a function)
+export type MockedFunctionOutputs = Record<string, Record<string, any>>;
 
 export interface EvalResult {
     success: boolean;
@@ -51,6 +53,10 @@ type AgentEvalContextType = {
     setToolArgsMatch: (match: ToolArgsMatch) => void;
     expectedFunctionCalls: ExpectedFunctionCall[];
     setExpectedFunctionCalls: (calls: ExpectedFunctionCall[]) => void;
+    mockedFunctionOutputs: MockedFunctionOutputs;
+    setMockedFunctionOutput: (functionName: string, output: Record<string, any>) => void;
+    getMockedFunctionOutput: (functionName: string) => Record<string, any>;
+    removeMockedFunctionOutput: (functionName: string) => void;
     evalResult: EvalResult | null;
     setEvalResult: (result: EvalResult | null) => void;
 };
@@ -59,7 +65,7 @@ const AgentEvalContext = createContext<AgentEvalContextType | undefined>(undefin
 
 const DEFAULT_MESSAGES = [
     {
-        content: "Hello, how are you?",
+        content: "Help me check system health?",
         role: "user",
     }
 ];
@@ -79,7 +85,26 @@ export const AgentEvalProvider = ({ children }: { children: ReactNode }) => {
     const [trajectoryMatch, setTrajectoryMatch] = useState<TrajectoryMatch>("strict");
     const [toolArgsMatch, setToolArgsMatch] = useState<ToolArgsMatch>("ignore");
     const [expectedFunctionCalls, setExpectedFunctionCalls] = useState<ExpectedFunctionCall[]>([]);
+    const [mockedFunctionOutputs, setMockedFunctionOutputs] = useState<MockedFunctionOutputs>({});
     const [evalResult, setEvalResult] = useState<EvalResult | null>(null);
+
+    const setMockedFunctionOutput = (functionName: string, output: Record<string, any>) => {
+        setMockedFunctionOutputs((prev) => ({
+            ...prev,
+            [functionName]: output,
+        }));
+    };
+
+    const getMockedFunctionOutput = (functionName: string): Record<string, any> => {
+        return mockedFunctionOutputs[functionName] || {};
+    };
+
+    const removeMockedFunctionOutput = (functionName: string) => {
+        setMockedFunctionOutputs((prev) => {
+            const { [functionName]: _, ...rest } = prev;
+            return rest;
+        });
+    };
 
     // Update selectedRole when messages updated (default behavior)
     useEffect(() => {
@@ -99,6 +124,7 @@ export const AgentEvalProvider = ({ children }: { children: ReactNode }) => {
     const resetMessages = () => {
         setMessages(DEFAULT_MESSAGES);
         setExpectedFunctionCalls([]);
+        setMockedFunctionOutputs({});
         setEvalResult(null);
     };
 
@@ -119,6 +145,10 @@ export const AgentEvalProvider = ({ children }: { children: ReactNode }) => {
                 setToolArgsMatch,
                 expectedFunctionCalls,
                 setExpectedFunctionCalls,
+                mockedFunctionOutputs,
+                setMockedFunctionOutput,
+                getMockedFunctionOutput,
+                removeMockedFunctionOutput,
                 evalResult,
                 setEvalResult,
             }}

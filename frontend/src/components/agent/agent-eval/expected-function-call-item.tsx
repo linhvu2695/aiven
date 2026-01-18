@@ -1,4 +1,4 @@
-import { Box, HStack, Text, IconButton, useDisclosure } from "@chakra-ui/react";
+import { Box, HStack, Text, IconButton, useDisclosure, Badge } from "@chakra-ui/react";
 import { FaTrash, FaCog } from "react-icons/fa";
 import { useAgentEval, type ExpectedFunctionCall } from "@/context/agent-eval-ctx";
 import { FunctionCallConfigDialog } from "./function-call-config-dialog";
@@ -12,7 +12,7 @@ export const ExpectedFunctionCallItem = ({
     functionCall,
     index,
 }: ExpectedFunctionCallItemProps) => {
-    const { expectedFunctionCalls, setExpectedFunctionCalls } = useAgentEval();
+    const { expectedFunctionCalls, setExpectedFunctionCalls, getMockedFunctionOutput } = useAgentEval();
     const {
         open: isConfigDialogOpen,
         onOpen: onConfigDialogOpen,
@@ -23,18 +23,23 @@ export const ExpectedFunctionCallItem = ({
         setExpectedFunctionCalls(expectedFunctionCalls.filter((fc) => fc.id !== id));
     };
 
+    const mockOutput = getMockedFunctionOutput(functionCall.function.name);
+    const isMocked = Object.keys(mockOutput).length > 0;
+
     return (
         <>
             <Box
                 p={3}
                 border="1px solid"
-                borderColor="gray.200"
+                borderColor={isMocked ? "orange.400" : "gray.200"}
                 borderRadius="md"
                 display="flex"
                 justifyContent="space-between"
                 alignItems="center"
+                bg={isMocked ? "orange.50" : "transparent"}
                 _dark={{
-                    borderColor: "gray.700",
+                    borderColor: isMocked ? "orange.500" : "gray.700",
+                    bg: isMocked ? "orange.900/20" : "transparent",
                 }}
             >
                 <HStack gap={2}>
@@ -42,6 +47,11 @@ export const ExpectedFunctionCallItem = ({
                         {index + 1}.
                     </Text>
                     <Text fontWeight="semibold">{functionCall.function.name}</Text>
+                    {isMocked && (
+                        <Badge colorPalette="orange" size="sm" variant="solid">
+                            MOCKED
+                        </Badge>
+                    )}
                 </HStack>
                 <HStack gap={1}>
                     <IconButton

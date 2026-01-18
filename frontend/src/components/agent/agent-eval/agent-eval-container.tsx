@@ -12,7 +12,7 @@ import { useState } from "react";
 import { FaScaleBalanced } from "react-icons/fa6";
 import { FaPlay, FaUndo } from "react-icons/fa";
 import { useAgent } from "@/context/agent-ctx";
-import { useAgentEval, type ToolArgsMatch, type TrajectoryMatch } from "@/context/agent-eval-ctx";
+import { useAgentEval, type ToolArgsMatch, type TrajectoryMatch, type MockedFunctionOutputs } from "@/context/agent-eval-ctx";
 import { toaster, Tooltip } from "../../ui";
 import { AgentEvalChat } from "./agent-eval-chat";
 import { AgentEvalConfig } from "./agent-eval-config";
@@ -34,8 +34,8 @@ const buildExpectedTrajectory = (
     expectedFunctionCalls: Array<{
         function: { name: string };
         expectedInput: Record<string, any>;
-        expectedOutput: Record<string, any>;
-    }>
+    }>,
+    mockedFunctionOutputs: MockedFunctionOutputs
 ) => {
     // Input chat history
     const trajectory: Array<{
@@ -63,11 +63,12 @@ const buildExpectedTrajectory = (
             })),
         });
 
-        // All tool responses
+        // All tool responses (using mocked outputs)
         expectedFunctionCalls.forEach((call) => {
+            const mockOutput = mockedFunctionOutputs[call.function.name] || {};
             trajectory.push({
                 role: "tool",
-                content: JSON.stringify(call.expectedOutput),
+                content: JSON.stringify(mockOutput),
             });
         });
     }
@@ -88,8 +89,8 @@ const handleEvaluate = async (
     expectedFunctionCalls: Array<{
         function: { name: string };
         expectedInput: Record<string, any>;
-        expectedOutput: Record<string, any>;
     }>,
+    mockedFunctionOutputs: MockedFunctionOutputs,
     trajectoryMatchMode: TrajectoryMatch,
     toolArgsMatchMode: ToolArgsMatch,
     llmAsJudge: boolean,
@@ -119,7 +120,15 @@ const handleEvaluate = async (
         const inputMessages = messages.map(serializeMessage);
         
         // Build expected trajectory (input messages -> tool calls -> final response)
-        const expectedTrajectory = buildExpectedTrajectory(messages, expectedFunctionCalls);
+        const expectedTrajectory = buildExpectedTrajectory(messages, expectedFunctionCalls, mockedFunctionOutputs);
+        
+        // Convert mocked outputs to tool_mocks format (function_name -> JSON string)
+        const toolMocks: Record<string, string> = {};
+        for (const [funcName, output] of Object.entries(mockedFunctionOutputs)) {
+            if (Object.keys(output).length > 0) {
+                toolMocks[funcName] = JSON.stringify(output);
+            }
+        }
         
         // Make API call
         const response = await fetch(BASE_URL + "/api/agent/evaluate", {
@@ -134,6 +143,7 @@ const handleEvaluate = async (
                 trajectory_match_mode: trajectoryMatchMode,
                 tool_args_match_mode: toolArgsMatchMode,
                 llm_as_a_judge: llmAsJudge,
+                tool_mocks: Object.keys(toolMocks).length > 0 ? toolMocks : undefined,
             }),
         });
         
@@ -171,6 +181,7 @@ export const AgentEvalContainer = () => {
     const {
         messages,
         expectedFunctionCalls,
+        mockedFunctionOutputs,
         resetMessages,
         llmAsJudge,
         setLlmAsJudge,
@@ -238,7 +249,7 @@ export const AgentEvalContainer = () => {
                             gradientTo: "primary.400",
                             boxShadow: "0px 4px 10px rgba(0, 0, 0, 0.1)",
                         }}
-                        onClick={() => handleEvaluate(agent, messages, expectedFunctionCalls, trajectoryMatch, toolArgsMatch, llmAsJudge, setIsEvaluating, setEvalResult)}
+                        onClick={() => handleEvaluate(agent, messages, expectedFunctionCalls, mockedFunctionOutputs, trajectoryMatch, toolArgsMatch, llmAsJudge, setIsEvaluating, setEvalResult)}
                         loading={isEvaluating}
                         disabled={isEvaluating || !agent?.id || !messages || messages.length === 0}
                     >

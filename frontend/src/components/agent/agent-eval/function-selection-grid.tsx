@@ -99,7 +99,6 @@ export const FunctionSelectionGrid = ({
                 id: `function-call-${Date.now()}`,
                 function: func,
                 expectedInput: {},
-                expectedOutput: {},
             };
             setExpectedFunctionCalls([...expectedFunctionCalls, newFunctionCall]);
             onClose();
