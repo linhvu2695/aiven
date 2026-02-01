@@ -10,8 +10,27 @@ import {
 } from "@chakra-ui/react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
+import rehypeRaw from "rehype-raw";
 import { useArticle } from "@/context/article-ctx";
 import { ArticleViewHeader } from "./article-view-header";
+import { MermaidRenderer } from "./mermaid-renderer";
+import { Children, isValidElement } from "react";
+import type { ReactNode } from "react";
+
+// Helper function to extract text content from React children (handles nested elements)
+const extractTextContent = (children: ReactNode): string => {
+    let text = "";
+    Children.forEach(children, (child) => {
+        if (typeof child === "string") {
+            text += child;
+        } else if (typeof child === "number") {
+            text += String(child);
+        } else if (isValidElement<{ children?: ReactNode }>(child) && child.props.children) {
+            text += extractTextContent(child.props.children);
+        }
+    });
+    return text;
+};
 
 interface ArticleViewProps {
     onSave: () => void;
@@ -75,6 +94,7 @@ export const ArticleView = ({
                         {article.content ? (
                             <ReactMarkdown
                                 remarkPlugins={[remarkGfm]}
+                                rehypePlugins={[rehypeRaw]}
                                 components={{
                                     h1: ({ children }) => (
                                         <Heading as="h1" size="2xl" mt={6} mb={4} borderBottom="1px solid" borderColor="gray.200" pb={2} _dark={{ borderColor: "gray.700" }}>
@@ -137,6 +157,13 @@ export const ArticleView = ({
                                     ),
                                     code: ({ children, className }) => {
                                         const isInline = !className;
+                                        // Extract text content properly (handles React elements from rehype-raw)
+                                        const content = extractTextContent(children).replace(/\n$/, "");
+                                        
+                                        // Check if explicitly marked as mermaid or auto-detect mermaid syntax
+                                        const isMermaid = className === "language-mermaid" || 
+                                            (!className && /^(graph\s+(TB|TD|BT|RL|LR)|flowchart\s+(TB|TD|BT|RL|LR)|sequenceDiagram|classDiagram|stateDiagram|erDiagram|journey|gantt|pie|quadrantChart|requirementDiagram|gitGraph|mindmap|timeline)/i.test(content.trim()));
+                                        
                                         if (isInline) {
                                             return (
                                                 <Code
@@ -151,6 +178,12 @@ export const ArticleView = ({
                                                 </Code>
                                             );
                                         }
+                                        
+                                        // Render mermaid diagrams
+                                        if (isMermaid) {
+                                            return <MermaidRenderer chart={content} />;
+                                        }
+                                        
                                         return (
                                             <Box
                                                 as="pre"
