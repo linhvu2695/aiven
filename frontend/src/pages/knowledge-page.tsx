@@ -117,8 +117,6 @@ export const KnowledgePage = () => {
         fetchArticles();
     }, []);
 
-
-
     const handleNewArticle = () => {
         const newArticle: Article = {
             id: "",
@@ -126,7 +124,7 @@ export const KnowledgePage = () => {
             content: "",
             summary: "",
             tags: [],
-            parent: "0",
+            parent: selectedArticle?.id || "0",
         };
         setSelectedArticle(newArticle);
         setArticle(newArticle);

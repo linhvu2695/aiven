@@ -181,10 +181,20 @@ export const ArticleTreeItem = ({
                     },
                 }}
                 borderRadius="md"
-                gap={2}
+                gap={4}
                 border={isOver ? "2px dashed" : "none"}
                 borderColor={isOver ? "blue.400" : "transparent"}
             >
+                {/* Graph status indicator */}
+                <Box
+                    w="8px"
+                    h="8px"
+                    borderRadius="full"
+                    bg={article.added_to_graph ? "green.400" : "gray.400"}
+                    flexShrink={0}
+                    title={article.added_to_graph ? "Added to graph" : "Not in graph"}
+                />
+
                 <Text
                     fontSize="sm"
                     fontWeight={isSelected ? "semibold" : "normal"}

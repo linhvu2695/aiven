@@ -20,7 +20,7 @@ interface ArticleViewHeaderProps {
 }
 
 export const ArticleViewHeader = ({ onSave, onCancel }: ArticleViewHeaderProps) => {
-    const { selectedArticle: article, setSelectedArticle, articleDraft, mode, updateArticleDraft } = useArticle();
+    const { selectedArticle: article, setSelectedArticle, setArticles, articleDraft, mode, updateArticleDraft } = useArticle();
     const [isAddingToGraph, setIsAddingToGraph] = useState(false);
 
     const handleAddToGraph = async () => {
@@ -46,6 +46,13 @@ export const ArticleViewHeader = ({ onSave, onCancel }: ArticleViewHeaderProps) 
 
             // Update the article state to reflect the change
             setSelectedArticle({ ...article, added_to_graph: true });
+
+            // Update the articles list so the tree indicator refreshes
+            setArticles((prev) =>
+                prev.map((a) =>
+                    a.id === article.id ? { ...a, added_to_graph: true } : a
+                )
+            );
 
             toaster.create({
                 title: "Article added to knowledge graph",
