@@ -40,3 +40,16 @@ class AddArticleToGraphRequest(BaseModel):
 class AddArticleToGraphResponse(BaseModel):
     success: bool
     message: str
+
+class ParsePDFToArticleRequest(BaseModel):
+    file_content: bytes  # Raw PDF file bytes
+    filename: str  # Original filename of the PDF
+    title: Optional[str] = None  # Optional title override, otherwise extracted from PDF
+    summary: str = ""
+    parent: str = "0"  # Default to root level
+
+class ParsePDFToArticleResponse(BaseModel):
+    success: bool
+    article_id: str
+    title: str
+    message: str

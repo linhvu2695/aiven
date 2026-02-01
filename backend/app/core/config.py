@@ -12,6 +12,7 @@ class Settings(BaseSettings):
     google_application_credentials: str
     firebase_storage_bucket: str
     elevenlabs_api_key: str
+    llamacloud_api_key: str
 
     mongodb_host: str
     mongodb_port: str

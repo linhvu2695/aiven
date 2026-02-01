@@ -77,6 +77,9 @@ coverage==7.10.0
 # Security & Encryption
 cryptography==44.0.0
 
+# Document Parsing
+llama-cloud==1.2.0
+
 # Core Python Dependencies
 typing_extensions==4.14.1
 packaging==24.2
