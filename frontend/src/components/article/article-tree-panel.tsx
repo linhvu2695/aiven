@@ -56,13 +56,13 @@ const RootDropZone = () => {
 };
 
 const ArticleTree = ({
-    articles,
+    articles: displayedArticles,
     onSelect,
 }: {
     articles: ArticleItemInfo[];
     onSelect: (article: ArticleItemInfo) => void;
 }) => {
-    const { setArticles } = useArticle();
+    const { articles, setArticles, selectedArticle, setSelectedArticle, setArticle, setArticleDraft } = useArticle();
 
     const sensors = useSensors(
         useSensor(PointerSensor, {
@@ -121,7 +121,7 @@ const ArticleTree = ({
             });
 
             if (response.ok) {
-                // Update the local state
+                // Update the articles list
                 setArticles((prev) =>
                     prev.map((article) =>
                         article.id === draggedArticleId
@@ -129,6 +129,14 @@ const ArticleTree = ({
                             : article
                     )
                 );
+
+                // If the moved article is currently selected, update selectedArticle and drafts too
+                if (selectedArticle?.id === draggedArticleId) {
+                    const updatedArticle = { ...selectedArticle, parent: targetParentId };
+                    setSelectedArticle(updatedArticle);
+                    setArticle(updatedArticle);
+                    setArticleDraft(updatedArticle);
+                }
 
                 toaster.create({
                     description: "Article moved successfully",
@@ -160,7 +168,7 @@ const ArticleTree = ({
                     {/* Article tree */}
                     <Box flex={1} p={2}>
                         <VStack gap={1} align="stretch">
-                            {articles.map((article) => {
+                            {displayedArticles.map((article) => {
                                 return (
                                     <ArticleTreeItem
                                         key={article.id}
@@ -170,7 +178,7 @@ const ArticleTree = ({
                                     />
                                 );
                             })}
-                            {articles.length === 0 && (
+                            {displayedArticles.length === 0 && (
                                 <Box p={4} textAlign="center">
                                     <Text color="gray.500" fontSize="sm">
                                         No articles yet

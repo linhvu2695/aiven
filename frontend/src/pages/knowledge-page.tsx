@@ -1,6 +1,6 @@
 import { Box, HStack, Input, Button, Flex, IconButton } from "@chakra-ui/react";
-import { FaPlus, FaEdit, FaEye } from "react-icons/fa";
-import { useEffect } from "react";
+import { FaPlus, FaEdit, FaEye, FaFilePdf } from "react-icons/fa";
+import { useEffect, useRef, useState } from "react";
 import { BASE_URL } from "@/App";
 
 import { Tooltip } from "@/components/ui/tooltip";
@@ -22,6 +22,8 @@ export const KnowledgePage = () => {
         searchQuery,
         setSearchQuery,
     } = useArticle();
+    const pdfInputRef = useRef<HTMLInputElement>(null);
+    const [isUploadingPdf, setIsUploadingPdf] = useState(false);
 
     const fetchArticle = async (id: string) => {
         try {
@@ -130,6 +132,55 @@ export const KnowledgePage = () => {
         setArticle(newArticle);
         setArticleDraft(newArticle);
         setMode("edit");
+    };    
+
+    const handlePdfUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+        const file = event.target.files?.[0];
+        if (!file) return;
+
+        setIsUploadingPdf(true);
+        try {
+            const formData = new FormData();
+            formData.append("file", file);
+            formData.append("parent", selectedArticle?.id || "0");
+
+            const response = await fetch(BASE_URL + "/api/article/from-pdf", {
+                method: "POST",
+                body: formData,
+            });
+
+            if (!response.ok) {
+                const error = await response.json();
+                throw new Error(error.detail || "Failed to parse PDF");
+            }
+
+            const result = await response.json();
+            if (result.success) {
+                toaster.create({
+                    description: "PDF parsed and article created successfully",
+                    type: "success",
+                });
+                await fetchArticles();
+                // Select the newly created article
+                if (result.article_id) {
+                    await fetchArticle(result.article_id);
+                }
+            } else {
+                throw new Error(result.message || "Failed to create article from PDF");
+            }
+        } catch (error) {
+            console.error("Error uploading PDF:", error);
+            toaster.create({
+                description: error instanceof Error ? error.message : "Failed to upload PDF",
+                type: "error",
+            });
+        } finally {
+            setIsUploadingPdf(false);
+            // Reset the input so the same file can be uploaded again
+            if (pdfInputRef.current) {
+                pdfInputRef.current.value = "";
+            }
+        }
     };
 
     const handleCancel = () => {
@@ -187,6 +238,23 @@ export const KnowledgePage = () => {
                             <FaPlus />
                         </IconButton>
                     </Tooltip>
+                    <Tooltip content="Upload PDF as article">
+                        <IconButton
+                            aria-label="Upload PDF"
+                            size="sm"
+                            onClick={() => pdfInputRef.current?.click()}
+                            loading={isUploadingPdf}
+                        >
+                            <FaFilePdf />
+                        </IconButton>
+                    </Tooltip>
+                    <input
+                        ref={pdfInputRef}
+                        type="file"
+                        accept=".pdf"
+                        style={{ display: "none" }}
+                        onChange={handlePdfUpload}
+                    />
                 </HStack>
             </HStack>
 
