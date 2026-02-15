@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from app.api import chat_api, agent_api, storage_api, article_api, health_api, tool_api, plant_api, image_api, user_api, video_api, job_api, graph_api
+from app.api import chat_api, agent_api, storage_api, article_api, health_api, tool_api, plant_api, image_api, user_api, video_api, job_api, graph_api, work_api
 from app.core.database import MongoDB
 from app.core.graph import Neo4j, Graphiti
 from app.core.cache import RedisCache
@@ -49,6 +49,7 @@ app.include_router(image_api.router, prefix="/api/image", tags=["Image"])
 app.include_router(video_api.router, prefix="/api/video", tags=["Video"])
 app.include_router(job_api.router, prefix="/api/job", tags=["Job"])
 app.include_router(graph_api.router, prefix="/api/graph", tags=["Graph"])
+app.include_router(work_api.router, prefix="/api/work", tags=["Work"])
 
 # Configure LangSmith tracing
 if settings.langsmith_tracing == "true":

@@ -14,6 +14,7 @@ import { VideoProvider } from "./context/video-ctx";
 import { Toaster } from "./components/ui/toaster";
 import ImagePage from "./pages/image-page";
 import VideoPage from "./pages/video-page";
+import WorkPage from "./pages/work-page";
 
 export const BASE_URL = import.meta.env.VITE_API_BASE_URL;
 
@@ -70,6 +71,10 @@ function App() {
                         <Route
                             path="/plant"
                             element={<PlantPage />}
+                        />
+                        <Route
+                            path="/work"
+                            element={<WorkPage />}
                         />
                     </Routes>
                 </ChatProvider>
