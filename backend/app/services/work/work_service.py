@@ -147,7 +147,7 @@ class WorkService:
         token = await self._get_auth_token()
 
         params = {
-            "query": query,
+            "query": f"({query}) AND DocType:Project",
             "fields": TASK_DETAIL_FIELDS,
             "format": "JSON",
             "token": token,
