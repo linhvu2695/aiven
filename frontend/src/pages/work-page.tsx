@@ -1,17 +1,16 @@
 import { Box, HStack, Input, IconButton } from "@chakra-ui/react";
 import { useState } from "react";
-import { FaSearch, FaSync, FaChartBar, FaChartLine } from "react-icons/fa";
+import { FaSearch, FaSync } from "react-icons/fa";
 import { BASE_URL } from "@/App";
 import { Tooltip } from "@/components/ui/tooltip";
 import { toaster } from "@/components/ui/toaster";
 import { WorkTaskTreePanel, type TaskDetail } from "@/components/work";
 
 export const WorkPage = () => {
-    const [rootTaskId, setRootTaskId] = useState("");
     const [searchInput, setSearchInput] = useState("");
-    const [tasks, setTasks] = useState<TaskDetail[]>([]);
+    const [rootTask, setRootTask] = useState<TaskDetail | null>(null);
+    const [descendants, setDescendants] = useState<TaskDetail[]>([]);
     const [isLoading, setIsLoading] = useState(false);
-    const [scaleMode, setScaleMode] = useState<"linear" | "log">("linear");
 
     const fetchDescendants = async (taskId: string, forceRefresh = false) => {
         if (!taskId.trim()) return;
@@ -32,11 +31,11 @@ export const WorkPage = () => {
             if (!rootRes.ok) throw new Error("Failed to fetch root task");
             if (!descRes.ok) throw new Error("Failed to fetch descendants");
 
-            const rootTask: TaskDetail = await rootRes.json();
-            const descendants: TaskDetail[] = await descRes.json();
+            const root: TaskDetail = await rootRes.json();
+            const desc: TaskDetail[] = await descRes.json();
 
-            setTasks([rootTask, ...descendants]);
-            setRootTaskId(rootTask.parent_folder_identifier);
+            setRootTask(root);
+            setDescendants(desc);
         } catch (error) {
             console.error("Error fetching tasks:", error);
             toaster.create({
@@ -53,8 +52,8 @@ export const WorkPage = () => {
     };
 
     const handleRefresh = () => {
-        if (rootTaskId) {
-            fetchDescendants(rootTaskId, true);
+        if (searchInput) {
+            fetchDescendants(searchInput, true);
         }
     };
 
@@ -92,30 +91,19 @@ export const WorkPage = () => {
                         size="sm"
                         variant="ghost"
                         onClick={handleRefresh}
-                        disabled={!rootTaskId}
+                        disabled={!searchInput}
                     >
                         <FaSync />
                     </IconButton>
                 </Tooltip>
-                <Tooltip content={scaleMode === "log" ? "Switch to linear scale" : "Switch to log scale"}>
-                    <IconButton
-                        aria-label="Toggle scale mode"
-                        size="sm"
-                        variant="ghost"
-                        onClick={() => setScaleMode((m) => (m === "log" ? "linear" : "log"))}
-                    >
-                        {scaleMode === "log" ? <FaChartLine /> : <FaChartBar />}
-                    </IconButton>
-                </Tooltip>
             </HStack>
 
-            {/* Full-width tree */}
+            {/* Tree panel with root header */}
             <Box h="calc(100vh - 80px)">
                 <WorkTaskTreePanel
-                    tasks={tasks}
-                    rootTaskId={rootTaskId}
+                    rootTask={rootTask}
+                    descendants={descendants}
                     isLoading={isLoading}
-                    scaleMode={scaleMode}
                 />
             </Box>
         </Box>

@@ -2,7 +2,7 @@ from typing import Optional
 from datetime import datetime
 from pydantic import BaseModel, Field
 
-from app.utils.string.string_utils import parse_int, parse_datetime, parse_list
+from app.utils.string.string_utils import parse_int, parse_datetime, parse_list, extract_value
 
 
 class TaskDetail(BaseModel):
@@ -34,10 +34,10 @@ class TaskDetail(BaseModel):
             time_spent_mn=parse_int(data.get("Document.TimeSpentMn", "0")),
             time_left_mn=parse_int(data.get("Document.TimeLeftMn", "0")),
             assigned_to=data.get("AssignedTo", ""),
-            main_dev_team=data.get("dev.Main-dev-team", []),
+            main_dev_team=[extract_value(item) for item in data.get("dev.Main-dev-team", []) if extract_value(item)],
             estimated_completion_date=parse_datetime(data.get("Document.CurrentEstimatedCompletionDate")),
             cortex_share_link=data.get("Document.CortexShareLinkRaw", ""),
-            importance_for_next_release=data.get("product.Importance-for-next-release", ""),
+            importance_for_next_release=extract_value(data.get("product.Importance-for-next-release", "")),
             dependencies=parse_list(data.get("Document.Dependencies", "")),
             estimated_start_date=parse_datetime(data.get("Document.CurrentEstimatedStartDate")),
             estimated_end_date=parse_datetime(data.get("Document.CurrentEstimatedEndDate")),

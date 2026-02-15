@@ -5,7 +5,17 @@ import {
     FaFlask,
     FaSearchPlus,
     FaBug,
+    FaVial,
+    FaCalendar,
+    FaPaintBrush,
+    FaCheckSquare,
+    FaQuestion,
+    FaClipboardList,
 } from "react-icons/fa";
+import { FaPeopleGroup } from "react-icons/fa6";
+
+/** Accent color pair used across the work page (light / dark mode) */
+export const ACCENT_COLOR = { light: "green.600", dark: "green.400" };
 
 export const formatMinutes = (minutes: number): string => {
     if (minutes === 0) return "0m";
@@ -47,11 +57,23 @@ export const statusColor = (status: string): string => {
 
 export const docSubTypeIcon = (docSubType: string): { icon: React.ReactNode; color: string } => {
     const s = docSubType.toLowerCase();
-    if (s.includes("question")) return { icon: <FaQuestionCircle size={12} />, color: "cyan.400" };
+    if (s.includes("question")) return { icon: <FaQuestion size={12} />, color: "cyan.400" };
     if (s.includes("development")) return { icon: <FaCode size={12} />, color: "yellow.400" };
-    if (s.includes("technical document")) return { icon: <FaFileAlt size={12} />, color: "purple.400" };
+    if (s.includes("document")) return { icon: <FaFileAlt size={12} />, color: "purple.400" };
     if (s.includes("research") || s.includes("analysis")) return { icon: <FaFlask size={12} />, color: "cyan.400" };
     if (s.includes("code review")) return { icon: <FaSearchPlus size={12} />, color: "orange.400" };
     if (s.includes("defect")) return { icon: <FaBug size={12} />, color: "red.400" };
+    if (s.includes("enhancement")) return { icon: <FaPaintBrush size={12} />, color: "blue.400" };
+    if (s.includes("qa")) return { icon: <FaVial size={12} />, color: "cyan.400" };
+    if (s.includes("test case review")) return { icon: <FaVial size={12} />, color: "cyan.400" };
+    if (s.includes("meeting")) return { icon: <FaCalendar size={12} />, color: "green.400" };
+    if (s.includes("technical vetting")) return { icon: <FaCheckSquare size={12} />, color: "yellow.400" };
+    if (s.includes("product discovery")) return { icon: <FaQuestionCircle size={12} />, color: "green.400" };
+    if (s.includes("task management")) return { icon: <FaClipboardList size={12} />, color: "blue.400" };
+    if (s.includes("dev planning")) return { icon: <FaPeopleGroup size={12} />, color: "yellow.400" };
+    if (s.includes("final dev review")) return { icon: <FaCheckSquare size={12} />, color: "green.400" };
+    if (s.includes("product review")) return { icon: <FaCheckSquare size={12} />, color: "green.400" };
+    if (s.includes("ux review")) return { icon: <FaCheckSquare size={12} />, color: "green.400" };
+    if (s.includes("final review")) return { icon: <FaCheckSquare size={12} />, color: "green.400" };
     return { icon: null, color: "gray.400" };
 };

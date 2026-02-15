@@ -6,11 +6,13 @@ import {
     IconButton,
     Badge,
     Collapsible,
+    Link,
     useDisclosure,
 } from "@chakra-ui/react";
 import { FaChevronRight, FaChevronDown } from "react-icons/fa";
 import type { TaskDetail } from "./work-types";
-import { statusColor, docSubTypeIcon } from "./work-utils";
+import { statusColor, docSubTypeIcon, ACCENT_COLOR } from "./work-utils";
+import { useColorModeValue } from "../ui/color-mode";
 import { WorkTaskDetailPopover } from "./work-task-detail-popover";
 import { WorkTaskProgressBar } from "./work-task-progress-bar";
 
@@ -18,7 +20,6 @@ interface WorkTaskTreeItemProps {
     task: TaskDetail;
     allTasks: TaskDetail[];
     maxTime: number;
-    scaleMode: "linear" | "log";
     level?: number;
 }
 
@@ -26,9 +27,9 @@ export const WorkTaskTreeItem = ({
     task,
     allTasks,
     maxTime,
-    scaleMode,
     level = 0,
 }: WorkTaskTreeItemProps) => {
+    const accentColor = useColorModeValue(ACCENT_COLOR.light, ACCENT_COLOR.dark);
     const obsolete = task.status.toLowerCase().includes("obsolete");
     const { open, onToggle } = useDisclosure({ defaultOpen: !obsolete });
 
@@ -54,6 +55,7 @@ export const WorkTaskTreeItem = ({
 
     const totalSpent = getSubtreeTime(task, "time_spent_mn");
     const totalLeft = getSubtreeTime(task, "time_left_mn");
+    const completed = totalLeft === 0;
 
     return (
         <Box>
@@ -88,9 +90,23 @@ export const WorkTaskTreeItem = ({
                             {docSubTypeIcon(task.doc_sub_type).icon}
                         </Box>
                     )}
-                    <Text fontSize="sm" truncate color={obsolete ? "fg.subtle" : undefined}>
-                        {task.title || task.identifier}
-                    </Text>
+                    {task.cortex_share_link ? (
+                        <Link
+                            href={task.cortex_share_link}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            fontSize="sm"
+                            truncate
+                            color={obsolete ? "fg.subtle" : undefined}
+                            _hover={{ textDecoration: "underline" }}
+                        >
+                            {task.title || task.identifier}
+                        </Link>
+                    ) : (
+                        <Text fontSize="sm" truncate color={obsolete ? "fg.subtle" : undefined}>
+                            {task.title || task.identifier}
+                        </Text>
+                    )}
                     <Badge
                         size="sm"
                         colorPalette={statusColor(task.status)}
@@ -107,9 +123,15 @@ export const WorkTaskTreeItem = ({
                         spent={totalSpent}
                         left={totalLeft}
                         maxTime={maxTime}
-                        scaleMode={scaleMode}
                     />
                 )}
+
+                {/* Assignee */}
+                <Box flexShrink={0} w="100px">
+                    <Text fontSize="xs" color={completed ? accentColor : "fg.muted"} truncate textAlign="right">
+                        {task.assigned_to || "—"}
+                    </Text>
+                </Box>
 
                 {/* View detail popover */}
                 <WorkTaskDetailPopover task={task} />
@@ -126,7 +148,6 @@ export const WorkTaskTreeItem = ({
                                     task={child}
                                     allTasks={allTasks}
                                     maxTime={maxTime}
-                                    scaleMode={scaleMode}
                                     level={level + 1}
                                 />
                             ))}

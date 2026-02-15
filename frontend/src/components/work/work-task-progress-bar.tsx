@@ -1,31 +1,26 @@
 import { Box, HStack, Text } from "@chakra-ui/react";
 import { useColorModeValue } from "../ui/color-mode";
-import { formatMinutes } from "./work-utils";
+import { formatMinutes, ACCENT_COLOR } from "./work-utils";
 
 /** Max width (px) that a progress bar can occupy */
-const BAR_MAX_W = 200;
+const BAR_MAX_W = 400;
 
 interface WorkTaskProgressBarProps {
     spent: number;
     left: number;
     maxTime: number;
-    scaleMode: "linear" | "log";
 }
 
 export const WorkTaskProgressBar = ({
     spent,
     left,
     maxTime,
-    scaleMode,
 }: WorkTaskProgressBarProps) => {
-    const color = useColorModeValue("green.600", "green.400");
+    const color = useColorModeValue(ACCENT_COLOR.light, ACCENT_COLOR.dark);
     const total = spent + left;
     if (total === 0) return null;
 
-    // Scale bar width based on selected mode
-    const barW = scaleMode === "log"
-        ? Math.max((Math.log1p(total) / Math.log1p(maxTime)) * BAR_MAX_W, 4)
-        : Math.max((total / maxTime) * BAR_MAX_W, 4);
+    const barW = Math.min(Math.max((total / maxTime) * BAR_MAX_W, 2), BAR_MAX_W);
     const spentPct = (spent / total) * 100;
 
     return (

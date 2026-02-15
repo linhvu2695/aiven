@@ -80,6 +80,13 @@ def parse_datetime(value) -> Optional[datetime]:
         return None
 
 
+def extract_value(item) -> str:
+    """Extract the 'Value' key from a dict, or return the item as a string."""
+    if isinstance(item, dict):
+        return str(item.get("Value", ""))
+    return str(item) if item else ""
+
+
 def parse_list(value, separator: str = ",") -> List[str]:
     if isinstance(value, list):
         return value
