@@ -11,3 +11,10 @@ async def get_task_detail(task_id: str, force_refresh: bool = False):
     if result is None:
         raise HTTPException(status_code=404, detail=f"Cannot get task detail for {task_id}")
     return result
+
+
+@router.get("/task/{task_id}/descendants")
+async def get_descendants_tasks(task_id: str, force_refresh: bool = False):
+    """Get all descendant tasks of a task by its ID (recursive tree traversal)."""
+    results = await WorkService().get_descendants_tasks(task_id, force_refresh=force_refresh)
+    return results

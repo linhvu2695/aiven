@@ -1,3 +1,4 @@
+from datetime import datetime
 from typing import Any, List, Tuple, Optional
 
 
@@ -61,4 +62,28 @@ def is_empty_string(value: Optional[str]) -> bool:
         bool: True if the value is None or empty/whitespace string
     """
     return value is None or (isinstance(value, str) and value.strip() == "")
+
+
+def parse_int(value, default: int = 0) -> int:
+    try:
+        return int(value)
+    except (ValueError, TypeError):
+        return default
+
+
+def parse_datetime(value) -> Optional[datetime]:
+    if not value or value == "":
+        return None
+    try:
+        return datetime.fromisoformat(value)
+    except (ValueError, TypeError):
+        return None
+
+
+def parse_list(value, separator: str = ",") -> List[str]:
+    if isinstance(value, list):
+        return value
+    if not value or value == "":
+        return []
+    return [item.strip() for item in value.split(separator) if item.strip()]
 
