@@ -30,8 +30,10 @@ export const WorkTaskTreeItem = ({
     level = 0,
 }: WorkTaskTreeItemProps) => {
     const accentColor = useColorModeValue(ACCENT_COLOR.light, ACCENT_COLOR.dark);
-    const obsolete = task.status.toLowerCase().includes("obsolete");
-    const { open, onToggle } = useDisclosure({ defaultOpen: !obsolete });
+    const statusLower = task.status.toLowerCase();
+    const obsolete = statusLower.includes("obsolete");
+    const blocked = statusLower.includes("blocked");
+    const { open, onToggle } = useDisclosure({ defaultOpen: !obsolete && !blocked });
 
     const children = allTasks.filter(
         (t) => t.parent_folder_identifier === task.identifier

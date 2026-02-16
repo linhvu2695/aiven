@@ -55,6 +55,30 @@ export const statusColor = (status: string): string => {
     return "gray";
 };
 
+/** All known doc sub types for filtering */
+export const DOC_SUB_TYPES = [
+    "Question",
+    "Development",
+    "Technical Document",
+    "Research Analysis",
+    "Code Review",
+    "Defect - Application",
+    "Enhancement",
+    "QA",
+    "Test Case Review",
+    "Meeting",
+    "Technical Vetting",
+    "Product Discovery",
+    "Task Management",
+    "Dev Planning",
+    "Final Dev Review",
+    "Product Review",
+    "UX Review",
+    "Final Review",
+] as const;
+
+export const DEFAULT_DOC_SUB_TYPE_FILTER = new Set(["Development", "QA"]);
+
 export const docSubTypeIcon = (docSubType: string): { icon: React.ReactNode; color: string } => {
     const s = docSubType.toLowerCase();
     if (s.includes("question")) return { icon: <FaQuestion size={12} />, color: "cyan.400" };

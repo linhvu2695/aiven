@@ -1,12 +1,18 @@
 import {
     Box,
     HStack,
+    VStack,
     Text,
     Badge,
     Link,
+    IconButton,
+    Popover,
+    Portal,
+    Checkbox,
 } from "@chakra-ui/react";
+import { FaFilter } from "react-icons/fa";
 import type { TaskDetail } from "./work-types";
-import { statusColor, docSubTypeIcon, formatMinutes, ACCENT_COLOR } from "./work-utils";
+import { statusColor, docSubTypeIcon, formatMinutes, ACCENT_COLOR, DOC_SUB_TYPES } from "./work-utils";
 import { useColorModeValue } from "../ui/color-mode";
 import { WorkTaskDetailPopover } from "./work-task-detail-popover";
 
@@ -14,9 +20,11 @@ interface WorkTaskHeaderProps {
     task: TaskDetail;
     allTasks: TaskDetail[];
     maxTime: number;
+    activeFilters: Set<string>;
+    onFilterChange: (filters: Set<string>) => void;
 }
 
-export const WorkTaskHeader = ({ task, allTasks, maxTime }: WorkTaskHeaderProps) => {
+export const WorkTaskHeader = ({ task, allTasks, maxTime, activeFilters, onFilterChange }: WorkTaskHeaderProps) => {
     const accentColor = useColorModeValue(ACCENT_COLOR.light, ACCENT_COLOR.dark);
 
     // Compute aggregate time for root + all descendants (skip obsolete)
@@ -42,6 +50,26 @@ export const WorkTaskHeader = ({ task, allTasks, maxTime }: WorkTaskHeaderProps)
 
     const { icon: docIcon, color: docIconColor } = docSubTypeIcon(task.doc_sub_type);
 
+    const allSelected = DOC_SUB_TYPES.every((t) => activeFilters.has(t));
+
+    const toggleType = (type: string) => {
+        const next = new Set(activeFilters);
+        if (next.has(type)) {
+            next.delete(type);
+        } else {
+            next.add(type);
+        }
+        onFilterChange(next);
+    };
+
+    const toggleAll = () => {
+        if (allSelected) {
+            onFilterChange(new Set());
+        } else {
+            onFilterChange(new Set(DOC_SUB_TYPES));
+        }
+    };
+
     return (
         <Box
             px={4}
@@ -51,7 +79,7 @@ export const WorkTaskHeader = ({ task, allTasks, maxTime }: WorkTaskHeaderProps)
             bg="bg.subtle"
             flexShrink={0}
         >
-            {/* Top row: icon + title + status + popover */}
+            {/* Top row: icon + title + status + filter + popover */}
             <HStack gap={3} mb={2}>
                 {docIcon && (
                     <Box color={docIconColor} flexShrink={0}>
@@ -92,6 +120,72 @@ export const WorkTaskHeader = ({ task, allTasks, maxTime }: WorkTaskHeaderProps)
                         {task.assigned_to}
                     </Text>
                 )}
+
+                {/* Filter popover */}
+                <Popover.Root>
+                    <Popover.Trigger asChild>
+                        <IconButton
+                            aria-label="Filter task types"
+                            variant="ghost"
+                            size="xs"
+                            flexShrink={0}
+                        >
+                            <FaFilter />
+                        </IconButton>
+                    </Popover.Trigger>
+                    <Portal>
+                        <Popover.Positioner>
+                            <Popover.Content w="240px" p={3}>
+                                <Popover.Arrow>
+                                    <Popover.ArrowTip />
+                                </Popover.Arrow>
+                                <VStack align="stretch" gap={1}>
+                                    <Text fontSize="xs" fontWeight="semibold" color="fg.muted" mb={1}>
+                                        Filter by task type
+                                    </Text>
+
+                                    {/* All checkbox */}
+                                    <Checkbox.Root
+                                        checked={allSelected}
+                                        onCheckedChange={toggleAll}
+                                        size="sm"
+                                    >
+                                        <Checkbox.HiddenInput />
+                                        <Checkbox.Control />
+                                        <Checkbox.Label>
+                                            <Text fontSize="xs" fontWeight="medium">All</Text>
+                                        </Checkbox.Label>
+                                    </Checkbox.Root>
+
+                                    <Box borderBottomWidth="1px" borderColor="border.default" my={1} />
+
+                                    {/* Individual type checkboxes */}
+                                    {DOC_SUB_TYPES.map((type) => {
+                                        const { icon, color } = docSubTypeIcon(type);
+                                        return (
+                                            <Checkbox.Root
+                                                key={type}
+                                                checked={activeFilters.has(type)}
+                                                onCheckedChange={() => toggleType(type)}
+                                                size="sm"
+                                            >
+                                                <Checkbox.HiddenInput />
+                                                <Checkbox.Control />
+                                                <Checkbox.Label>
+                                                    <HStack gap={1}>
+                                                        {icon && <Box color={color}>{icon}</Box>}
+                                                        <Text fontSize="xs">{type}</Text>
+                                                    </HStack>
+                                                </Checkbox.Label>
+                                            </Checkbox.Root>
+                                        );
+                                    })}
+                                </VStack>
+                            </Popover.Content>
+                        </Popover.Positioner>
+                    </Portal>
+                </Popover.Root>
+
                 <WorkTaskDetailPopover task={task} />
             </HStack>
 

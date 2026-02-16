@@ -1,8 +1,9 @@
 import { Box, VStack, Text, Spinner } from "@chakra-ui/react";
-import { useMemo } from "react";
+import { useMemo, useState, useCallback } from "react";
 import { WorkTaskTreeItem } from "./work-task-tree-item";
 import { WorkTaskHeader } from "./work-task-header";
 import type { TaskDetail } from "./work-types";
+import { DEFAULT_DOC_SUB_TYPE_FILTER } from "./work-utils";
 
 interface WorkTaskTreePanelProps {
     rootTask: TaskDetail | null;
@@ -15,28 +16,68 @@ export const WorkTaskTreePanel = ({
     descendants,
     isLoading,
 }: WorkTaskTreePanelProps) => {
+    const [activeFilters, setActiveFilters] = useState<Set<string>>(
+        () => new Set(DEFAULT_DOC_SUB_TYPE_FILTER)
+    );
+
+    const handleFilterChange = useCallback((filters: Set<string>) => {
+        setActiveFilters(filters);
+    }, []);
+
     // All tasks including root (needed for subtree time aggregation)
     const allTasks = useMemo(() => {
         if (!rootTask) return descendants;
         return [rootTask, ...descendants];
     }, [rootTask, descendants]);
 
-    // Direct children of the root task
+    // Filter descendants by doc_sub_type — keep tasks whose type matches,
+    // plus any ancestor needed to maintain the tree structure
+    const filteredTasks = useMemo(() => {
+        if (activeFilters.size === 0) return allTasks;
+
+        // First pass: find tasks matching the filter
+        const matchingIds = new Set<string>();
+        for (const t of allTasks) {
+            const typeLower = t.doc_sub_type.toLowerCase();
+            for (const filter of activeFilters) {
+                if (typeLower.includes(filter.toLowerCase())) {
+                    matchingIds.add(t.identifier);
+                    break;
+                }
+            }
+        }
+
+        // Second pass: include ancestors of matching tasks to preserve tree structure
+        const includedIds = new Set(matchingIds);
+        const taskMap = new Map(allTasks.map((t) => [t.identifier, t]));
+        for (const id of matchingIds) {
+            let current = taskMap.get(id);
+            while (current && current.parent_folder_identifier) {
+                if (includedIds.has(current.parent_folder_identifier)) break;
+                includedIds.add(current.parent_folder_identifier);
+                current = taskMap.get(current.parent_folder_identifier);
+            }
+        }
+
+        return allTasks.filter((t) => includedIds.has(t.identifier));
+    }, [allTasks, activeFilters]);
+
+    // Direct children of the root task (from filtered set)
     const topLevelTasks = useMemo(() => {
         if (!rootTask) return [];
-        return descendants.filter(
+        return filteredTasks.filter(
             (t) => t.parent_folder_identifier === rootTask.identifier
         );
-    }, [rootTask, descendants]);
+    }, [rootTask, filteredTasks]);
 
     // Compute the max total time (spent + left) across all tasks for scaling
     const maxTime = useMemo(() => {
-        if (allTasks.length === 0) return 1;
+        if (filteredTasks.length === 0) return 1;
         return Math.max(
-            ...allTasks.map((t) => t.time_spent_mn + t.time_left_mn),
+            ...filteredTasks.map((t) => t.time_spent_mn + t.time_left_mn),
             1
         );
-    }, [allTasks]);
+    }, [filteredTasks]);
 
     return (
         <Box w="100%" h="100%" display="flex" flexDirection="column">
@@ -52,8 +93,10 @@ export const WorkTaskTreePanel = ({
                     {/* Fixed root task header */}
                     <WorkTaskHeader
                         task={rootTask}
-                        allTasks={allTasks}
+                        allTasks={filteredTasks}
                         maxTime={maxTime}
+                        activeFilters={activeFilters}
+                        onFilterChange={handleFilterChange}
                     />
 
                     {/* Scrollable descendants */}
@@ -64,7 +107,7 @@ export const WorkTaskTreePanel = ({
                                     <WorkTaskTreeItem
                                         key={task.identifier}
                                         task={task}
-                                        allTasks={allTasks}
+                                        allTasks={filteredTasks}
                                         maxTime={maxTime}
                                         level={0}
                                     />
