@@ -1,10 +1,10 @@
-import { Box, HStack, VStack, IconButton, Text } from "@chakra-ui/react";
+import { Box, HStack, VStack, IconButton } from "@chakra-ui/react";
 import { useState, useCallback, useEffect } from "react";
 import { FaSitemap } from "react-icons/fa";
 import { BASE_URL } from "@/App";
 import { toaster } from "@/components/ui/toaster";
 import { Tooltip } from "@/components/ui/tooltip";
-import { WorkTaskTreePanel, WorkTaskListPanel, WORK_VIEW_MODES, type TaskDetail, type WorkViewMode } from "@/components/work";
+import { WorkTaskTreePanel, WorkTaskListPanel, WorkParticipantsPanel, WORK_VIEW_MODES, type TaskDetail, type WorkViewMode } from "@/components/work";
 import { FaPeopleGroup } from "react-icons/fa6";
 
 const VIEW_MODE_ICONS: Record<WorkViewMode, React.ReactNode> = {
@@ -155,15 +155,12 @@ export const WorkPage = () => {
                         isLoading={isLoadingTree}
                     />
                 )}
-                {viewMode !== "hierarchy" && (
-                    <VStack justify="center" align="center" h="100%" gap={2}>
-                        <Box fontSize="2xl" color="fg.subtle">
-                            {VIEW_MODE_ICONS[viewMode]}
-                        </Box>
-                        <Text color="fg.muted" fontSize="sm">
-                            {WORK_VIEW_MODES.find((m) => m.id === viewMode)?.label} view coming soon
-                        </Text>
-                    </VStack>
+                {viewMode === "participants" && (
+                    <WorkParticipantsPanel
+                        rootTask={selectedRootTask}
+                        descendants={selectedDescendants}
+                        isLoading={isLoadingTree}
+                    />
                 )}
             </Box>
         </HStack>
