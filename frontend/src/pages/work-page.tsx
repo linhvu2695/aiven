@@ -1,15 +1,16 @@
 import { Box, HStack, VStack, IconButton } from "@chakra-ui/react";
 import { useState, useCallback, useEffect } from "react";
-import { FaSitemap } from "react-icons/fa";
+import { FaSitemap, FaColumns } from "react-icons/fa";
 import { BASE_URL } from "@/App";
 import { toaster } from "@/components/ui/toaster";
 import { Tooltip } from "@/components/ui/tooltip";
-import { WorkTaskTreePanel, WorkTaskListPanel, WorkParticipantsPanel, WORK_VIEW_MODES, type TaskDetail, type WorkViewMode } from "@/components/work";
+import { WorkTaskTreePanel, WorkTaskListPanel, WorkParticipantsPanel, WorkKanbanPanel, WORK_VIEW_MODES, type TaskDetail, type WorkViewMode } from "@/components/work";
 import { FaPeopleGroup } from "react-icons/fa6";
 
 const VIEW_MODE_ICONS: Record<WorkViewMode, React.ReactNode> = {
     hierarchy: <FaSitemap />,
     participants: <FaPeopleGroup />,
+    kanban: <FaColumns />,
 };
 
 export const WorkPage = () => {
@@ -147,7 +148,7 @@ export const WorkPage = () => {
             </VStack>
 
             {/* Right panel: content based on mode */}
-            <Box flex={1} h="100%">
+            <Box flex={1} h="100%" overflow="hidden">
                 {viewMode === "hierarchy" && (
                     <WorkTaskTreePanel
                         rootTask={selectedRootTask}
@@ -157,6 +158,13 @@ export const WorkPage = () => {
                 )}
                 {viewMode === "participants" && (
                     <WorkParticipantsPanel
+                        rootTask={selectedRootTask}
+                        descendants={selectedDescendants}
+                        isLoading={isLoadingTree}
+                    />
+                )}
+                {viewMode === "kanban" && (
+                    <WorkKanbanPanel
                         rootTask={selectedRootTask}
                         descendants={selectedDescendants}
                         isLoading={isLoadingTree}

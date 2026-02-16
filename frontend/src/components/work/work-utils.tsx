@@ -18,7 +18,7 @@ import { FaPeopleGroup } from "react-icons/fa6";
 export const ACCENT_COLOR = { light: "green.600", dark: "green.400" };
 
 /** View modes for the right panel */
-export type WorkViewMode = "hierarchy" | "participants";
+export type WorkViewMode = "hierarchy" | "participants" | "kanban";
 
 export interface WorkViewModeOption {
     id: WorkViewMode;
@@ -28,6 +28,57 @@ export interface WorkViewModeOption {
 export const WORK_VIEW_MODES: WorkViewModeOption[] = [
     { id: "hierarchy", label: "Hierarchy" },
     { id: "participants", label: "Participants" },
+    { id: "kanban", label: "Kanban Board" },
+];
+
+/** Status groups used by the Kanban board */
+export interface KanbanColumn {
+    id: string;
+    label: string;
+    colorPalette: string;
+    match: (statusLower: string) => boolean;
+}
+
+export const KANBAN_COLUMNS: KanbanColumn[] = [
+    {
+        id: "todo",
+        label: "To Do",
+        colorPalette: "blue",
+        match: (s) => 
+            s.includes("to be vetted") || 
+            s.includes("to dispatch") || 
+            s.includes("gathering requirements"),
+    },
+    {
+        id: "in_progress",
+        label: "In Progress",
+        colorPalette: "orange",
+        match: (s) => 
+            s.includes("in progress") || 
+            s.includes("needs peer review"),
+    },
+    {
+        id: "blocked",
+        label: "Blocked",
+        colorPalette: "red",
+        match: (s) => s.includes("blocked"),
+    },
+    {
+        id: "done",
+        label: "Done",
+        colorPalette: "green",
+        match: (s) =>
+            s.includes("done") ||
+            s.includes("completed") ||
+            s.includes("implemented") ||
+            s.includes("closed"),
+    },
+    {
+        id: "obsolete",
+        label: "Obsolete",
+        colorPalette: "gray",
+        match: (s) => s.includes("obsolete"),
+    },
 ];
 
 export const formatMinutes = (minutes: number): string => {
