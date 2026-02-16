@@ -166,7 +166,7 @@ class WorkService:
         """
         Retrieve the authorization token for the Link API.
         """
-        return "CortexYfMGus74e7510H3NB6FJedUtx@4m@g3NV7aiWlcghG.BBx264xI3eKAKRXQeOJqX"
+        return ""
 
     async def _query_tasks_from_api(self, query: str) -> list[TaskDetail] | None:
         """
