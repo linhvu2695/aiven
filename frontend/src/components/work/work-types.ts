@@ -14,4 +14,5 @@ export interface TaskDetail {
     estimated_start_date: string | null;
     estimated_end_date: string | null;
     parent_folder_identifier: string;
+    monitor: boolean;
 }

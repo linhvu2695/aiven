@@ -1,5 +1,6 @@
 from fastapi import APIRouter, HTTPException
 from app.services.work.work_service import WorkService
+from app.classes.work import SetMonitorRequest
 
 router = APIRouter()
 
@@ -18,3 +19,18 @@ async def get_descendants_tasks(task_id: str, force_refresh: bool = False):
     """Get all descendant tasks of a task by its ID (recursive tree traversal)."""
     results = await WorkService().get_descendants_tasks(task_id, force_refresh=force_refresh)
     return results
+
+
+@router.get("/monitored")
+async def get_monitored_tasks():
+    """Get all monitored tasks with their descendants."""
+    return await WorkService().get_monitored_tasks()
+
+
+@router.put("/task/{task_id}/monitor")
+async def set_task_monitor(task_id: str, body: SetMonitorRequest):
+    """Set the monitor flag on a task."""
+    success = await WorkService().set_task_monitor(task_id, body.monitor)
+    if not success:
+        raise HTTPException(status_code=404, detail=f"Task {task_id} not found")
+    return {"ok": True}

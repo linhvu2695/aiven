@@ -5,6 +5,10 @@ from pydantic import BaseModel, Field
 from app.utils.string.string_utils import parse_int, parse_datetime, parse_list, extract_value
 
 
+class SetMonitorRequest(BaseModel):
+    monitor: bool
+
+
 class TaskDetail(BaseModel):
     """Task detail model mapped from Link Search API response fields."""
     title: str = ""
@@ -22,6 +26,7 @@ class TaskDetail(BaseModel):
     estimated_start_date: Optional[datetime] = None
     estimated_end_date: Optional[datetime] = None
     parent_folder_identifier: str = ""
+    monitor: bool = False
 
     @staticmethod
     def from_api_response(data: dict) -> "TaskDetail":

@@ -120,6 +120,31 @@ class WorkService:
 
         return descendants
 
+    async def get_monitored_tasks(self) -> list[TaskDetail]:
+        """
+        Return all tasks where monitor=True.
+        """
+        db = MongoDB()
+        cursor = db.database[TASK_COLLECTION_NAME].find({"monitor": True})
+        results = []
+        async for doc in cursor:
+            doc.pop("_id", None)
+            results.append(TaskDetail(**doc))
+        return results
+
+    async def set_task_monitor(self, task_id: str, monitor: bool) -> bool:
+        """
+        Set the monitor flag on a task in MongoDB.
+        Returns True if the task was found and updated.
+        """
+        db = MongoDB()
+        existing = await db.find_documents_by_field(TASK_COLLECTION_NAME, "identifier", task_id)
+        if not existing:
+            return False
+        doc = existing[0]
+        await db.update_document(TASK_COLLECTION_NAME, str(doc["_id"]), {"monitor": monitor})
+        return True
+
     async def _upsert_task(self, task: TaskDetail) -> None:
         """
         Upsert a task into MongoDB by its identifier.
@@ -129,6 +154,9 @@ class WorkService:
         document["updated_at"] = datetime.now(timezone.utc).isoformat()
         existing = await db.find_documents_by_field(TASK_COLLECTION_NAME, "identifier", task.identifier)
         if existing:
+            # Preserve the existing monitor flag
+            document["monitor"] = existing[0].get("monitor", False)
+
             await db.update_document(TASK_COLLECTION_NAME, str(existing[0]["_id"]), document)
         else:
             document["created_at"] = datetime.now(timezone.utc).isoformat()
@@ -138,7 +166,7 @@ class WorkService:
         """
         Retrieve the authorization token for the Link API.
         """
-        return ""
+        return "CortexYfMGus74e7510H3NB6FJedUtx@4m@g3NV7aiWlcghG.BBx264xI3eKAKRXQeOJqX"
 
     async def _query_tasks_from_api(self, query: str) -> list[TaskDetail] | None:
         """
