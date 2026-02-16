@@ -17,6 +17,19 @@ import { FaPeopleGroup } from "react-icons/fa6";
 /** Accent color pair used across the work page (light / dark mode) */
 export const ACCENT_COLOR = { light: "green.600", dark: "green.400" };
 
+/** View modes for the right panel */
+export type WorkViewMode = "hierarchy" | "participants";
+
+export interface WorkViewModeOption {
+    id: WorkViewMode;
+    label: string;
+}
+
+export const WORK_VIEW_MODES: WorkViewModeOption[] = [
+    { id: "hierarchy", label: "Hierarchy" },
+    { id: "participants", label: "Participants" },
+];
+
 export const formatMinutes = (minutes: number): string => {
     if (minutes === 0) return "0m";
     const hours = Math.floor(minutes / 60);

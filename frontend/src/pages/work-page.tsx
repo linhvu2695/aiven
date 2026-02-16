@@ -1,8 +1,16 @@
-import { Box, HStack } from "@chakra-ui/react";
+import { Box, HStack, VStack, IconButton, Text } from "@chakra-ui/react";
 import { useState, useCallback, useEffect } from "react";
+import { FaSitemap } from "react-icons/fa";
 import { BASE_URL } from "@/App";
 import { toaster } from "@/components/ui/toaster";
-import { WorkTaskTreePanel, WorkTaskListPanel, type TaskDetail } from "@/components/work";
+import { Tooltip } from "@/components/ui/tooltip";
+import { WorkTaskTreePanel, WorkTaskListPanel, WORK_VIEW_MODES, type TaskDetail, type WorkViewMode } from "@/components/work";
+import { FaPeopleGroup } from "react-icons/fa6";
+
+const VIEW_MODE_ICONS: Record<WorkViewMode, React.ReactNode> = {
+    hierarchy: <FaSitemap />,
+    participants: <FaPeopleGroup />,
+};
 
 export const WorkPage = () => {
     const [monitoredTasks, setMonitoredTasks] = useState<TaskDetail[]>([]);
@@ -10,6 +18,7 @@ export const WorkPage = () => {
     const [selectedDescendants, setSelectedDescendants] = useState<TaskDetail[]>([]);
     const [isAdding, setIsAdding] = useState(false);
     const [isLoadingTree, setIsLoadingTree] = useState(false);
+    const [viewMode, setViewMode] = useState<WorkViewMode>("hierarchy");
 
     // Load monitored tasks on mount
     useEffect(() => {
@@ -113,13 +122,49 @@ export const WorkPage = () => {
                 />
             </Box>
 
-            {/* Right panel: hierarchy */}
+            {/* Mode toolbar */}
+            <VStack
+                py={4}
+                px={1}
+                gap={1}
+                borderRightWidth="1px"
+                borderColor="border.default"
+                bg="bg.subtle"
+                flexShrink={0}
+            >
+                {WORK_VIEW_MODES.map((mode) => (
+                    <Tooltip key={mode.id} content={mode.label} positioning={{ placement: "right" }}>
+                        <IconButton
+                            aria-label={mode.label}
+                            variant={viewMode === mode.id ? "solid" : "ghost"}
+                            size="sm"
+                            onClick={() => setViewMode(mode.id)}
+                        >
+                            {VIEW_MODE_ICONS[mode.id]}
+                        </IconButton>
+                    </Tooltip>
+                ))}
+            </VStack>
+
+            {/* Right panel: content based on mode */}
             <Box flex={1} h="100%">
-                <WorkTaskTreePanel
-                    rootTask={selectedRootTask}
-                    descendants={selectedDescendants}
-                    isLoading={isLoadingTree}
-                />
+                {viewMode === "hierarchy" && (
+                    <WorkTaskTreePanel
+                        rootTask={selectedRootTask}
+                        descendants={selectedDescendants}
+                        isLoading={isLoadingTree}
+                    />
+                )}
+                {viewMode !== "hierarchy" && (
+                    <VStack justify="center" align="center" h="100%" gap={2}>
+                        <Box fontSize="2xl" color="fg.subtle">
+                            {VIEW_MODE_ICONS[viewMode]}
+                        </Box>
+                        <Text color="fg.muted" fontSize="sm">
+                            {WORK_VIEW_MODES.find((m) => m.id === viewMode)?.label} view coming soon
+                        </Text>
+                    </VStack>
+                )}
             </Box>
         </HStack>
     );

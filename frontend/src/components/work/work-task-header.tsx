@@ -19,12 +19,11 @@ import { WorkTaskDetailPopover } from "./work-task-detail-popover";
 interface WorkTaskHeaderProps {
     task: TaskDetail;
     allTasks: TaskDetail[];
-    maxTime: number;
     activeFilters: Set<string>;
     onFilterChange: (filters: Set<string>) => void;
 }
 
-export const WorkTaskHeader = ({ task, allTasks, maxTime, activeFilters, onFilterChange }: WorkTaskHeaderProps) => {
+export const WorkTaskHeader = ({ task, allTasks, activeFilters, onFilterChange }: WorkTaskHeaderProps) => {
     const accentColor = useColorModeValue(ACCENT_COLOR.light, ACCENT_COLOR.dark);
 
     // Compute aggregate time for root + all descendants (skip obsolete)

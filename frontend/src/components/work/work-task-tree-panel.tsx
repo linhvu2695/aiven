@@ -94,7 +94,6 @@ export const WorkTaskTreePanel = ({
                     <WorkTaskHeader
                         task={rootTask}
                         allTasks={filteredTasks}
-                        maxTime={maxTime}
                         activeFilters={activeFilters}
                         onFilterChange={handleFilterChange}
                     />
