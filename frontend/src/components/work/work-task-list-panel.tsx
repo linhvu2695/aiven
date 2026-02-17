@@ -5,23 +5,28 @@ import {
     Text,
     Input,
     IconButton,
-    Badge,
     Spinner,
 } from "@chakra-ui/react";
 import { useState } from "react";
-import { FaPlus, FaTimes, FaCloudDownloadAlt } from "react-icons/fa";
+import { FaPlus, FaCloudDownloadAlt } from "react-icons/fa";
 import { Tooltip } from "@/components/ui/tooltip";
-import { statusColor, docSubTypeIcon } from "./work-utils";
+import { toaster } from "@/components/ui/toaster";
 import { useWorkContext } from "@/context/work-ctx";
+import { WorkTaskListItem } from "./work-task-list-item";
 
 export const WorkTaskListPanel = () => {
-    const { monitoredTasks, selectedRootTask, selectTask, addTask, removeTask, isAdding } = useWorkContext();
+    const { monitoredTasks, selectedRootTask, addTask, isAdding } = useWorkContext();
     const selectedTaskId = selectedRootTask?.identifier ?? null;
     const [input, setInput] = useState("");
 
     const handleAdd = async (forceRefresh: boolean) => {
-        if (!input.trim()) return;
-        await addTask(input.trim(), forceRefresh);
+        const value = input.trim();
+        if (!value) return;
+        if (!value.startsWith("L-")) {
+            toaster.create({ description: "Task ID must start with \"L-\"", type: "warning" });
+            return;
+        }
+        await addTask(value, forceRefresh);
         setInput("");
     };
 
@@ -77,59 +82,13 @@ export const WorkTaskListPanel = () => {
                     </Box>
                 ) : (
                     <VStack gap={0} align="stretch">
-                        {monitoredTasks.map((task) => {
-                            const isSelected = selectedTaskId === task.identifier;
-                            const { icon: docIcon, color: docIconColor } = docSubTypeIcon(task.doc_sub_type);
-
-                            return (
-                                <HStack
-                                    key={task.identifier}
-                                    px={3}
-                                    py={2}
-                                    gap={2}
-                                    cursor="pointer"
-                                    bg={isSelected ? { base: "gray.100", _dark: "gray.800" } : undefined}
-                                    _hover={{ bg: { base: "gray.50", _dark: "gray.900" } }}
-                                    borderBottomWidth="1px"
-                                    borderColor="border.default"
-                                    onClick={() => selectTask(task.identifier)}
-                                >
-                                    {docIcon && (
-                                        <Box color={docIconColor} flexShrink={0}>
-                                            {docIcon}
-                                        </Box>
-                                    )}
-                                    <VStack gap={0} align="start" flex={1} overflow="hidden">
-                                        <Text fontSize="sm" fontWeight="medium" truncate w="100%">
-                                            {task.title || task.identifier}
-                                        </Text>
-                                        <HStack gap={1}>
-                                            <Badge size="sm" variant="outline" colorPalette="gray">
-                                                {task.identifier}
-                                            </Badge>
-                                            <Badge
-                                                size="sm"
-                                                colorPalette={statusColor(task.status)}
-                                                variant="subtle"
-                                            >
-                                                {task.status || "—"}
-                                            </Badge>
-                                        </HStack>
-                                    </VStack>
-                                    <IconButton
-                                        aria-label="Remove task"
-                                        variant="ghost"
-                                        size="2xs"
-                                        onClick={(e) => {
-                                            e.stopPropagation();
-                                            removeTask(task.identifier);
-                                        }}
-                                    >
-                                        <FaTimes />
-                                    </IconButton>
-                                </HStack>
-                            );
-                        })}
+                        {monitoredTasks.map((task) => (
+                            <WorkTaskListItem
+                                key={task.identifier}
+                                task={task}
+                                isSelected={selectedTaskId === task.identifier}
+                            />
+                        ))}
                     </VStack>
                 )}
             </Box>
