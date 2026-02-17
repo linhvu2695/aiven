@@ -41,7 +41,7 @@ export const WorkTaskListItem = ({ task, isSelected }: WorkTaskListItemProps) =>
                 <Text fontSize="sm" fontWeight="medium" truncate w="100%">
                     {task.title || task.identifier}
                 </Text>
-                <HStack gap={1}>
+                <HStack gap={1} flexWrap="wrap">
                     <Badge size="sm" variant="outline" colorPalette="gray">
                         {task.identifier}
                     </Badge>
@@ -52,6 +52,20 @@ export const WorkTaskListItem = ({ task, isSelected }: WorkTaskListItemProps) =>
                     >
                         {task.status || "—"}
                     </Badge>
+                    {task.importance_for_next_release && (
+                        <Badge
+                            size="sm"
+                            variant="subtle"
+                            colorPalette={
+                                task.importance_for_next_release.includes("1") ? "red"
+                                : task.importance_for_next_release.includes("2") ? "yellow"
+                                : task.importance_for_next_release.includes("3") ? "green"
+                                : "gray"
+                            }
+                        >
+                            {task.importance_for_next_release}
+                        </Badge>
+                    )}
                 </HStack>
             </VStack>
             <IconButton

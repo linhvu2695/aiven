@@ -18,7 +18,7 @@ const WorkPageContent = () => {
     return (
         <HStack h="100vh" overflow="hidden" gap={0} align="stretch">
             {/* Left panel: task list */}
-            <Box w="320px" flexShrink={0}>
+            <Box w="360px" flexShrink={0}>
                 <WorkTaskListPanel />
             </Box>
 
