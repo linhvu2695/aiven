@@ -47,7 +47,8 @@ export const KANBAN_COLUMNS: KanbanColumn[] = [
         match: (s) => 
             s.includes("to be vetted") || 
             s.includes("to dispatch") || 
-            s.includes("gathering requirements"),
+            s.includes("gathering requirements") || 
+            s.includes("ready to start"),
     },
     {
         id: "in_progress",

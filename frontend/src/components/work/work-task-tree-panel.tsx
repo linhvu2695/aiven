@@ -2,20 +2,11 @@ import { Box, VStack, Text, Spinner } from "@chakra-ui/react";
 import { useMemo, useState, useCallback } from "react";
 import { WorkTaskTreeItem } from "./work-task-tree-item";
 import { WorkTaskHeader } from "./work-task-header";
-import type { TaskDetail } from "./work-types";
 import { DEFAULT_DOC_SUB_TYPE_FILTER } from "./work-utils";
+import { useWorkContext } from "@/context/work-ctx";
 
-interface WorkTaskTreePanelProps {
-    rootTask: TaskDetail | null;
-    descendants: TaskDetail[];
-    isLoading: boolean;
-}
-
-export const WorkTaskTreePanel = ({
-    rootTask,
-    descendants,
-    isLoading,
-}: WorkTaskTreePanelProps) => {
+export const WorkTaskTreePanel = () => {
+    const { selectedRootTask: rootTask, selectedDescendants: descendants, isLoadingTree: isLoading } = useWorkContext();
     const [activeFilters, setActiveFilters] = useState<Set<string>>(
         () => new Set(DEFAULT_DOC_SUB_TYPE_FILTER)
     );

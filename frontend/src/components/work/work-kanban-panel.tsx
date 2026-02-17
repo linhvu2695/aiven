@@ -17,18 +17,10 @@ import {
     KANBAN_COLUMNS,
 } from "./work-utils";
 import { useColorModeValue } from "../ui/color-mode";
+import { useWorkContext } from "@/context/work-ctx";
 
-interface WorkKanbanPanelProps {
-    rootTask: TaskDetail | null;
-    descendants: TaskDetail[];
-    isLoading: boolean;
-}
-
-export const WorkKanbanPanel = ({
-    rootTask,
-    descendants,
-    isLoading,
-}: WorkKanbanPanelProps) => {
+export const WorkKanbanPanel = () => {
+    const { selectedRootTask: rootTask, selectedDescendants: descendants, isLoadingTree: isLoading } = useWorkContext();
     const accentColor = useColorModeValue(ACCENT_COLOR.light, ACCENT_COLOR.dark);
 
     // All tasks except root (root is shown as header)

@@ -1,10 +1,10 @@
 import { Box, VStack, HStack, Text, Spinner, Badge } from "@chakra-ui/react";
 import { useMemo } from "react";
 import { useChart } from "@chakra-ui/charts";
-import type { TaskDetail } from "./work-types";
 import { formatMinutes, ACCENT_COLOR } from "./work-utils";
 import { DonutChart } from "@/components/ui/donut-chart";
 import { useColorModeValue } from "../ui/color-mode";
+import { useWorkContext } from "@/context/work-ctx";
 
 interface ParticipantStats {
     name: string;
@@ -38,17 +38,8 @@ const ASSIGNEE_COLORS: Array<`${string}.${string}`> = [
     "gray.600",
 ];
 
-interface WorkParticipantsPanelProps {
-    rootTask: TaskDetail | null;
-    descendants: TaskDetail[];
-    isLoading: boolean;
-}
-
-export const WorkParticipantsPanel = ({
-    rootTask,
-    descendants,
-    isLoading,
-}: WorkParticipantsPanelProps) => {
+export const WorkParticipantsPanel = () => {
+    const { selectedRootTask: rootTask, selectedDescendants: descendants, isLoadingTree: isLoading } = useWorkContext();
     const accentColor = useColorModeValue(ACCENT_COLOR.light, ACCENT_COLOR.dark);
 
     const allTasks = useMemo(() => {

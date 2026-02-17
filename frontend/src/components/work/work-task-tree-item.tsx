@@ -145,13 +145,13 @@ export const WorkTaskTreeItem = ({
                     <Collapsible.Content>
                         <VStack gap={0} align="stretch">
                             {children.map((child) => (
-                                <WorkTaskTreeItem
-                                    key={child.identifier}
-                                    task={child}
-                                    allTasks={allTasks}
-                                    maxTime={maxTime}
-                                    level={level + 1}
-                                />
+                                    <WorkTaskTreeItem
+                                        key={child.identifier}
+                                        task={child}
+                                        allTasks={allTasks}
+                                        maxTime={maxTime}
+                                        level={level + 1}
+                                    />
                             ))}
                         </VStack>
                     </Collapsible.Content>

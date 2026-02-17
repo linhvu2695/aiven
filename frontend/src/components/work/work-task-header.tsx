@@ -79,7 +79,7 @@ export const WorkTaskHeader = ({ task, allTasks, activeFilters, onFilterChange }
             flexShrink={0}
         >
             {/* Top row: icon + title + status + filter + popover */}
-            <HStack gap={3} mb={2}>
+            <HStack gap={3} mb={2} css={{ "& .view-button": { opacity: 1 } }}>
                 {docIcon && (
                     <Box color={docIconColor} flexShrink={0}>
                         {docIcon}

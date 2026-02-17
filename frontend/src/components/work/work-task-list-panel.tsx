@@ -11,31 +11,17 @@ import {
 import { useState } from "react";
 import { FaPlus, FaTimes, FaCloudDownloadAlt } from "react-icons/fa";
 import { Tooltip } from "@/components/ui/tooltip";
-import type { TaskDetail } from "./work-types";
 import { statusColor, docSubTypeIcon } from "./work-utils";
+import { useWorkContext } from "@/context/work-ctx";
 
-interface WorkTaskListPanelProps {
-    monitoredTasks: TaskDetail[];
-    selectedTaskId: string | null;
-    onSelect: (taskId: string) => void;
-    onAdd: (taskId: string, forceRefresh: boolean) => Promise<void>;
-    onRemove: (taskId: string) => void;
-    isAdding: boolean;
-}
-
-export const WorkTaskListPanel = ({
-    monitoredTasks,
-    selectedTaskId,
-    onSelect,
-    onAdd,
-    onRemove,
-    isAdding,
-}: WorkTaskListPanelProps) => {
+export const WorkTaskListPanel = () => {
+    const { monitoredTasks, selectedRootTask, selectTask, addTask, removeTask, isAdding } = useWorkContext();
+    const selectedTaskId = selectedRootTask?.identifier ?? null;
     const [input, setInput] = useState("");
 
     const handleAdd = async (forceRefresh: boolean) => {
         if (!input.trim()) return;
-        await onAdd(input.trim(), forceRefresh);
+        await addTask(input.trim(), forceRefresh);
         setInput("");
     };
 
@@ -106,7 +92,7 @@ export const WorkTaskListPanel = ({
                                     _hover={{ bg: { base: "gray.50", _dark: "gray.900" } }}
                                     borderBottomWidth="1px"
                                     borderColor="border.default"
-                                    onClick={() => onSelect(task.identifier)}
+                                    onClick={() => selectTask(task.identifier)}
                                 >
                                     {docIcon && (
                                         <Box color={docIconColor} flexShrink={0}>
@@ -136,7 +122,7 @@ export const WorkTaskListPanel = ({
                                         size="2xs"
                                         onClick={(e) => {
                                             e.stopPropagation();
-                                            onRemove(task.identifier);
+                                            removeTask(task.identifier);
                                         }}
                                     >
                                         <FaTimes />

@@ -1,3 +1,4 @@
+import { useState } from "react";
 import {
     Box,
     VStack,
@@ -8,6 +9,7 @@ import {
     Popover,
     Portal,
     Link,
+    Spinner,
 } from "@chakra-ui/react";
 import {
     FaInfoCircle,
@@ -17,9 +19,14 @@ import {
     FaLink,
     FaProjectDiagram,
     FaExclamationTriangle,
+    FaCloudDownloadAlt,
 } from "react-icons/fa";
+import { BASE_URL } from "@/App";
+import { toaster } from "@/components/ui/toaster";
+import { Tooltip } from "@/components/ui/tooltip";
 import type { TaskDetail } from "./work-types";
 import { formatMinutes, formatDate, statusColor } from "./work-utils";
+import { useWorkContext } from "@/context/work-ctx";
 
 const DetailRow = ({
     icon,
@@ -46,6 +53,24 @@ interface WorkTaskDetailPopoverProps {
 }
 
 export const WorkTaskDetailPopover = ({ task }: WorkTaskDetailPopoverProps) => {
+    const { updateTask } = useWorkContext();
+    const [isRefreshing, setIsRefreshing] = useState(false);
+
+    const handleRefresh = async () => {
+        setIsRefreshing(true);
+        try {
+            const res = await fetch(`${BASE_URL}/api/work/task/${task.identifier}?force_refresh=true`);
+            if (!res.ok) throw new Error("Failed to refresh task");
+            const updatedTask: TaskDetail = await res.json();
+            updateTask(updatedTask);
+            toaster.create({ description: `Updated ${task.identifier}`, type: "success" });
+        } catch (error) {
+            toaster.create({ description: `Failed to refresh ${task.identifier}`, type: "error" });
+        } finally {
+            setIsRefreshing(false);
+        }
+    };
+
     return (
         <Popover.Root>
             <Popover.Trigger asChild>
@@ -86,6 +111,18 @@ export const WorkTaskDetailPopover = ({ task }: WorkTaskDetailPopoverProps) => {
                                 >
                                     {task.status || "No status"}
                                 </Badge>
+                                <Box flex={1} />
+                                <Tooltip content="Refresh from Orange Logic">
+                                    <IconButton
+                                        aria-label="Refresh task from Orange Logic"
+                                        variant="ghost"
+                                        size="2xs"
+                                        onClick={handleRefresh}
+                                        disabled={isRefreshing}
+                                    >
+                                        {isRefreshing ? <Spinner size="xs" /> : <FaCloudDownloadAlt />}
+                                    </IconButton>
+                                </Tooltip>
                             </HStack>
                             <Text fontWeight="semibold" fontSize="sm">
                                 {task.title || "Untitled Task"}
