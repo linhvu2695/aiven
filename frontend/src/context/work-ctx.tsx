@@ -13,6 +13,7 @@ interface WorkContextValue {
     addTask: (taskId: string, forceRefresh: boolean) => Promise<void>;
     removeTask: (taskId: string) => Promise<void>;
     updateTask: (updatedTask: TaskDetail) => void;
+    refreshTaskTree: (taskId: string) => Promise<void>;
 }
 
 const WorkContext = createContext<WorkContextValue | null>(null);
@@ -109,6 +110,37 @@ export const WorkProvider = ({ children }: { children: ReactNode }) => {
         );
     }, []);
 
+    const refreshTaskTree = useCallback(async (taskId: string) => {
+        setIsLoadingTree(true);
+        try {
+            const [rootRes, descRes] = await Promise.all([
+                fetch(`${BASE_URL}/api/work/task/${taskId}?force_refresh=true`),
+                fetch(`${BASE_URL}/api/work/task/${taskId}/descendants?force_refresh=true`),
+            ]);
+
+            if (!rootRes.ok) throw new Error("Failed to refresh root task");
+            if (!descRes.ok) throw new Error("Failed to refresh descendants");
+
+            const updatedRoot: TaskDetail = await rootRes.json();
+            const updatedDescendants: TaskDetail[] = await descRes.json();
+
+            setMonitoredTasks((prev) =>
+                prev.map((t) => (t.identifier === updatedRoot.identifier ? updatedRoot : t))
+            );
+            setSelectedRootTask((prev) =>
+                prev?.identifier === updatedRoot.identifier ? updatedRoot : prev
+            );
+            setSelectedDescendants(updatedDescendants);
+
+            toaster.create({ description: `Refreshed ${taskId} and all descendants`, type: "success" });
+        } catch (error) {
+            console.error("Error refreshing task tree:", error);
+            toaster.create({ description: `Failed to refresh ${taskId} tree`, type: "error" });
+        } finally {
+            setIsLoadingTree(false);
+        }
+    }, []);
+
     const removeTask = useCallback(async (taskId: string) => {
         try {
             await fetch(`${BASE_URL}/api/work/task/${taskId}/monitor`, {
@@ -140,6 +172,7 @@ export const WorkProvider = ({ children }: { children: ReactNode }) => {
                 addTask,
                 removeTask,
                 updateTask,
+                refreshTaskTree,
             }}
         >
             {children}

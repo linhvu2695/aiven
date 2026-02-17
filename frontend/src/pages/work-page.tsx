@@ -1,8 +1,9 @@
 import { Box, HStack, VStack, IconButton } from "@chakra-ui/react";
 import { useState } from "react";
-import { FaSitemap, FaColumns } from "react-icons/fa";
+import { FaSitemap, FaColumns, FaStream } from "react-icons/fa";
 import { Tooltip } from "@/components/ui/tooltip";
 import { WorkTaskTreePanel, WorkTaskListPanel, WorkParticipantsPanel, WorkKanbanPanel, WORK_VIEW_MODES, type WorkViewMode } from "@/components/work";
+import { WorkGanttPanel } from "@/components/work/work-gantt-panel";
 import { WorkProvider } from "@/context/work-ctx";
 import { FaPeopleGroup } from "react-icons/fa6";
 
@@ -10,6 +11,7 @@ const VIEW_MODE_ICONS: Record<WorkViewMode, React.ReactNode> = {
     hierarchy: <FaSitemap />,
     participants: <FaPeopleGroup />,
     kanban: <FaColumns />,
+    gantt: <FaStream />,
 };
 
 const WorkPageContent = () => {
@@ -51,6 +53,7 @@ const WorkPageContent = () => {
                 {viewMode === "hierarchy" && <WorkTaskTreePanel />}
                 {viewMode === "participants" && <WorkParticipantsPanel />}
                 {viewMode === "kanban" && <WorkKanbanPanel />}
+                {viewMode === "gantt" && <WorkGanttPanel />}
             </Box>
         </HStack>
     );

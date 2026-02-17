@@ -74,6 +74,16 @@ def parse_int(value, default: int = 0) -> int:
 def parse_datetime(value) -> Optional[datetime]:
     if not value or value == "":
         return None
+    DATE_FORMATS = [
+        "%d %B, %Y",   # "02 March, 2026"
+        "%d %B %Y",    # "02 March 2026"
+        "%B %d, %Y",   # "March 02, 2026"
+    ]
+    for fmt in DATE_FORMATS:
+        try:
+            return datetime.strptime(value, fmt)
+        except (ValueError, TypeError):
+            continue
     try:
         return datetime.fromisoformat(value)
     except (ValueError, TypeError):

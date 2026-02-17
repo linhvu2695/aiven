@@ -18,7 +18,7 @@ import { FaPeopleGroup } from "react-icons/fa6";
 export const ACCENT_COLOR = { light: "green.600", dark: "green.400" };
 
 /** View modes for the right panel */
-export type WorkViewMode = "hierarchy" | "participants" | "kanban";
+export type WorkViewMode = "hierarchy" | "participants" | "kanban" | "gantt";
 
 export interface WorkViewModeOption {
     id: WorkViewMode;
@@ -29,6 +29,7 @@ export const WORK_VIEW_MODES: WorkViewModeOption[] = [
     { id: "hierarchy", label: "Hierarchy" },
     { id: "participants", label: "Participants" },
     { id: "kanban", label: "Kanban Board" },
+    { id: "gantt", label: "Gantt Chart" },
 ];
 
 /** Status groups used by the Kanban board */
@@ -114,7 +115,7 @@ export const statusColor = (status: string): string => {
         s.includes("closed")
     )
         return "green";
-    if (s.includes("progress") || s.includes("dev")) return "orange";
+    if (s.includes("progress") || s.includes("in development")) return "orange";
     if (s.includes("blocked")) return "red";
     if (s.includes("todo") || s.includes("open") || s.includes("new")) return "blue";
     return "gray";

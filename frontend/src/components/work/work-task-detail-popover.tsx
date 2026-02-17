@@ -20,6 +20,7 @@ import {
     FaProjectDiagram,
     FaExclamationTriangle,
     FaCloudDownloadAlt,
+    FaSyncAlt,
 } from "react-icons/fa";
 import { BASE_URL } from "@/App";
 import { toaster } from "@/components/ui/toaster";
@@ -53,8 +54,9 @@ interface WorkTaskDetailPopoverProps {
 }
 
 export const WorkTaskDetailPopover = ({ task }: WorkTaskDetailPopoverProps) => {
-    const { updateTask } = useWorkContext();
+    const { updateTask, refreshTaskTree } = useWorkContext();
     const [isRefreshing, setIsRefreshing] = useState(false);
+    const [isRefreshingTree, setIsRefreshingTree] = useState(false);
 
     const handleRefresh = async () => {
         setIsRefreshing(true);
@@ -68,6 +70,15 @@ export const WorkTaskDetailPopover = ({ task }: WorkTaskDetailPopoverProps) => {
             toaster.create({ description: `Failed to refresh ${task.identifier}`, type: "error" });
         } finally {
             setIsRefreshing(false);
+        }
+    };
+
+    const handleRefreshTree = async () => {
+        setIsRefreshingTree(true);
+        try {
+            await refreshTaskTree(task.identifier);
+        } finally {
+            setIsRefreshingTree(false);
         }
     };
 
@@ -111,22 +122,34 @@ export const WorkTaskDetailPopover = ({ task }: WorkTaskDetailPopoverProps) => {
                                 >
                                     {task.status || "No status"}
                                 </Badge>
-                                <Box flex={1} />
-                                <Tooltip content="Refresh from Orange Logic">
+                            </HStack>
+                            <HStack gap={1}>
+                                <Text fontWeight="semibold" fontSize="sm">
+                                    {task.title || "Untitled Task"}
+                                </Text>
+                                <Tooltip content="Refresh this task">
                                     <IconButton
                                         aria-label="Refresh task from Orange Logic"
                                         variant="ghost"
                                         size="2xs"
                                         onClick={handleRefresh}
-                                        disabled={isRefreshing}
+                                        disabled={isRefreshing || isRefreshingTree}
                                     >
                                         {isRefreshing ? <Spinner size="xs" /> : <FaCloudDownloadAlt />}
                                     </IconButton>
                                 </Tooltip>
+                                <Tooltip content="Refresh this task and all descendants">
+                                    <IconButton
+                                        aria-label="Refresh task tree from Orange Logic"
+                                        variant="ghost"
+                                        size="2xs"
+                                        onClick={handleRefreshTree}
+                                        disabled={isRefreshing || isRefreshingTree}
+                                    >
+                                        {isRefreshingTree ? <Spinner size="xs" /> : <FaSyncAlt />}
+                                    </IconButton>
+                                </Tooltip>
                             </HStack>
-                            <Text fontWeight="semibold" fontSize="sm">
-                                {task.title || "Untitled Task"}
-                            </Text>
 
                             {/* Time summary */}
                             <HStack
