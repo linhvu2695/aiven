@@ -112,7 +112,8 @@ export const statusColor = (status: string): string => {
         s.includes("completed") ||
         s.includes("implemented") ||
         s.includes("obsolete") ||
-        s.includes("closed")
+        s.includes("closed") ||
+        s.includes("validated")
     )
         return "green";
     if (s.includes("in progress") || s.includes("in development")) return "orange";
@@ -123,7 +124,7 @@ export const statusColor = (status: string): string => {
         s.includes("gathering requirements") ||
         s.includes("ready to start")
     ) 
-        return "blue";
+        return "gray";
     return "gray";
 };
 

@@ -18,7 +18,7 @@ const WorkPageContent = () => {
     const [viewMode, setViewMode] = useState<WorkViewMode>("hierarchy");
 
     return (
-        <HStack h="100vh" overflow="hidden" gap={0} align="stretch">
+        <HStack h="calc(100vh - 105px)" overflow="hidden" gap={0} align="stretch">
             {/* Left panel: task list */}
             <Box w="360px" flexShrink={0}>
                 <WorkTaskListPanel />

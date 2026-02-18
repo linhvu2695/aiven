@@ -1,6 +1,6 @@
 import { Box, Container, Flex, Text, IconButton } from "@chakra-ui/react";
 import { ColorModeButton } from "@/components/ui/color-mode";
-import { FaBook, FaClipboardList, FaComment, FaImages, FaSeedling, FaVideo } from "react-icons/fa";
+import { FaBook, FaClipboardList, FaComment, FaImages, FaSeedling, FaUsers, FaVideo } from "react-icons/fa";
 import { Tooltip } from "@/components/ui/tooltip";
 import { useNavigate, useLocation } from "react-router-dom";
 import { FaRobot } from "react-icons/fa6";
@@ -136,6 +136,19 @@ function Navbar() {
                                     onClick={() => navigate("/work")}
                                 >
                                     <FaClipboardList />
+                                </IconButton>
+                            </Tooltip>
+
+                            {/* Team */}
+                            <Tooltip content="Team" showArrow>
+                                <IconButton
+                                    aria-label="Team"
+                                    variant={isActive("/team") ? "solid" : "ghost"}
+                                    colorPalette={isActive("/team") ? "primary" : undefined}
+                                    size="xl"
+                                    onClick={() => navigate("/team")}
+                                >
+                                    <FaUsers />
                                 </IconButton>
                             </Tooltip>
                         </Flex>
