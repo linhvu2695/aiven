@@ -4,12 +4,15 @@ from datetime import datetime, timezone
 import httpx
 
 from app.core.database import MongoDB
-from app.classes.work import TaskDetail
+from app.classes.work.status import COMPLETE_STATUSES
+from app.classes.work.work import TaskDetail
+from app.classes.work.type import TaskType
 
 TASK_COLLECTION_NAME = "tasks"
 
 LINK_URL = "https://link.orangelogic.com"
 LINK_SEARCH_API_URL = f"{LINK_URL}/API/Search/v4.0/Search"
+COUNT_PER_PAGE = 300
 
 TASK_DETAIL_FIELDS = [
     "CoreField.Title", 
@@ -77,6 +80,20 @@ class WorkService:
         # Fetch from API recursively and upsert into MongoDB
         return await self._fetch_and_store_descendants(task_id)
 
+    async def get_incomplete_tasks_assigned_to(self, assignee: str, subtypes: list[TaskType] = []) -> list[TaskDetail] | None:
+        """
+        Call the Link Search API to get the incomplete tasks assigned to a user.
+        """
+        query = f"participant(\"Assigned to\"):(\"{assignee}\") AND NOT (WorkflowStatus:({' OR '.join(COMPLETE_STATUSES)}))"
+        if subtypes:
+            string_subtypes = [f"\"{subtype}\"" for subtype in subtypes]
+            query += f" AND DocSubType:({' OR '.join(string_subtypes)})"
+
+        results = await self._query_tasks_from_api(query)
+        if not results:
+            return None
+
+        return results
     async def _get_descendants_from_db(self, task_id: str) -> list[TaskDetail]:
         """
         Recursively collect all descendants from MongoDB by traversing
@@ -179,6 +196,7 @@ class WorkService:
             "fields": TASK_DETAIL_FIELDS,
             "format": "JSON",
             "token": token,
+            "countperpage": COUNT_PER_PAGE,
         }
 
         try:

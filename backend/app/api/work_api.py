@@ -1,6 +1,7 @@
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Query
 from app.services.work.work_service import WorkService
-from app.classes.work import SetMonitorRequest
+from app.classes.work.work import SetMonitorRequest
+from app.classes.work.type import TaskType
 
 router = APIRouter()
 
@@ -34,3 +35,12 @@ async def set_task_monitor(task_id: str, body: SetMonitorRequest):
     if not success:
         raise HTTPException(status_code=404, detail=f"Task {task_id} not found")
     return {"ok": True}
+
+
+@router.get("/assignee/{assignee}/incomplete")
+async def get_incomplete_tasks_for_assignee(assignee: str, subtypes: list[TaskType] = Query(default=[])):
+    """Get all incomplete tasks assigned to a given person, optionally filtered by task subtypes."""
+    results = await WorkService().get_incomplete_tasks_assigned_to(assignee, subtypes=subtypes)
+    if results is None:
+        return []
+    return results
