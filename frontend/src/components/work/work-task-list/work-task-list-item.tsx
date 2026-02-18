@@ -7,8 +7,8 @@ import {
     Badge,
 } from "@chakra-ui/react";
 import { FaTimes } from "react-icons/fa";
-import type { TaskDetail } from "./work-types";
-import { statusColor, docSubTypeIcon } from "./work-utils";
+import type { TaskDetail } from "../work-types";
+import { statusColor, docSubTypeIcon } from "../work-utils";
 import { useWorkContext } from "@/context/work-ctx";
 
 interface WorkTaskListItemProps {

@@ -1,7 +1,7 @@
-export { WorkTaskTreeItem } from "./work-task-tree-item";
-export { WorkTaskTreePanel } from "./work-task-tree-panel";
+export { WorkTaskTreeItem } from "./work-task-tree/work-task-tree-item";
+export { WorkTaskTreePanel } from "./work-task-tree/work-task-tree-panel";
 export { WorkTaskHeader } from "./work-task-header";
-export { WorkTaskListPanel } from "./work-task-list-panel";
+export { WorkTaskListPanel } from "./work-task-list/work-task-list-panel";
 export { WorkParticipantsPanel } from "./work-participants-panel";
 export { WorkKanbanPanel } from "./work-kanban-panel";
 export { WorkGanttPanel } from "./work-gantt-panel";

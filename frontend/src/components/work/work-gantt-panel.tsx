@@ -10,8 +10,7 @@ import {
 import { useMemo, useRef, useState, useCallback } from "react";
 import { FaChevronRight, FaChevronDown } from "react-icons/fa";
 import type { TaskDetail } from "./work-types";
-import { statusColor, docSubTypeIcon, formatDate, ACCENT_COLOR, DEFAULT_DOC_SUB_TYPE_FILTER } from "./work-utils";
-import { useColorModeValue } from "../ui/color-mode";
+import { statusColor, docSubTypeIcon, formatDate, DEFAULT_DOC_SUB_TYPE_FILTER } from "./work-utils";
 import { useWorkContext } from "@/context/work-ctx";
 import { WorkTaskDetailPopover } from "./work-task-detail-popover";
 import { WorkTaskFilter } from "./work-task-filter";
@@ -84,7 +83,6 @@ const flattenTree = (
 
 export const WorkGanttPanel = () => {
     const { selectedRootTask: rootTask, selectedDescendants: descendants, isLoadingTree: isLoading } = useWorkContext();
-    const accentColor = useColorModeValue(ACCENT_COLOR.light, ACCENT_COLOR.dark);
     const timelineRef = useRef<HTMLDivElement>(null);
 
     // Track which nodes are collapsed

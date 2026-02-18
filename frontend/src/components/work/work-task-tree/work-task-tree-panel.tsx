@@ -1,8 +1,8 @@
 import { Box, VStack, Text, Spinner } from "@chakra-ui/react";
 import { useMemo, useState, useCallback } from "react";
 import { WorkTaskTreeItem } from "./work-task-tree-item";
-import { WorkTaskHeader } from "./work-task-header";
-import { DEFAULT_DOC_SUB_TYPE_FILTER } from "./work-utils";
+import { WorkTaskHeader } from "../work-task-header";
+import { DEFAULT_DOC_SUB_TYPE_FILTER } from "../work-utils";
 import { useWorkContext } from "@/context/work-ctx";
 
 export const WorkTaskTreePanel = () => {
