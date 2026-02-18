@@ -16,9 +16,20 @@ interface WorkTaskHeaderProps {
     allTasks: TaskDetail[];
     activeFilters: Set<string>;
     onFilterChange: (filters: Set<string>) => void;
+    assignees?: string[];
+    activeAssigneeFilters?: Set<string> | null;
+    onAssigneeFilterChange?: (filters: Set<string> | null) => void;
 }
 
-export const WorkTaskHeader = ({ task, allTasks, activeFilters, onFilterChange }: WorkTaskHeaderProps) => {
+export const WorkTaskHeader = ({
+    task,
+    allTasks,
+    activeFilters,
+    onFilterChange,
+    assignees,
+    activeAssigneeFilters,
+    onAssigneeFilterChange,
+}: WorkTaskHeaderProps) => {
     const accentColor = useColorModeValue(ACCENT_COLOR.light, ACCENT_COLOR.dark);
 
     const getSubtreeTime = (
@@ -94,7 +105,13 @@ export const WorkTaskHeader = ({ task, allTasks, activeFilters, onFilterChange }
                     </Text>
                 )}
 
-                <WorkTaskFilter activeFilters={activeFilters} onFilterChange={onFilterChange} />
+                <WorkTaskFilter
+                    activeFilters={activeFilters}
+                    onFilterChange={onFilterChange}
+                    assignees={assignees}
+                    activeAssigneeFilters={activeAssigneeFilters}
+                    onAssigneeFilterChange={onAssigneeFilterChange}
+                />
                 <WorkTaskDetailPopover task={task} />
             </HStack>
 

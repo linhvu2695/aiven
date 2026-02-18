@@ -1,7 +1,8 @@
-import { createContext, useContext, useState, useCallback, useEffect, type ReactNode } from "react";
+import { createContext, useContext, useState, useCallback, useEffect, useMemo, type ReactNode } from "react";
 import { BASE_URL } from "@/App";
 import { toaster } from "@/components/ui/toaster";
 import type { TaskDetail } from "@/components/work/work-types";
+import { DEFAULT_DOC_SUB_TYPE_FILTER } from "@/components/work/work-utils";
 
 interface WorkContextValue {
     monitoredTasks: TaskDetail[];
@@ -14,6 +15,13 @@ interface WorkContextValue {
     removeTask: (taskId: string) => Promise<void>;
     updateTask: (updatedTask: TaskDetail) => void;
     refreshTaskTree: (taskId: string) => Promise<void>;
+
+    activeTypeFilters: Set<string>;
+    setActiveTypeFilters: (filters: Set<string>) => void;
+    activeAssigneeFilters: Set<string> | null;
+    setActiveAssigneeFilters: (filters: Set<string> | null) => void;
+    assignees: string[];
+    filteredTasks: TaskDetail[];
 }
 
 const WorkContext = createContext<WorkContextValue | null>(null);
@@ -32,6 +40,51 @@ export const WorkProvider = ({ children }: { children: ReactNode }) => {
     const [selectedDescendants, setSelectedDescendants] = useState<TaskDetail[]>([]);
     const [isAdding, setIsAdding] = useState(false);
     const [isLoadingTree, setIsLoadingTree] = useState(false);
+
+    const [activeTypeFilters, setActiveTypeFilters] = useState<Set<string>>(
+        () => new Set(DEFAULT_DOC_SUB_TYPE_FILTER)
+    );
+    const [activeAssigneeFilters, setActiveAssigneeFilters] = useState<Set<string> | null>(null);
+
+    const allTasks = useMemo(() => {
+        if (!selectedRootTask) return selectedDescendants;
+        return [selectedRootTask, ...selectedDescendants];
+    }, [selectedRootTask, selectedDescendants]);
+
+    const assignees = useMemo(() => {
+        const names = new Set<string>();
+        for (const t of allTasks) {
+            if (t.assigned_to) names.add(t.assigned_to);
+        }
+        return [...names].sort((a, b) => a.localeCompare(b));
+    }, [allTasks]);
+
+    const filteredTasks = useMemo(() => {
+        const matchingIds = new Set<string>();
+        for (const t of allTasks) {
+            const typeMatch =
+                activeTypeFilters.size === 0 ||
+                [...activeTypeFilters].some((f) => t.doc_sub_type.toLowerCase().includes(f.toLowerCase()));
+            const assigneeMatch =
+                activeAssigneeFilters === null || activeAssigneeFilters.has(t.assigned_to);
+            if (typeMatch && assigneeMatch) {
+                matchingIds.add(t.identifier);
+            }
+        }
+
+        const includedIds = new Set(matchingIds);
+        const taskMap = new Map(allTasks.map((t) => [t.identifier, t]));
+        for (const id of matchingIds) {
+            let current = taskMap.get(id);
+            while (current && current.parent_folder_identifier) {
+                if (includedIds.has(current.parent_folder_identifier)) break;
+                includedIds.add(current.parent_folder_identifier);
+                current = taskMap.get(current.parent_folder_identifier);
+            }
+        }
+
+        return allTasks.filter((t) => includedIds.has(t.identifier));
+    }, [allTasks, activeTypeFilters, activeAssigneeFilters]);
 
     useEffect(() => {
         const loadMonitored = async () => {
@@ -173,6 +226,12 @@ export const WorkProvider = ({ children }: { children: ReactNode }) => {
                 removeTask,
                 updateTask,
                 refreshTaskTree,
+                activeTypeFilters,
+                setActiveTypeFilters,
+                activeAssigneeFilters,
+                setActiveAssigneeFilters,
+                assignees,
+                filteredTasks,
             }}
         >
             {children}

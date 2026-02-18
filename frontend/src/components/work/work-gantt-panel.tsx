@@ -10,7 +10,7 @@ import {
 import { useMemo, useRef, useState, useCallback } from "react";
 import { FaChevronRight, FaChevronDown } from "react-icons/fa";
 import type { TaskDetail } from "./work-types";
-import { statusColor, docSubTypeIcon, formatDate, DEFAULT_DOC_SUB_TYPE_FILTER } from "./work-utils";
+import { statusColor, docSubTypeIcon, formatDate } from "./work-utils";
 import { useWorkContext } from "@/context/work-ctx";
 import { WorkTaskDetailPopover } from "./work-task-detail-popover";
 import { WorkTaskFilter } from "./work-task-filter";
@@ -82,7 +82,17 @@ const flattenTree = (
 };
 
 export const WorkGanttPanel = () => {
-    const { selectedRootTask: rootTask, selectedDescendants: descendants, isLoadingTree: isLoading } = useWorkContext();
+    const {
+        selectedRootTask: rootTask,
+        selectedDescendants: descendants,
+        isLoadingTree: isLoading,
+        filteredTasks,
+        assignees,
+        activeTypeFilters,
+        setActiveTypeFilters,
+        activeAssigneeFilters,
+        setActiveAssigneeFilters,
+    } = useWorkContext();
     const timelineRef = useRef<HTMLDivElement>(null);
 
     // Track which nodes are collapsed
@@ -109,44 +119,11 @@ export const WorkGanttPanel = () => {
         });
     }, []);
 
-    const [activeFilters, setActiveFilters] = useState<Set<string>>(
-        () => new Set(DEFAULT_DOC_SUB_TYPE_FILTER)
-    );
-
     const allTasks = useMemo(() => {
-        if (!rootTask) return [];
-        const nonObsolete = [rootTask, ...descendants].filter(
+        return filteredTasks.filter(
             (t) => !t.status.toLowerCase().includes("obsolete")
         );
-
-        if (activeFilters.size === 0) return nonObsolete;
-
-        // Find tasks matching the filter
-        const matchingIds = new Set<string>();
-        for (const t of nonObsolete) {
-            const typeLower = t.doc_sub_type.toLowerCase();
-            for (const filter of activeFilters) {
-                if (typeLower.includes(filter.toLowerCase())) {
-                    matchingIds.add(t.identifier);
-                    break;
-                }
-            }
-        }
-
-        // Include ancestors to preserve tree structure
-        const includedIds = new Set(matchingIds);
-        const taskMap = new Map(nonObsolete.map((t) => [t.identifier, t]));
-        for (const id of matchingIds) {
-            let current = taskMap.get(id);
-            while (current && current.parent_folder_identifier) {
-                if (includedIds.has(current.parent_folder_identifier)) break;
-                includedIds.add(current.parent_folder_identifier);
-                current = taskMap.get(current.parent_folder_identifier);
-            }
-        }
-
-        return nonObsolete.filter((t) => includedIds.has(t.identifier));
-    }, [rootTask, descendants, activeFilters]);
+    }, [filteredTasks]);
 
     // Build the root row + flattened children
     const visibleRows = useMemo((): FlatGanttRow[] => {
@@ -253,7 +230,13 @@ export const WorkGanttPanel = () => {
                 <Text fontWeight="bold" fontSize="md" truncate flex={1}>
                     Gantt Chart — {rootTask.title || rootTask.identifier}
                 </Text>
-                <WorkTaskFilter activeFilters={activeFilters} onFilterChange={setActiveFilters} />
+                <WorkTaskFilter
+                    activeFilters={activeTypeFilters}
+                    onFilterChange={setActiveTypeFilters}
+                    assignees={assignees}
+                    activeAssigneeFilters={activeAssigneeFilters}
+                    onAssigneeFilterChange={setActiveAssigneeFilters}
+                />
             </HStack>
 
             {/* Timeline header: months + days */}
