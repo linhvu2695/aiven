@@ -7,10 +7,11 @@ import {
     FaBug,
     FaVial,
     FaCalendar,
-    FaPaintBrush,
     FaCheckSquare,
     FaQuestion,
     FaClipboardList,
+    FaTerminal,
+    FaSignal,
 } from "react-icons/fa";
 import { FaPeopleGroup } from "react-icons/fa6";
 
@@ -130,12 +131,18 @@ export const statusColor = (status: string): string => {
 
 /** All known doc sub types for filtering (matches backend TaskType enum) */
 export const DOC_SUB_TYPES = [
-    "Enhancement",
+    "Enhancement - Software",
+    "Enhancement - Engineering",
+    "Enhancement - MVP",
     "Development",
+    "TDD",
     "QA",
     "Defect - Application",
     "Defect - Configuration",
     "Defect - QA",
+    "Defect - Logs",
+    "Defect - UX",
+    "Defect - Infrastructure",
     "Question",
     "Code Review",
     "Meeting",
@@ -156,11 +163,12 @@ export const docSubTypeIcon = (docSubType: string): { icon: React.ReactNode; col
     const s = docSubType.toLowerCase();
     if (s.includes("question")) return { icon: <FaQuestion size={12} />, color: "cyan.400" };
     if (s.includes("development")) return { icon: <FaCode size={12} />, color: "yellow.400" };
+    if (s.includes("tdd")) return { icon: <FaTerminal size={12} />, color: "yellow.400" };
     if (s.includes("document")) return { icon: <FaFileAlt size={12} />, color: "purple.400" };
     if (s.includes("research") || s.includes("analysis")) return { icon: <FaFlask size={12} />, color: "cyan.400" };
     if (s.includes("code review")) return { icon: <FaSearchPlus size={12} />, color: "orange.400" };
     if (s.includes("defect")) return { icon: <FaBug size={12} />, color: "red.400" };
-    if (s.includes("enhancement")) return { icon: <FaPaintBrush size={12} />, color: "blue.400" };
+    if (s.includes("enhancement")) return { icon: <FaSignal size={12} />, color: "blue.400" };
     if (s.includes("qa")) return { icon: <FaVial size={12} />, color: "cyan.400" };
     if (s.includes("test case review")) return { icon: <FaVial size={12} />, color: "cyan.400" };
     if (s.includes("meeting")) return { icon: <FaCalendar size={12} />, color: "green.400" };
