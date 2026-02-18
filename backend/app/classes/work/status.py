@@ -11,6 +11,8 @@ class TaskStatus(str, Enum):
     COMPLETED = "completed"
     DUPLICATE = "duplicate"
     REJECTED = "rejected"
+    ANSWERED = "answered"
+    APPROVED = "approved"
     VALIDATED_ON_TEST = "validated on test"
     VALIDATED_ON_PROD = "validated on prod"
 
@@ -37,6 +39,8 @@ COMPLETE_STATUSES = {
     TaskStatus.COMPLETED,
     TaskStatus.DUPLICATE,
     TaskStatus.REJECTED,
+    TaskStatus.ANSWERED,
+    TaskStatus.APPROVED,
     TaskStatus.VALIDATED_ON_TEST,
     TaskStatus.VALIDATED_ON_PROD,
 }

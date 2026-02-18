@@ -38,9 +38,19 @@ async def set_task_monitor(task_id: str, body: SetMonitorRequest):
 
 
 @router.get("/assignee/{assignee}/incomplete")
-async def get_incomplete_tasks_for_assignee(assignee: str, subtypes: list[TaskType] = Query(default=[])):
+async def get_incomplete_tasks_for_assignee(
+    assignee: str, subtypes: list[TaskType] = Query(default=[]), force_refresh: bool = False
+):
     """Get all incomplete tasks assigned to a given person, optionally filtered by task subtypes."""
-    results = await WorkService().get_incomplete_tasks_assigned_to(assignee, subtypes=subtypes)
+    results = await WorkService().get_incomplete_tasks_assigned_to(
+        assignee, subtypes=subtypes, force_refresh=force_refresh
+    )
     if results is None:
         return []
     return results
+
+
+@router.get("/team/workload")
+async def get_team_workload(subtypes: list[TaskType] = Query(default=[]), force_refresh: bool = False):
+    """Get workload summary for all team members, optionally filtered by task subtypes."""
+    return await WorkService().get_team_workload(subtypes=subtypes, force_refresh=force_refresh)

@@ -1,12 +1,18 @@
+import asyncio
+import json
 import logging
 from datetime import datetime, timezone
 
 import httpx
 
 from app.core.database import MongoDB
+from app.core.cache import RedisCache
 from app.classes.work.status import COMPLETE_STATUSES
 from app.classes.work.work import TaskDetail
 from app.classes.work.type import TaskType
+from app.classes.work.team import TEAM_MEMBERS
+
+INCOMPLETE_TASKS_CACHE_TTL = 3600  # 1 hour
 
 TASK_COLLECTION_NAME = "tasks"
 
@@ -80,20 +86,103 @@ class WorkService:
         # Fetch from API recursively and upsert into MongoDB
         return await self._fetch_and_store_descendants(task_id)
 
-    async def get_incomplete_tasks_assigned_to(self, assignee: str, subtypes: list[TaskType] = []) -> list[TaskDetail] | None:
+    def _cache_key_incomplete_tasks_assigned_to(self, assignee: str, subtype: str) -> str:
+        return f"work:incomplete:{assignee.lower()}:{subtype}"
+
+    async def get_incomplete_tasks_assigned_to(
+        self, assignee: str, subtypes: list[TaskType] = [], force_refresh: bool = False
+    ) -> list[TaskDetail] | None:
         """
-        Call the Link Search API to get the incomplete tasks assigned to a user.
+        Get incomplete tasks assigned to a user.
+        Caches per subtype in Redis (1h TTL) to avoid redundant storage across
+        subtype combinations. Merges cached results on read.
         """
+        cache = RedisCache()
+        types_to_fetch = list(TaskType) if not subtypes else subtypes
+
+        if not force_refresh:
+            # 1. Try to get from Redis first
+            cached_lists: list[list[TaskDetail]] = []
+            all_hit = True
+            for t in types_to_fetch:
+                key = self._cache_key_incomplete_tasks_assigned_to(assignee, t.value)
+                raw = await cache.get(key)
+                if raw is not None:
+                    cached_lists.append([TaskDetail(**x) for x in json.loads(raw)])
+                else:
+                    all_hit = False
+                    break
+
+            if all_hit:
+                # 1.1. Merge cached results into a single list
+                seen: set[str] = set()
+                merged: list[TaskDetail] = []
+                for lst in cached_lists:
+                    for task in lst:
+                        if task.identifier not in seen:
+                            seen.add(task.identifier)
+                            merged.append(task)
+                return merged
+
+        # 2. Fetch from API (force refresh or cache miss)
         query = f"participant(\"Assigned to\"):(\"{assignee}\") AND NOT (WorkflowStatus:({' OR '.join(COMPLETE_STATUSES)}))"
         if subtypes:
-            string_subtypes = [f"\"{subtype}\"" for subtype in subtypes]
+            string_subtypes = [f"\"{s}\"" for s in subtypes]
             query += f" AND DocSubType:({' OR '.join(string_subtypes)})"
 
         results = await self._query_tasks_from_api(query)
         if not results:
+            for t in types_to_fetch:
+                await cache.set(
+                    self._cache_key_incomplete_tasks_assigned_to(assignee, t.value),
+                    "[]",
+                    expiration=INCOMPLETE_TASKS_CACHE_TTL,
+                )
             return None
 
+        # 3. Distribute tasks to per-type caches (only for types we fetched)
+        by_type: dict[str, list[TaskDetail]] = {t.value: [] for t in types_to_fetch}
+        for task in results:
+            type_val = (task.doc_sub_type or "other").lower().strip()
+            if type_val in by_type:
+                by_type[type_val].append(task)
+            else:
+                by_type.setdefault("other", []).append(task)
+
+        for type_val, tasks in by_type.items():
+            key = self._cache_key_incomplete_tasks_assigned_to(assignee, type_val)
+            await cache.set(
+                key,
+                json.dumps([t.model_dump(mode="json") for t in tasks]),
+                expiration=INCOMPLETE_TASKS_CACHE_TTL,
+            )
+
+        # 4. Upsert tasks into MongoDB
+        for task in results:
+            await self._upsert_task(task)
+
         return results
+
+    async def get_team_workload(self, subtypes: list[TaskType] = [], force_refresh: bool = False) -> list[dict]:
+        """
+        Fetch incomplete tasks for every team member in parallel
+        and return per-member workload summaries.
+        """
+        async def fetch_member(name: str) -> dict:
+            tasks = await self.get_incomplete_tasks_assigned_to(name, subtypes=subtypes, force_refresh=force_refresh) or []
+            time_spent = sum(t.time_spent_mn for t in tasks)
+            time_left = sum(t.time_left_mn for t in tasks)
+            return {
+                "name": name,
+                "task_count": len(tasks),
+                "time_spent_mn": time_spent,
+                "time_left_mn": time_left,
+                "tasks": [t.model_dump() for t in tasks],
+            }
+
+        results = await asyncio.gather(*(fetch_member(name) for name in TEAM_MEMBERS))
+        return sorted(results, key=lambda r: r["time_left_mn"], reverse=True)
+
     async def _get_descendants_from_db(self, task_id: str) -> list[TaskDetail]:
         """
         Recursively collect all descendants from MongoDB by traversing
@@ -183,7 +272,7 @@ class WorkService:
         """
         Retrieve the authorization token for the Link API.
         """
-        return ""
+        return "CortexEwNC@xDf8pSV353KHqSACxwUxkAw61qgsY@XdsKjLrAGnYMdCV5PHDAMSsXqz5QW"
 
     async def _query_tasks_from_api(self, query: str) -> list[TaskDetail] | None:
         """

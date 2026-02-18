@@ -113,32 +113,31 @@ export const statusColor = (status: string): string => {
         s.includes("implemented") ||
         s.includes("obsolete") ||
         s.includes("closed") ||
-        s.includes("validated")
+        s.includes("validated") ||
+        s.includes("approved") || 
+        s.includes("answered")
     )
         return "green";
     if (s.includes("in progress") || s.includes("in development")) return "orange";
     if (s.includes("needs peer review")) return "yellow";
     if (s.includes("blocked")) return "red";
-    if (s.includes("to be vetted") || 
-        s.includes("to dispatch") ||
-        s.includes("gathering requirements") ||
-        s.includes("ready to start")
+    if (
+        s.includes("reopened")
     ) 
-        return "gray";
+        return "blue";
     return "gray";
 };
 
-/** All known doc sub types for filtering */
+/** All known doc sub types for filtering (matches backend TaskType enum) */
 export const DOC_SUB_TYPES = [
-    "Question",
-    "Development",
-    "Technical Document",
-    "Research Analysis",
-    "Code Review",
-    "Defect - Application",
     "Enhancement",
+    "Development",
     "QA",
-    "Test Case Review",
+    "Defect - Application",
+    "Defect - Configuration",
+    "Defect - QA",
+    "Question",
+    "Code Review",
     "Meeting",
     "Technical Vetting",
     "Product Discovery",
@@ -148,6 +147,7 @@ export const DOC_SUB_TYPES = [
     "Product Review",
     "UX Review",
     "Final Review",
+    "Other",
 ] as const;
 
 export const DEFAULT_DOC_SUB_TYPE_FILTER = new Set(["Development", "QA"]);
