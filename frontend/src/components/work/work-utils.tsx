@@ -115,9 +115,15 @@ export const statusColor = (status: string): string => {
         s.includes("closed")
     )
         return "green";
-    if (s.includes("progress") || s.includes("in development")) return "orange";
+    if (s.includes("in progress") || s.includes("in development")) return "orange";
+    if (s.includes("needs peer review")) return "yellow";
     if (s.includes("blocked")) return "red";
-    if (s.includes("todo") || s.includes("open") || s.includes("new")) return "blue";
+    if (s.includes("to be vetted") || 
+        s.includes("to dispatch") ||
+        s.includes("gathering requirements") ||
+        s.includes("ready to start")
+    ) 
+        return "blue";
     return "gray";
 };
 

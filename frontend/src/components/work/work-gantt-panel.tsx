@@ -420,7 +420,6 @@ export const WorkGanttPanel = () => {
                             const startOffset = row.start ? daysBetween(timelineStart, row.start) : 0;
                             const duration = row.start && row.end ? Math.max(daysBetween(row.start, row.end), 1) : 0;
                             const barColor = statusColor(row.task.status);
-                            const isCompleted = row.task.time_left_mn === 0 && row.task.time_spent_mn > 0;
                             const isRoot = row.level === 0;
 
                             return (
@@ -439,7 +438,7 @@ export const WorkGanttPanel = () => {
                                             left={`${startOffset * DAY_WIDTH}px`}
                                             w={`${duration * DAY_WIDTH}px`}
                                             h={`${ROW_HEIGHT - 12}px`}
-                                            bg={isCompleted ? accentColor : `${barColor}.400`}
+                                            bg={`${barColor}.400`}
                                             opacity={isRoot ? 1 : 0.85}
                                             borderRadius="sm"
                                             display="flex"
