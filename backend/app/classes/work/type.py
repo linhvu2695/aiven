@@ -5,6 +5,7 @@ class TaskType(str, Enum):
     ENHANCEMENT_SOFTWARE = "enhancement - software"
     ENHANCEMENT_ENGINEERING = "enhancement - engineering"
     ENHANCEMENT_MVP = "enhancement - mvp"
+    TECHNICAL_DEBT_CODE = "technical debt code"
     DEVELOPMENT = "development"
     TDD = "tdd"
 

@@ -12,6 +12,7 @@ import {
     FaClipboardList,
     FaTerminal,
     FaSignal,
+    FaBars,
 } from "react-icons/fa";
 import { FaPeopleGroup } from "react-icons/fa6";
 
@@ -134,6 +135,7 @@ export const DOC_SUB_TYPES = [
     "Enhancement - Software",
     "Enhancement - Engineering",
     "Enhancement - MVP",
+    "Technical Debt Code",
     "Development",
     "TDD",
     "QA",
@@ -163,6 +165,7 @@ export const docSubTypeIcon = (docSubType: string): { icon: React.ReactNode; col
     const s = docSubType.toLowerCase();
     if (s.includes("question")) return { icon: <FaQuestion size={12} />, color: "cyan.400" };
     if (s.includes("development")) return { icon: <FaCode size={12} />, color: "yellow.400" };
+    if (s.includes("technical debt code")) return { icon: <FaBars size={12} />, color: "yellow.400" };
     if (s.includes("tdd")) return { icon: <FaTerminal size={12} />, color: "yellow.400" };
     if (s.includes("document")) return { icon: <FaFileAlt size={12} />, color: "purple.400" };
     if (s.includes("research") || s.includes("analysis")) return { icon: <FaFlask size={12} />, color: "cyan.400" };

@@ -21,6 +21,7 @@ class TaskStatus(str, Enum):
     IN_DEVELOPMENT = "in development"
 
     BLOCKED_BY_ORANGE_LOGIC = "blocked by orange logic"
+    BLOCKED_BY_CUSTOMER = "blocked by customer"
     ON_HOLD = "on hold"
     
     TO_BE_VETTED = "to be vetted"
