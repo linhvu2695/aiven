@@ -303,40 +303,7 @@ class WorkService:
         Call the AccessToken endpoint to get a new token (1 day TTL).
         On success, stores in Redis and returns the new token.
         """
-        try:
-            async with httpx.AsyncClient(timeout=30) as client:
-                # 1. Get new token using the current token
-                response = await client.get(
-                    f"{LINK_ACCESS_TOKEN_URL}?format=JSON",
-                    headers={"accept": "application/json", "Token": current_token},
-                )
-
-                # 2. Return if request is not successful
-                if response.status_code != 200:
-                    self.logger.error(
-                        f"Link token refresh failed: HTTP {response.status_code} - {response.text}"
-                    )
-                    return None
-
-                # 3. Parse the response
-                data = response.json()
-                api_resp = data.get("APIResponse") or {}
-                new_token = api_resp.get("Result") if isinstance(api_resp, dict) else None
-
-                # 4. Return if no new token is found
-                if not new_token:
-                    new_token = data.get("AccessToken") or data.get("Token") or data.get("token")
-                if not new_token:
-                    self.logger.error(f"Link token refresh: no token in response - {str(data)[:200]}")
-                    return None
-
-                # 5. Store the new token in Redis
-                cache = RedisCache()
-                await cache.set(LINK_AUTH_TOKEN_CACHE_KEY, new_token, expiration=LINK_AUTH_TOKEN_TTL)
-                return new_token
-        except Exception as e:
-            self.logger.error(f"Link token refresh failed: {e}")
-            return None
+        raise NotImplementedError("Not implemented")
 
     async def _query_tasks_from_api(
         self, query: str, retry_on_401: bool = True
@@ -362,18 +329,7 @@ class WorkService:
             async with httpx.AsyncClient(timeout=30) as client:
                 response = await client.get(LINK_SEARCH_API_URL, params=params)
 
-                if response.status_code == 401 and retry_on_401:
-                    # 1. Refresh the authentication token and retry the request
-                    new_token = await self._refresh_auth_token(token)
-                    if new_token:
-                        params["token"] = new_token
-                        retry_response = await client.get(LINK_SEARCH_API_URL, params=params)
-                        retry_response.raise_for_status()
-                        data = retry_response.json()
-                        items = data.get("APIResponse", {}).get("Items", [])
-                        return [TaskDetail.from_api_response(item) for item in items]
-                    self.logger.error("Link API 401: token refresh failed, request aborted")
-                    return None
+                # 1. TODO: Handle 401 Unauthorized
 
                 # 2. Normal case
                 response.raise_for_status()

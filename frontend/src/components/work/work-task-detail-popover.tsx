@@ -26,7 +26,7 @@ import { BASE_URL } from "@/App";
 import { toaster } from "@/components/ui/toaster";
 import { Tooltip } from "@/components/ui/tooltip";
 import type { TaskDetail } from "./work-types";
-import { formatMinutes, formatDate, statusColor } from "./work-utils";
+import { formatMinutes, formatDate, statusColor, docSubTypeIcon } from "./work-utils";
 import { useWorkContext } from "@/context/work-ctx";
 
 const DetailRow = ({
@@ -56,6 +56,7 @@ interface WorkTaskDetailPopoverProps {
 export const WorkTaskDetailPopover = ({ task }: WorkTaskDetailPopoverProps) => {
     const { updateTask, refreshTaskTree } = useWorkContext();
     const [isRefreshing, setIsRefreshing] = useState(false);
+    const docSubType = task.doc_sub_type ? docSubTypeIcon(task.doc_sub_type) : null;
     const [isRefreshingTree, setIsRefreshingTree] = useState(false);
 
     const handleRefresh = async () => {
@@ -110,10 +111,12 @@ export const WorkTaskDetailPopover = ({ task }: WorkTaskDetailPopoverProps) => {
                                 <Badge size="sm" variant="outline" colorPalette="gray">
                                     {task.identifier}
                                 </Badge>
-                                {task.doc_sub_type && (
-                                    <Badge size="sm" variant="outline" colorPalette="gray">
-                                        {task.doc_sub_type}
-                                    </Badge>
+                                {docSubType?.icon && (
+                                    <Tooltip content={task.doc_sub_type}>
+                                        <Box color={docSubType.color} flexShrink={0}>
+                                            {docSubType.icon}
+                                        </Box>
+                                    </Tooltip>
                                 )}
                                 <Badge
                                     size="sm"
@@ -122,11 +125,6 @@ export const WorkTaskDetailPopover = ({ task }: WorkTaskDetailPopoverProps) => {
                                 >
                                     {task.status || "No status"}
                                 </Badge>
-                            </HStack>
-                            <HStack gap={1}>
-                                <Text fontWeight="semibold" fontSize="sm">
-                                    {task.title || "Untitled Task"}
-                                </Text>
                                 <Tooltip content="Refresh this task">
                                     <IconButton
                                         aria-label="Refresh task from Orange Logic"
@@ -149,6 +147,12 @@ export const WorkTaskDetailPopover = ({ task }: WorkTaskDetailPopoverProps) => {
                                         {isRefreshingTree ? <Spinner size="xs" /> : <FaSyncAlt />}
                                     </IconButton>
                                 </Tooltip>
+                            </HStack>
+                            
+                            <HStack gap={1}>
+                                <Text fontWeight="semibold" fontSize="sm">
+                                    {task.title || "Untitled Task"}
+                                </Text>
                             </HStack>
 
                             {/* Time summary */}
