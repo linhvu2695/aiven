@@ -6,6 +6,7 @@ export interface TeamTask {
     time_spent_mn: number;
     time_left_mn: number;
     cortex_share_link?: string;
+    estimated_completion_date?: string | null;
     [key: string]: unknown;
 }
 

@@ -1,14 +1,4 @@
-import {
-    Box,
-    VStack,
-    HStack,
-    Text,
-    Spinner,
-    IconButton,
-    Badge,
-    CloseButton,
-    Link,
-} from "@chakra-ui/react";
+import { Box, VStack, HStack, Text, Spinner, IconButton } from "@chakra-ui/react";
 import { useMemo } from "react";
 import {
     BarChart,
@@ -23,11 +13,11 @@ import {
 import { Chart, useChart } from "@chakra-ui/charts";
 import { FaSyncAlt } from "react-icons/fa";
 import { Tooltip } from "@/components/ui/tooltip";
-import { formatMinutes, ACCENT_COLOR, docSubTypeIcon, statusColor } from "@/components/work/work-utils";
+import { formatMinutes, ACCENT_COLOR } from "@/components/work/work-utils";
 import { SummaryCard } from "@/components/ui/summary-card";
 import { useColorModeValue } from "@/components/ui/color-mode";
 import { useTeamContext } from "@/context/team-ctx";
-import { WorkTaskProgressBar } from "@/components/work/work-task-progress-bar";
+import { TeamMemberTaskList } from "./team-member-task-list";
 import type { MemberWorkload } from "./team-types";
 import { MEMBER_COLORS } from "./team-types";
 
@@ -263,112 +253,11 @@ export const TeamWorkloadContent = ({
 
                 {/* Task list for selected member */}
                 {selectedMemberData && (
-                    <Box
-                        borderWidth="1px"
-                        borderColor="border.default"
-                        borderRadius="md"
-                        overflow="hidden"
-                        mt={2}
-                    >
-                        <HStack
-                            justify="space-between"
-                            px={4}
-                            py={2}
-                            bg={selectedMemberBg}
-                            borderBottomWidth="1px"
-                            borderColor="border.default"
-                        >
-                            <Text fontSize="sm" fontWeight="semibold">
-                                {selectedMemberData.name} — {selectedMemberData.tasks.length} remaining task
-                                {selectedMemberData.tasks.length !== 1 ? "s" : ""}
-                            </Text>
-                            <CloseButton size="sm" onClick={() => setSelectedMember(null)} />
-                        </HStack>
-                        <VStack align="stretch" gap={0} maxH="400px" overflowY="auto" p={2}>
-                            {(() => {
-                                const maxTime = Math.max(
-                                    ...selectedMemberData.tasks.map(
-                                        (t) => t.time_spent_mn + t.time_left_mn
-                                    ),
-                                    1
-                                );
-                                const sortedTasks = [...selectedMemberData.tasks].sort((a, b) => {
-                                    const da = a.estimated_completion_date
-                                        ? new Date(a.estimated_completion_date as string).getTime()
-                                        : Infinity;
-                                    const db = b.estimated_completion_date
-                                        ? new Date(b.estimated_completion_date as string).getTime()
-                                        : Infinity;
-                                    return da - db;
-                                });
-                                return sortedTasks.map((task) => {
-                                    const obsolete = (task.status || "")
-                                        .toLowerCase()
-                                        .includes("obsolete");
-                                    const { icon, color } = docSubTypeIcon(task.doc_sub_type || "");
-                                    return (
-                                        <HStack
-                                            key={task.identifier}
-                                            p={2}
-                                            gap={2}
-                                            _hover={{
-                                                bg: { base: "gray.100", _dark: "gray.800" },
-                                            }}
-                                            borderRadius="md"
-                                        >
-                                            {icon && (
-                                                <Box color={color} flexShrink={0}>
-                                                    {icon}
-                                                </Box>
-                                            )}
-                                            <HStack flex={1} gap={2} overflow="hidden" minW={0}>
-                                                {task.cortex_share_link ? (
-                                                    <Link
-                                                        href={task.cortex_share_link}
-                                                        target="_blank"
-                                                        rel="noopener noreferrer"
-                                                        fontSize="sm"
-                                                        truncate
-                                                        color={
-                                                            obsolete ? "fg.subtle" : undefined
-                                                        }
-                                                        _hover={{ textDecoration: "underline" }}
-                                                    >
-                                                        {task.title || task.identifier}
-                                                    </Link>
-                                                ) : (
-                                                    <Text
-                                                        fontSize="sm"
-                                                        truncate
-                                                        color={
-                                                            obsolete ? "fg.subtle" : undefined
-                                                        }
-                                                    >
-                                                        {task.title || task.identifier}
-                                                    </Text>
-                                                )}
-                                                <Badge
-                                                    size="sm"
-                                                    colorPalette={statusColor(task.status)}
-                                                    variant="subtle"
-                                                    flexShrink={0}
-                                                >
-                                                    {task.status || "—"}
-                                                </Badge>
-                                            </HStack>
-                                            {!obsolete && (
-                                                <WorkTaskProgressBar
-                                                    spent={task.time_spent_mn}
-                                                    left={task.time_left_mn}
-                                                    maxTime={maxTime}
-                                                />
-                                            )}
-                                        </HStack>
-                                    );
-                                });
-                            })()}
-                        </VStack>
-                    </Box>
+                    <TeamMemberTaskList
+                        memberData={selectedMemberData}
+                        headerBg={selectedMemberBg}
+                        onClose={() => setSelectedMember(null)}
+                    />
                 )}
             </VStack>
         </Box>
