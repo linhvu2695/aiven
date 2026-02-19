@@ -9,7 +9,7 @@ import httpx
 from app.core.database import MongoDB
 from app.core.cache import RedisCache
 from app.classes.work.status import COMPLETE_STATUSES
-from app.classes.work.work import TaskDetail
+from app.classes.work.work import TaskDetail, TASK_DETAIL_FIELDS
 from app.classes.work.type import TaskType
 from app.classes.work.team import TEAM_MEMBERS
 
@@ -25,24 +25,6 @@ COUNT_PER_PAGE = 300
 LINK_ACCESS_TOKEN_URL = f"{LINK_URL}/api/Authentication/v1.0/AccessToken"
 LINK_AUTH_TOKEN_CACHE_KEY = "work:link:auth_token"
 LINK_AUTH_TOKEN_TTL = 86400  # 1 day
-
-TASK_DETAIL_FIELDS = [
-    "CoreField.Title",
-    "CoreField.Identifier",
-    "CoreField.DocSubType",
-    "CoreField.Status",
-    "Document.TimeSpentMn",
-    "Document.TimeLeftMn",
-    "AssignedTo",
-    "dev.Main-dev-team",
-    "Document.CurrentEstimatedCompletionDate",
-    "Document.CortexShareLinkRaw",
-    "product.Importance-for-next-release",
-    "Document.Dependencies",
-    "Document.CurrentEstimatedStartDate",
-    "Document.CurrentEstimatedEndDate",
-    "ParentFolderIdentifier"
-]
 
 
 class WorkService:

@@ -13,6 +13,7 @@ export interface TaskDetail {
     dependencies: string[];
     estimated_start_date: string | null;
     estimated_end_date: string | null;
+    completion_date: string | null;
     parent_folder_identifier: string;
     monitor: boolean;
 }

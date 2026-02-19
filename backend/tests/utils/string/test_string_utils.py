@@ -1,8 +1,13 @@
+from datetime import datetime
 from typing import Optional
 from app.utils.string.string_utils import (
     validate_required_fields,
     validate_exactly_one_field,
-    is_empty_string
+    is_empty_string,
+    parse_int,
+    parse_datetime,
+    extract_value,
+    parse_list,
 )
 
 
@@ -223,3 +228,119 @@ class TestIsEmptyString:
         assert is_empty_string("hello") is False
         assert is_empty_string("  hello  ") is False
         assert is_empty_string("123") is False
+
+
+class TestParseInt:
+    """Test cases for parse_int function"""
+
+    def test_valid_integer_string(self):
+        """Test parsing valid integer string"""
+        assert parse_int("42") == 42
+        assert parse_int("0") == 0
+        assert parse_int("-10") == -10
+
+    def test_valid_integer(self):
+        """Test passing integer returns as-is"""
+        assert parse_int(42) == 42
+        assert parse_int(0) == 0
+
+    def test_invalid_string_returns_default(self):
+        """Test invalid string returns default"""
+        assert parse_int("abc") == 0
+        assert parse_int("12.5") == 0
+        assert parse_int("") == 0
+
+    def test_custom_default(self):
+        """Test custom default value"""
+        assert parse_int("abc", default=-1) == -1
+        assert parse_int(None, default=99) == 99
+
+    def test_none_returns_default(self):
+        """Test None returns default"""
+        assert parse_int(None) == 0
+        assert parse_int(None, default=5) == 5
+
+
+class TestParseDatetime:
+    """Test cases for parse_datetime function"""
+
+    def test_us_format_with_time(self):
+        """Test US format with AM/PM time"""
+        result = parse_datetime("1/29/2026 5:08:49 AM")
+        assert result == datetime(2026, 1, 29, 5, 8, 49)
+        result = parse_datetime("12/31/2025 11:59:59 PM")
+        assert result == datetime(2025, 12, 31, 23, 59, 59)
+
+    def test_named_month_formats(self):
+        """Test named month formats"""
+        assert parse_datetime("02 March, 2026") == datetime(2026, 3, 2)
+        assert parse_datetime("02 March 2026") == datetime(2026, 3, 2)
+        assert parse_datetime("March 02, 2026") == datetime(2026, 3, 2)
+
+    def test_iso_format(self):
+        """Test ISO 8601 format"""
+        assert parse_datetime("2026-01-29T05:08:49") == datetime(2026, 1, 29, 5, 8, 49)
+        assert parse_datetime("2026-01-29") == datetime(2026, 1, 29)
+
+    def test_empty_or_none_returns_none(self):
+        """Test empty values return None"""
+        assert parse_datetime(None) is None
+        assert parse_datetime("") is None
+
+    def test_invalid_format_returns_none(self):
+        """Test invalid format returns None"""
+        assert parse_datetime("not a date") is None
+        assert parse_datetime("32/13/2026") is None
+
+
+class TestExtractValue:
+    """Test cases for extract_value function"""
+
+    def test_dict_with_value_key(self):
+        """Test extracting Value from dict"""
+        assert extract_value({"Value": "hello"}) == "hello"
+        assert extract_value({"Value": 123}) == "123"
+        assert extract_value({"Value": ""}) == ""
+
+    def test_dict_without_value_key(self):
+        """Test dict without Value key returns empty string"""
+        assert extract_value({"other": "key"}) == ""
+        assert extract_value({}) == ""
+
+    def test_non_dict_returns_string(self):
+        """Test non-dict returns string representation"""
+        assert extract_value("hello") == "hello"
+        assert extract_value(42) == "42"
+        assert extract_value(True) == "True"
+
+    def test_none_returns_empty_string(self):
+        """Test None returns empty string"""
+        assert extract_value(None) == ""
+
+
+class TestParseList:
+    """Test cases for parse_list function"""
+
+    def test_comma_separated_string(self):
+        """Test comma-separated string parsing"""
+        assert parse_list("a, b, c") == ["a", "b", "c"]
+        assert parse_list("single") == ["single"]
+
+    def test_strips_whitespace(self):
+        """Test whitespace is stripped from items"""
+        assert parse_list("  a  ,  b  ,  c  ") == ["a", "b", "c"]
+
+    def test_empty_string_returns_empty_list(self):
+        """Test empty string returns empty list"""
+        assert parse_list("") == []
+        assert parse_list(None) == []
+
+    def test_already_list_returns_as_is(self):
+        """Test list input returns unchanged"""
+        assert parse_list(["a", "b", "c"]) == ["a", "b", "c"]
+        assert parse_list([]) == []
+
+    def test_custom_separator(self):
+        """Test custom separator"""
+        assert parse_list("a|b|c", separator="|") == ["a", "b", "c"]
+        assert parse_list("a;b;c", separator=";") == ["a", "b", "c"]

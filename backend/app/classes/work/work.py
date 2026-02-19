@@ -5,6 +5,24 @@ from pydantic import BaseModel, Field
 
 from app.utils.string.string_utils import parse_int, parse_datetime, parse_list, extract_value
 
+TASK_DETAIL_FIELDS = [
+    "CoreField.Title",
+    "CoreField.Identifier",
+    "CoreField.DocSubType",
+    "CoreField.Status",
+    "Document.TimeSpentMn",
+    "Document.TimeLeftMn",
+    "AssignedTo",
+    "dev.Main-dev-team",
+    "Document.CurrentEstimatedCompletionDate",
+    "Document.CortexShareLinkRaw",
+    "product.Importance-for-next-release",
+    "Document.Dependencies",
+    "Document.CurrentEstimatedStartDate",
+    "Document.CurrentEstimatedEndDate",
+    "Completiondate",
+    "ParentFolderIdentifier"
+]
 
 class SetMonitorRequest(BaseModel):
     monitor: bool
@@ -30,6 +48,7 @@ class TaskDetail(BaseModel):
     dependencies: list[str] = []
     estimated_start_date: Optional[datetime] = None
     estimated_end_date: Optional[datetime] = None
+    completion_date: Optional[datetime] = None
     parent_folder_identifier: str = ""
     monitor: bool = False
 
@@ -51,5 +70,6 @@ class TaskDetail(BaseModel):
             dependencies=parse_list(data.get("Document.Dependencies", "")),
             estimated_start_date=parse_datetime(data.get("Document.CurrentEstimatedStartDate")),
             estimated_end_date=parse_datetime(data.get("Document.CurrentEstimatedEndDate")),
+            completion_date=parse_datetime(data.get("Completiondate")),
             parent_folder_identifier=data.get("ParentFolderIdentifier", ""),
         )

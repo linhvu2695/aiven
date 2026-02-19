@@ -148,7 +148,7 @@ export const WorkTaskDetailPopover = ({ task }: WorkTaskDetailPopoverProps) => {
                                     </IconButton>
                                 </Tooltip>
                             </HStack>
-                            
+
                             <HStack gap={1}>
                                 <Text fontWeight="semibold" fontSize="sm">
                                     {task.title || "Untitled Task"}
@@ -204,14 +204,17 @@ export const WorkTaskDetailPopover = ({ task }: WorkTaskDetailPopoverProps) => {
                                 <DetailRow icon={<FaExclamationTriangle size={10} />} label="Priority">
                                     <Text fontSize="xs">{task.importance_for_next_release || "—"}</Text>
                                 </DetailRow>
-                                <DetailRow icon={<FaCalendarAlt size={10} />} label="Start">
+                                <DetailRow icon={<FaCalendarAlt size={10} />} label="Est. Start">
                                     <Text fontSize="xs">{formatDate(task.estimated_start_date)}</Text>
                                 </DetailRow>
-                                <DetailRow icon={<FaCalendarAlt size={10} />} label="End">
+                                <DetailRow icon={<FaCalendarAlt size={10} />} label="Est. End">
                                     <Text fontSize="xs">{formatDate(task.estimated_end_date)}</Text>
                                 </DetailRow>
-                                <DetailRow icon={<FaCalendarAlt size={10} />} label="Completion">
+                                <DetailRow icon={<FaCalendarAlt size={10} />} label="Est. Completion">
                                     <Text fontSize="xs">{formatDate(task.estimated_completion_date)}</Text>
+                                </DetailRow>
+                                <DetailRow icon={<FaCalendarAlt size={10} />} label="Complete Date">
+                                    <Text fontSize="xs">{formatDate(task.completion_date)}</Text>
                                 </DetailRow>
                                 {task.dependencies.length > 0 && (
                                     <DetailRow icon={<FaProjectDiagram size={10} />} label="Dependencies">

@@ -75,6 +75,7 @@ def parse_datetime(value) -> Optional[datetime]:
     if not value or value == "":
         return None
     DATE_FORMATS = [
+        "%m/%d/%Y %I:%M:%S %p",  # "1/29/2026 5:08:49 AM"
         "%d %B, %Y",   # "02 March, 2026"
         "%d %B %Y",    # "02 March 2026"
         "%B %d, %Y",   # "March 02, 2026"
