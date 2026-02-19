@@ -10,6 +10,10 @@ class SetMonitorRequest(BaseModel):
     monitor: bool
 
 
+class SetAuthTokenRequest(BaseModel):
+    token: str
+
+
 class TaskDetail(BaseModel):
     """Task detail model mapped from Link Search API response fields."""
     title: str = ""

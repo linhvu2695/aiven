@@ -1,6 +1,7 @@
 import asyncio
 import json
 import logging
+import os
 from datetime import datetime, timezone
 
 import httpx
@@ -17,26 +18,32 @@ INCOMPLETE_TASKS_CACHE_TTL = 3600  # 1 hour
 TASK_COLLECTION_NAME = "tasks"
 
 LINK_URL = "https://link.orangelogic.com"
+
 LINK_SEARCH_API_URL = f"{LINK_URL}/API/Search/v4.0/Search"
 COUNT_PER_PAGE = 300
 
+LINK_ACCESS_TOKEN_URL = f"{LINK_URL}/api/Authentication/v1.0/AccessToken"
+LINK_AUTH_TOKEN_CACHE_KEY = "work:link:auth_token"
+LINK_AUTH_TOKEN_TTL = 86400  # 1 day
+
 TASK_DETAIL_FIELDS = [
-    "CoreField.Title", 
+    "CoreField.Title",
     "CoreField.Identifier",
-    "CoreField.DocSubType", 
+    "CoreField.DocSubType",
     "CoreField.Status",
-    "Document.TimeSpentMn", 
-    "Document.TimeLeftMn", 
+    "Document.TimeSpentMn",
+    "Document.TimeLeftMn",
     "AssignedTo",
     "dev.Main-dev-team",
-    "Document.CurrentEstimatedCompletionDate", 
+    "Document.CurrentEstimatedCompletionDate",
     "Document.CortexShareLinkRaw",
-    "product.Importance-for-next-release", 
+    "product.Importance-for-next-release",
     "Document.Dependencies",
-    "Document.CurrentEstimatedStartDate", 
+    "Document.CurrentEstimatedStartDate",
     "Document.CurrentEstimatedEndDate",
     "ParentFolderIdentifier"
 ]
+
 
 class WorkService:
     _instance = None
@@ -46,6 +53,10 @@ class WorkService:
         if not hasattr(cls, "_instance") or cls._instance is None:
             cls._instance = super(WorkService, cls).__new__(cls)
         return cls._instance
+
+    # -------------------------------------------------------------------------
+    # Public methods
+    # -------------------------------------------------------------------------
 
     async def get_task_detail(self, task_id: str, force_refresh: bool = False) -> TaskDetail | None:
         """
@@ -85,9 +96,6 @@ class WorkService:
 
         # Fetch from API recursively and upsert into MongoDB
         return await self._fetch_and_store_descendants(task_id)
-
-    def _cache_key_incomplete_tasks_assigned_to(self, assignee: str, subtype: str) -> str:
-        return f"work:incomplete:{assignee.lower()}:{subtype}"
 
     async def get_incomplete_tasks_assigned_to(
         self, assignee: str, subtypes: list[TaskType] = [], force_refresh: bool = False
@@ -183,6 +191,45 @@ class WorkService:
         results = await asyncio.gather(*(fetch_member(name) for name in TEAM_MEMBERS))
         return sorted(results, key=lambda r: r["time_left_mn"], reverse=True)
 
+    async def get_monitored_tasks(self) -> list[TaskDetail]:
+        """
+        Return all tasks where monitor=True.
+        """
+        db = MongoDB()
+        cursor = db.database[TASK_COLLECTION_NAME].find({"monitor": True})
+        results = []
+        async for doc in cursor:
+            doc.pop("_id", None)
+            results.append(TaskDetail(**doc))
+        return results
+
+    async def set_task_monitor(self, task_id: str, monitor: bool) -> bool:
+        """
+        Set the monitor flag on a task in MongoDB.
+        Returns True if the task was found and updated.
+        """
+        db = MongoDB()
+        existing = await db.find_documents_by_field(TASK_COLLECTION_NAME, "identifier", task_id)
+        if not existing:
+            return False
+        doc = existing[0]
+        await db.update_document(TASK_COLLECTION_NAME, str(doc["_id"]), {"monitor": monitor})
+        return True
+
+    async def set_link_auth_token(self, token: str) -> None:
+        """
+        Store the Link API auth token in Redis for future use.
+        """
+        cache = RedisCache()
+        await cache.set(LINK_AUTH_TOKEN_CACHE_KEY, token, expiration=LINK_AUTH_TOKEN_TTL)
+
+    # -------------------------------------------------------------------------
+    # Private methods
+    # -------------------------------------------------------------------------
+
+    def _cache_key_incomplete_tasks_assigned_to(self, assignee: str, subtype: str) -> str:
+        return f"work:incomplete:{assignee.lower()}:{subtype}"
+
     async def _get_descendants_from_db(self, task_id: str) -> list[TaskDetail]:
         """
         Recursively collect all descendants from MongoDB by traversing
@@ -226,31 +273,6 @@ class WorkService:
 
         return descendants
 
-    async def get_monitored_tasks(self) -> list[TaskDetail]:
-        """
-        Return all tasks where monitor=True.
-        """
-        db = MongoDB()
-        cursor = db.database[TASK_COLLECTION_NAME].find({"monitor": True})
-        results = []
-        async for doc in cursor:
-            doc.pop("_id", None)
-            results.append(TaskDetail(**doc))
-        return results
-
-    async def set_task_monitor(self, task_id: str, monitor: bool) -> bool:
-        """
-        Set the monitor flag on a task in MongoDB.
-        Returns True if the task was found and updated.
-        """
-        db = MongoDB()
-        existing = await db.find_documents_by_field(TASK_COLLECTION_NAME, "identifier", task_id)
-        if not existing:
-            return False
-        doc = existing[0]
-        await db.update_document(TASK_COLLECTION_NAME, str(doc["_id"]), {"monitor": monitor})
-        return True
-
     async def _upsert_task(self, task: TaskDetail) -> None:
         """
         Upsert a task into MongoDB by its identifier.
@@ -268,17 +290,65 @@ class WorkService:
             document["created_at"] = datetime.now(timezone.utc).isoformat()
             await db.insert_document(TASK_COLLECTION_NAME, document)
 
-    async def _get_auth_token(self) -> str:
+    async def _get_auth_token_from_cache(self) -> str | None:
         """
-        Retrieve the authorization token for the Link API.
+        Retrieve the authorization token for the Link API from cache.
         """
-        return ""
+        cache = RedisCache()
+        cached = await cache.get(LINK_AUTH_TOKEN_CACHE_KEY)
+        return cached if cached else None
 
-    async def _query_tasks_from_api(self, query: str) -> list[TaskDetail] | None:
+    async def _refresh_auth_token(self, current_token: str) -> str | None:
+        """
+        Call the AccessToken endpoint to get a new token (1 day TTL).
+        On success, stores in Redis and returns the new token.
+        """
+        try:
+            async with httpx.AsyncClient(timeout=30) as client:
+                # 1. Get new token using the current token
+                response = await client.get(
+                    f"{LINK_ACCESS_TOKEN_URL}?format=JSON",
+                    headers={"accept": "application/json", "Token": current_token},
+                )
+
+                # 2. Return if request is not successful
+                if response.status_code != 200:
+                    self.logger.error(
+                        f"Link token refresh failed: HTTP {response.status_code} - {response.text}"
+                    )
+                    return None
+
+                # 3. Parse the response
+                data = response.json()
+                api_resp = data.get("APIResponse") or {}
+                new_token = api_resp.get("Result") if isinstance(api_resp, dict) else None
+
+                # 4. Return if no new token is found
+                if not new_token:
+                    new_token = data.get("AccessToken") or data.get("Token") or data.get("token")
+                if not new_token:
+                    self.logger.error(f"Link token refresh: no token in response - {str(data)[:200]}")
+                    return None
+
+                # 5. Store the new token in Redis
+                cache = RedisCache()
+                await cache.set(LINK_AUTH_TOKEN_CACHE_KEY, new_token, expiration=LINK_AUTH_TOKEN_TTL)
+                return new_token
+        except Exception as e:
+            self.logger.error(f"Link token refresh failed: {e}")
+            return None
+
+    async def _query_tasks_from_api(
+        self, query: str, retry_on_401: bool = True
+    ) -> list[TaskDetail] | None:
         """
         Call the Link Search API to query tasks.
+        On 401, attempts token refresh once (if retry_on_401) and retries.
         """
-        token = await self._get_auth_token()
+        token = await self._get_auth_token_from_cache()
+        if token is None:
+            self.logger.error("Link API 401: no token found, request aborted")
+            return None
 
         params = {
             "query": f"({query}) AND DocType:Project",
@@ -291,6 +361,21 @@ class WorkService:
         try:
             async with httpx.AsyncClient(timeout=30) as client:
                 response = await client.get(LINK_SEARCH_API_URL, params=params)
+
+                if response.status_code == 401 and retry_on_401:
+                    # 1. Refresh the authentication token and retry the request
+                    new_token = await self._refresh_auth_token(token)
+                    if new_token:
+                        params["token"] = new_token
+                        retry_response = await client.get(LINK_SEARCH_API_URL, params=params)
+                        retry_response.raise_for_status()
+                        data = retry_response.json()
+                        items = data.get("APIResponse", {}).get("Items", [])
+                        return [TaskDetail.from_api_response(item) for item in items]
+                    self.logger.error("Link API 401: token refresh failed, request aborted")
+                    return None
+
+                # 2. Normal case
                 response.raise_for_status()
                 data = response.json()
                 items = data.get("APIResponse", {}).get("Items", [])

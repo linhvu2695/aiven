@@ -20,6 +20,7 @@ class RedisCache:
             username=settings.redis_username,
             password=settings.redis_password,
             max_connections=settings.redis_max_connections,
+            decode_responses=True,
         )
         self._initialized = True
     

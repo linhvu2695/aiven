@@ -5,6 +5,7 @@ import { Tooltip } from "@/components/ui/tooltip";
 import { useNavigate, useLocation } from "react-router-dom";
 import { FaRobot } from "react-icons/fa6";
 import { useChat } from "@/context/chat-ctx";
+import { SettingsPopover } from "@/components/settings/settings-popover";
 
 function Navbar() {
     const navigate = useNavigate();
@@ -36,6 +37,7 @@ function Navbar() {
                             gap={3}
                             display={{ base: "none", sm: "flex" }}
                         >
+                            <SettingsPopover />
                             <ColorModeButton />
                             <Text fontSize={"18px"} fontWeight={"bold"}>
                                 aiven

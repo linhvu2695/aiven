@@ -1,6 +1,6 @@
 from fastapi import APIRouter, HTTPException, Query
 from app.services.work.work_service import WorkService
-from app.classes.work.work import SetMonitorRequest
+from app.classes.work.work import SetMonitorRequest, SetAuthTokenRequest
 from app.classes.work.type import TaskType
 
 router = APIRouter()
@@ -34,6 +34,13 @@ async def set_task_monitor(task_id: str, body: SetMonitorRequest):
     success = await WorkService().set_task_monitor(task_id, body.monitor)
     if not success:
         raise HTTPException(status_code=404, detail=f"Task {task_id} not found")
+    return {"ok": True}
+
+
+@router.put("/auth-token")
+async def set_link_auth_token(body: SetAuthTokenRequest):
+    """Inject the Link API auth token into Redis for direct use."""
+    await WorkService().set_link_auth_token(body.token)
     return {"ok": True}
 
 

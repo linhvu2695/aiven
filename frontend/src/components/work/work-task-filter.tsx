@@ -93,7 +93,7 @@ export const WorkTaskFilter = ({
     const hasAssigneeFilter = assignees.length > 0 && onAssigneeFilterChange;
 
     return (
-        <Popover.Root>
+        <Popover.Root positioning={{ placement: "bottom-start" }}>
             <Popover.Trigger asChild>
                 <IconButton
                     aria-label="Filter tasks"
