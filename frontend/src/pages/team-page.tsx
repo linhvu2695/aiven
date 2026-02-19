@@ -1,11 +1,19 @@
-import { HStack } from "@chakra-ui/react";
+import { Box, HStack, VStack, IconButton } from "@chakra-ui/react";
 import { useEffect, useState, useCallback } from "react";
+import { Tooltip } from "@/components/ui/tooltip";
 import { BASE_URL } from "@/App";
-import { TeamWorkloadContent, TeamWorkloadFilterPanel } from "@/components/team";
-import type { MemberWorkload } from "@/components/team";
+import {
+    TeamFilterPanel,
+    TeamIncompleteTasksContent,
+    TEAM_VIEW_MODES,
+    TEAM_VIEW_MODE_ICONS,
+    type MemberWorkload,
+    type TeamViewMode,
+} from "@/components/team";
 import { TeamProvider } from "@/context/team-ctx";
 
 const TeamPageContent = () => {
+    const [viewMode, setViewMode] = useState<TeamViewMode>("incomplete_tasks");
     const [workload, setWorkload] = useState<MemberWorkload[]>([]);
     const [loading, setLoading] = useState(true);
     const [selectedTypes, setSelectedTypes] = useState<Set<string>>(
@@ -45,13 +53,49 @@ const TeamPageContent = () => {
 
     return (
         <TeamProvider>
-            <HStack h="calc(100vh - 105px)" align="stretch" gap={0}>
-                <TeamWorkloadContent
-                    workload={workload}
-                    loading={loading}
-                    onRefresh={handleRefresh}
-                />
-                <TeamWorkloadFilterPanel
+            <HStack h="calc(100vh - 105px)" align="stretch" gap={0} overflow="hidden">
+                {/* Left: content based on mode */}
+                <Box flex={1} minW={0} overflow="hidden">
+                    {viewMode === "incomplete_tasks" && (
+                        <TeamIncompleteTasksContent
+                            workload={workload}
+                            loading={loading}
+                            onRefresh={handleRefresh}
+                        />
+                    )}
+                </Box>
+
+                {/* Mode toolbar: vertical bar with icon buttons */}
+                <VStack
+                    py={4}
+                    px={1}
+                    gap={1}
+                    borderLeftWidth="1px"
+                    borderRightWidth="1px"
+                    borderColor="border.default"
+                    bg="bg.subtle"
+                    flexShrink={0}
+                >
+                    {TEAM_VIEW_MODES.map((mode) => (
+                        <Tooltip
+                            key={mode.id}
+                            content={mode.label}
+                            positioning={{ placement: "left" }}
+                        >
+                            <IconButton
+                                aria-label={mode.label}
+                                variant={viewMode === mode.id ? "solid" : "ghost"}
+                                size="sm"
+                                onClick={() => setViewMode(mode.id)}
+                            >
+                                {TEAM_VIEW_MODE_ICONS[mode.id]}
+                            </IconButton>
+                        </Tooltip>
+                    ))}
+                </VStack>
+
+                {/* Right: filter panel */}
+                <TeamFilterPanel
                     selectedTypes={selectedTypes}
                     onSelectedTypesChange={setSelectedTypes}
                 />

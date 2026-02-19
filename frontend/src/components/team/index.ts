@@ -1,4 +1,4 @@
-export { TeamWorkloadContent } from "./team-workload-content";
-export { TeamWorkloadFilterPanel } from "./team-workload-filter-panel";
-export type { MemberWorkload, TeamTask } from "./team-types";
-export { MEMBER_COLORS } from "./team-types";
+export { TeamIncompleteTasksContent } from "./team-incomplete-tasks-content";
+export { TeamFilterPanel } from "./team-filter-panel";
+export type { MemberWorkload, TeamTask, TeamViewMode } from "./team-types";
+export { MEMBER_COLORS, TEAM_VIEW_MODES, TEAM_VIEW_MODE_ICONS } from "./team-types";

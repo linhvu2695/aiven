@@ -1,3 +1,22 @@
+import type { ReactNode } from "react";
+import { FaBars } from "react-icons/fa6";
+
+/** View modes for the team page content area */
+export type TeamViewMode = "incomplete_tasks";
+
+export interface TeamViewModeOption {
+    id: TeamViewMode;
+    label: string;
+}
+
+export const TEAM_VIEW_MODES: TeamViewModeOption[] = [
+    { id: "incomplete_tasks", label: "Incomplete Tasks" },
+];
+
+export const TEAM_VIEW_MODE_ICONS: Record<TeamViewMode, ReactNode> = {
+    incomplete_tasks: <FaBars />,
+};
+
 export interface TeamTask {
     title: string;
     identifier: string;

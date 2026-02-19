@@ -1,15 +1,15 @@
 import { Box, VStack, HStack, Text, Checkbox } from "@chakra-ui/react";
 import { DOC_SUB_TYPES, docSubTypeIcon } from "@/components/work/work-utils";
 
-interface TeamWorkloadFilterPanelProps {
+interface TeamFilterPanelProps {
     selectedTypes: Set<string>;
     onSelectedTypesChange: (types: Set<string>) => void;
 }
 
-export const TeamWorkloadFilterPanel = ({
+export const TeamFilterPanel = ({
     selectedTypes,
     onSelectedTypesChange,
-}: TeamWorkloadFilterPanelProps) => {
+}: TeamFilterPanelProps) => {
     const allTypesSelected = DOC_SUB_TYPES.every((t) => selectedTypes.has(t));
 
     const toggleType = (type: string) => {

@@ -21,17 +21,17 @@ import { TeamMemberTaskList } from "./team-member-task-list";
 import type { MemberWorkload } from "./team-types";
 import { MEMBER_COLORS } from "./team-types";
 
-interface TeamWorkloadContentProps {
+interface TeamIncompleteTasksContentProps {
     workload: MemberWorkload[];
     loading: boolean;
     onRefresh: () => void;
 }
 
-export const TeamWorkloadContent = ({
+export const TeamIncompleteTasksContent = ({
     workload,
     loading,
     onRefresh,
-}: TeamWorkloadContentProps) => {
+}: TeamIncompleteTasksContentProps) => {
     const { selectedMember, setSelectedMember } = useTeamContext();
     const accentColor = useColorModeValue(ACCENT_COLOR.light, ACCENT_COLOR.dark);
 
