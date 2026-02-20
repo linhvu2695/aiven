@@ -1,25 +1,15 @@
 import { Box, VStack, HStack, Text, Spinner, IconButton } from "@chakra-ui/react";
 import { useMemo } from "react";
-import {
-    BarChart,
-    Bar,
-    XAxis,
-    YAxis,
-    CartesianGrid,
-    Tooltip as ReTooltip,
-    Cell,
-    ResponsiveContainer,
-} from "recharts";
-import { Chart, useChart } from "@chakra-ui/charts";
 import { FaSyncAlt } from "react-icons/fa";
 import { Tooltip } from "@/components/ui/tooltip";
+import { MemberBarChart, type MemberBarChartDataItem } from "@/components/ui/member-bar-chart";
 import { formatMinutes, ACCENT_COLOR } from "@/components/work/work-utils";
 import { SummaryCard } from "@/components/ui/summary-card";
 import { useColorModeValue } from "@/components/ui/color-mode";
 import { useTeamContext } from "@/context/team-ctx";
 import { TeamMemberTaskList } from "./team-member-task-list";
 import type { MemberWorkload } from "./team-types";
-import { MEMBER_COLORS } from "./team-types";
+import { MEMBER_COLORS, memberTaskCount, memberTimeSpentMn, memberTimeLeftMn } from "./team-types";
 
 interface TeamIncompleteTasksContentProps {
     workload: MemberWorkload[];
@@ -56,8 +46,8 @@ export const TeamIncompleteTasksContent = ({
             workload.map((m, i) => ({
                 name: m.name.split(" ")[0],
                 fullName: m.name,
-                value: Math.round((m.time_left_mn / 60) * 10) / 10,
-                rawMinutes: m.time_left_mn,
+                value: Math.round((memberTimeLeftMn(m) / 60) * 10) / 10,
+                rawMinutes: memberTimeLeftMn(m),
                 color: MEMBER_COLORS[i % MEMBER_COLORS.length],
             })),
         [workload]
@@ -68,21 +58,15 @@ export const TeamIncompleteTasksContent = ({
             workload.map((m, i) => ({
                 name: m.name.split(" ")[0],
                 fullName: m.name,
-                value: m.task_count,
+                value: memberTaskCount(m),
                 color: MEMBER_COLORS[i % MEMBER_COLORS.length],
             })),
         [workload]
     );
 
-    const chartRemaining = useChart({
-        data: chartDataRemaining,
-        series: [{ name: "value" as const, color: "teal.400" }],
-    });
-
-    const chartTaskCount = useChart({
-        data: chartDataTaskCount,
-        series: [{ name: "value" as const, color: "teal.400" }],
-    });
+    const handleBarClick = (item: MemberBarChartDataItem) => {
+        setSelectedMember(selectedMember === item.fullName ? null : item.fullName);
+    };
 
     if (loading) {
         return (
@@ -97,18 +81,12 @@ export const TeamIncompleteTasksContent = ({
         );
     }
 
-    const totalTasks = workload.reduce((s, m) => s + m.task_count, 0);
-    const totalRemaining = workload.reduce((s, m) => s + m.time_left_mn, 0);
-    const totalSpent = workload.reduce((s, m) => s + m.time_spent_mn, 0);
-
-    const handleBarClick = (ev: unknown) => {
-        const e = ev as { payload?: { fullName?: string }; fullName?: string };
-        const name = e?.payload?.fullName ?? e?.fullName;
-        if (name) setSelectedMember(selectedMember === name ? null : name);
-    };
+    const totalTasks = workload.reduce((s, m) => s + memberTaskCount(m), 0);
+    const totalRemaining = workload.reduce((s, m) => s + memberTimeLeftMn(m), 0);
+    const totalSpent = workload.reduce((s, m) => s + memberTimeSpentMn(m), 0);
 
     return (
-        <Box flex={1} overflowY="auto" px={6} py={4}>
+        <Box flex={1} minH={0} overflowY="auto" px={6} py={4}>
             <VStack gap={6} align="stretch">
                 {/* Header */}
                 <HStack gap={3}>
@@ -138,117 +116,20 @@ export const TeamIncompleteTasksContent = ({
 
                 {/* Charts */}
                 <HStack gap={6} align="start">
-                    <Box flex={1}>
-                        <Text fontSize="sm" fontWeight="semibold" mb={2}>
-                            Time Remaining (hours)
-                        </Text>
-                        <Chart.Root chart={chartRemaining}>
-                            <ResponsiveContainer width="100%" height={200}>
-                                <BarChart
-                                    data={chartDataRemaining}
-                                    margin={{ top: 5, right: 10, bottom: 5, left: -10 }}
-                                >
-                                    <CartesianGrid strokeDasharray="3 3" opacity={0.2} />
-                                    <XAxis dataKey="name" fontSize={11} />
-                                    <YAxis fontSize={11} />
-                                    <ReTooltip
-                                        cursor={{ fill: "transparent" }}
-                                        content={({ payload }) => {
-                                            if (!payload?.length) return null;
-                                            const d = payload[0].payload;
-                                            return (
-                                                <Box
-                                                    bg="bg.panel"
-                                                    borderWidth="1px"
-                                                    borderColor="border.default"
-                                                    borderRadius="md"
-                                                    px={3}
-                                                    py={2}
-                                                    shadow="md"
-                                                >
-                                                    <Text fontSize="xs" fontWeight="bold">
-                                                        {d.fullName}
-                                                    </Text>
-                                                    <Text fontSize="xs" color="fg.muted">
-                                                        {formatMinutes(d.rawMinutes)} remaining
-                                                    </Text>
-                                                </Box>
-                                            );
-                                        }}
-                                    />
-                                    <Bar
-                                        dataKey="value"
-                                        radius={[4, 4, 0, 0]}
-                                        cursor="pointer"
-                                        onClick={handleBarClick}
-                                    >
-                                        {chartDataRemaining.map((entry) => (
-                                            <Cell
-                                                key={entry.fullName}
-                                                fill={chartRemaining.color(entry.color)}
-                                            />
-                                        ))}
-                                    </Bar>
-                                </BarChart>
-                            </ResponsiveContainer>
-                        </Chart.Root>
-                    </Box>
-
-                    <Box flex={1}>
-                        <Text fontSize="sm" fontWeight="semibold" mb={2}>
-                            Remaining Tasks
-                        </Text>
-                        <Chart.Root chart={chartTaskCount}>
-                            <ResponsiveContainer width="100%" height={200}>
-                                <BarChart
-                                    data={chartDataTaskCount}
-                                    margin={{ top: 5, right: 10, bottom: 5, left: -10 }}
-                                >
-                                    <CartesianGrid strokeDasharray="3 3" opacity={0.2} />
-                                    <XAxis dataKey="name" fontSize={11} />
-                                    <YAxis fontSize={11} allowDecimals={false} />
-                                    <ReTooltip
-                                        cursor={{ fill: "transparent" }}
-                                        content={({ payload }) => {
-                                            if (!payload?.length) return null;
-                                            const d = payload[0].payload;
-                                            return (
-                                                <Box
-                                                    bg="bg.panel"
-                                                    borderWidth="1px"
-                                                    borderColor="border.default"
-                                                    borderRadius="md"
-                                                    px={3}
-                                                    py={2}
-                                                    shadow="md"
-                                                >
-                                                    <Text fontSize="xs" fontWeight="bold">
-                                                        {d.fullName}
-                                                    </Text>
-                                                    <Text fontSize="xs" color="fg.muted">
-                                                        {d.value} task{d.value !== 1 ? "s" : ""}
-                                                    </Text>
-                                                </Box>
-                                            );
-                                        }}
-                                    />
-                                    <Bar
-                                        dataKey="value"
-                                        radius={[4, 4, 0, 0]}
-                                        cursor="pointer"
-                                        onClick={handleBarClick}
-                                    >
-                                        {chartDataTaskCount.map((entry) => (
-                                            <Cell
-                                                key={entry.fullName}
-                                                fill={chartTaskCount.color(entry.color)}
-                                            />
-                                        ))}
-                                    </Bar>
-                                </BarChart>
-                            </ResponsiveContainer>
-                        </Chart.Root>
-                    </Box>
+                    <MemberBarChart
+                        title="Time Remaining (hours)"
+                        data={chartDataRemaining}
+                        tooltipFormat="time"
+                        tooltipSuffix="remaining"
+                        onBarClick={handleBarClick}
+                    />
+                    <MemberBarChart
+                        title="Remaining Tasks"
+                        data={chartDataTaskCount}
+                        tooltipFormat="tasks"
+                        allowDecimals={false}
+                        onBarClick={handleBarClick}
+                    />
                 </HStack>
 
                 {/* Task list for selected member */}

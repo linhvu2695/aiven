@@ -181,8 +181,6 @@ class WorkService:
                 filters["completion_date"] = date_cond
             if subtypes:
                 filters["doc_sub_type"] = {"$in": [s.value for s in subtypes]}
-            
-            self.logger.info(f"Getting completed tasks assigned to {assignee} with filters: {filters}")
 
             docs = await db.find_documents_with_filters(
                 TASK_COLLECTION_NAME,
@@ -227,18 +225,40 @@ class WorkService:
         """
         async def fetch_member(name: str) -> dict:
             tasks = await self.get_incomplete_tasks_assigned_to(name, subtypes=subtypes, force_refresh=force_refresh) or []
-            time_spent = sum(t.time_spent_mn for t in tasks)
-            time_left = sum(t.time_left_mn for t in tasks)
             return {
                 "name": name,
-                "task_count": len(tasks),
-                "time_spent_mn": time_spent,
-                "time_left_mn": time_left,
                 "tasks": [t.model_dump() for t in tasks],
             }
 
         results = await asyncio.gather(*(fetch_member(name) for name in TEAM_MEMBERS))
-        return sorted(results, key=lambda r: r["time_left_mn"], reverse=True)
+        return sorted(results, key=lambda r: sum(t["time_left_mn"] for t in r["tasks"]), reverse=True)
+
+    async def get_team_completed_workload(
+        self,
+        start_date: datetime | None = None,
+        end_date: datetime | None = None,
+        subtypes: list[TaskType] = [],
+        force_refresh: bool = False,
+    ) -> list[dict]:
+        """
+        Fetch completed tasks for every team member in parallel within a date range
+        and return per-member completed task counts.
+        """
+        async def fetch_member(name: str) -> dict:
+            tasks = await self.get_completed_tasks_assigned_to(
+                name,
+                subtypes=subtypes,
+                start_date=start_date,
+                end_date=end_date,
+                force_refresh=force_refresh,
+            ) or []
+            return {
+                "name": name,
+                "tasks": [t.model_dump() for t in tasks],
+            }
+
+        results = await asyncio.gather(*(fetch_member(name) for name in TEAM_MEMBERS))
+        return sorted(results, key=lambda r: len(r["tasks"]), reverse=True)
 
     async def get_monitored_tasks(self) -> list[TaskDetail]:
         """

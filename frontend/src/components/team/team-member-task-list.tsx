@@ -1,31 +1,47 @@
 import { Box, HStack, VStack, Text, CloseButton } from "@chakra-ui/react";
 import { TeamMemberTaskItem } from "./team-member-task-item";
-import type { MemberWorkload } from "./team-types";
+import type { MemberWorkload, TeamTask } from "./team-types";
+
+export type TeamMemberTaskListVariant = "incomplete" | "completed";
 
 interface TeamMemberTaskListProps {
     memberData: MemberWorkload;
     headerBg: string;
     onClose: () => void;
+    variant?: TeamMemberTaskListVariant;
 }
+
+const sortIncomplete = (a: TeamTask, b: TeamTask) => {
+    const da = a.estimated_completion_date
+        ? new Date(a.estimated_completion_date as string).getTime()
+        : Infinity;
+    const db = b.estimated_completion_date
+        ? new Date(b.estimated_completion_date as string).getTime()
+        : Infinity;
+    return da - db;
+};
+
+const sortCompleted = (a: TeamTask, b: TeamTask) => {
+    const dateA = a.completion_date || a.estimated_completion_date;
+    const dateB = b.completion_date || b.estimated_completion_date;
+    const da = dateA ? new Date(dateA as string).getTime() : 0;
+    const db = dateB ? new Date(dateB as string).getTime() : 0;
+    return db - da; // most recent first
+};
 
 export const TeamMemberTaskList = ({
     memberData,
     headerBg,
     onClose,
+    variant = "incomplete",
 }: TeamMemberTaskListProps) => {
     const maxTime = Math.max(
-        ...memberData.tasks.map((t) => t.time_spent_mn + t.time_left_mn),
+        ...memberData.tasks.map((t) => t.time_spent_mn + (t.time_left_mn ?? 0)),
         1
     );
-    const sortedTasks = [...memberData.tasks].sort((a, b) => {
-        const da = a.estimated_completion_date
-            ? new Date(a.estimated_completion_date as string).getTime()
-            : Infinity;
-        const db = b.estimated_completion_date
-            ? new Date(b.estimated_completion_date as string).getTime()
-            : Infinity;
-        return da - db;
-    });
+    const sortedTasks = [...memberData.tasks].sort(variant === "completed" ? sortCompleted : sortIncomplete);
+    const headerLabel = variant === "completed" ? "completed" : "remaining";
+    const count = memberData.tasks.length;
 
     return (
         <Box
@@ -44,8 +60,8 @@ export const TeamMemberTaskList = ({
                 borderColor="border.default"
             >
                 <Text fontSize="sm" fontWeight="semibold">
-                    {memberData.name} — {memberData.tasks.length} remaining task
-                    {memberData.tasks.length !== 1 ? "s" : ""}
+                    {memberData.name} — {count} {headerLabel} task
+                    {count !== 1 ? "s" : ""}
                 </Text>
                 <CloseButton size="sm" onClick={onClose} />
             </HStack>

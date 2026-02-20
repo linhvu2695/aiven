@@ -1,8 +1,8 @@
 import type { ReactNode } from "react";
-import { FaBars } from "react-icons/fa6";
+import { FaBars, FaCalendarCheck } from "react-icons/fa6";
 
 /** View modes for the team page content area */
-export type TeamViewMode = "incomplete_tasks";
+export type TeamViewMode = "incomplete_tasks" | "completed_tasks";
 
 export interface TeamViewModeOption {
     id: TeamViewMode;
@@ -11,10 +11,12 @@ export interface TeamViewModeOption {
 
 export const TEAM_VIEW_MODES: TeamViewModeOption[] = [
     { id: "incomplete_tasks", label: "Incomplete Tasks" },
+    { id: "completed_tasks", label: "Completed Tasks" },
 ];
 
 export const TEAM_VIEW_MODE_ICONS: Record<TeamViewMode, ReactNode> = {
     incomplete_tasks: <FaBars />,
+    completed_tasks: <FaCalendarCheck />,
 };
 
 export interface TeamTask {
@@ -26,16 +28,20 @@ export interface TeamTask {
     time_left_mn: number;
     cortex_share_link?: string;
     estimated_completion_date?: string | null;
+    completion_date?: string | null;
     [key: string]: unknown;
 }
 
 export interface MemberWorkload {
     name: string;
-    task_count: number;
-    time_spent_mn: number;
-    time_left_mn: number;
     tasks: TeamTask[];
 }
+
+export const memberTaskCount = (m: MemberWorkload) => m.tasks.length;
+export const memberTimeSpentMn = (m: MemberWorkload) =>
+    m.tasks.reduce((s, t) => s + t.time_spent_mn, 0);
+export const memberTimeLeftMn = (m: MemberWorkload) =>
+    m.tasks.reduce((s, t) => s + (t.time_left_mn ?? 0), 0);
 
 export const MEMBER_COLORS = [
     "teal.400",

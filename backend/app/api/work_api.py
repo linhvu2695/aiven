@@ -85,3 +85,22 @@ async def get_completed_tasks_for_assignee(
 async def get_team_workload(subtypes: list[TaskType] = Query(default=[]), force_refresh: bool = False):
     """Get workload summary for all team members, optionally filtered by task subtypes."""
     return await WorkService().get_team_workload(subtypes=subtypes, force_refresh=force_refresh)
+
+
+@router.get("/team/completed-workload")
+async def get_team_completed_workload(
+    start_date: date | None = Query(default=None, description="Start of completion date range (inclusive)"),
+    end_date: date | None = Query(default=None, description="End of completion date range (inclusive)"),
+    subtypes: list[TaskType] = Query(default=[]),
+    force_refresh: bool = False,
+):
+    """Get completed task counts per team member within a date range."""
+    tz = timezone.utc
+    start_dt = datetime.combine(start_date, time.min, tzinfo=tz) if start_date else None
+    end_dt = datetime.combine(end_date, time.max, tzinfo=tz) if end_date else None
+    return await WorkService().get_team_completed_workload(
+        start_date=start_dt,
+        end_date=end_dt,
+        subtypes=subtypes,
+        force_refresh=force_refresh,
+    )

@@ -5,6 +5,7 @@ import { BASE_URL } from "@/App";
 import {
     TeamFilterPanel,
     TeamIncompleteTasksContent,
+    TeamCompletedTasksContent,
     TEAM_VIEW_MODES,
     TEAM_VIEW_MODE_ICONS,
     type MemberWorkload,
@@ -55,13 +56,16 @@ const TeamPageContent = () => {
         <TeamProvider>
             <HStack h="calc(100vh - 105px)" align="stretch" gap={0} overflow="hidden">
                 {/* Left: content based on mode */}
-                <Box flex={1} minW={0} overflow="hidden">
+                <Box flex={1} minW={0} minH={0} overflow="hidden" display="flex" flexDirection="column">
                     {viewMode === "incomplete_tasks" && (
                         <TeamIncompleteTasksContent
                             workload={workload}
                             loading={loading}
                             onRefresh={handleRefresh}
                         />
+                    )}
+                    {viewMode === "completed_tasks" && (
+                        <TeamCompletedTasksContent selectedTypes={selectedTypes} />
                     )}
                 </Box>
 
