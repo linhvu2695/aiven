@@ -3,7 +3,13 @@ import { useCallback, useMemo, useState } from "react";
 import { FaSyncAlt } from "react-icons/fa";
 import { Tooltip } from "@/components/ui/tooltip";
 import { DateRangeSelector, formatDateForInput } from "@/components/ui/date-range-selector";
-import { MemberBarChart, type MemberBarChartDataItem } from "@/components/ui/member-bar-chart";
+import {
+    MemberSingleBarChart,
+    MemberDualBarChart,
+    MemberBarChartModeSelector,
+    type MemberSingleBarChartDataItem,
+    type MemberDualBarChartDataItem,
+} from "./member-bar-charts";
 import { useTeamContext } from "@/context/team-ctx";
 import { TeamMemberTaskList } from "./team-member-task-list";
 import { formatMinutes, ACCENT_COLOR } from "@/components/work/work-utils";
@@ -19,7 +25,7 @@ interface TeamCompletedTasksContentProps {
 }
 
 export const TeamCompletedTasksContent = ({ selectedTypes }: TeamCompletedTasksContentProps) => {
-    const { selectedMember, setSelectedMember } = useTeamContext();
+    const { selectedMember, setSelectedMember, chartMode } = useTeamContext();
     const accentColor = useColorModeValue(ACCENT_COLOR.light, ACCENT_COLOR.dark);
     const today = new Date();
     const defaultStart = new Date(today);
@@ -67,20 +73,41 @@ export const TeamCompletedTasksContent = ({ selectedTypes }: TeamCompletedTasksC
         fetchCompletedWorkload(true);
     }, [fetchCompletedWorkload]);
 
-    const chartDataHours = workload.map((m, i) => ({
-        name: m.name.split(" ")[0],
-        fullName: m.name,
-        value: Math.round((memberTimeSpentMn(m) / 60) * 10) / 10,
-        rawMinutes: memberTimeSpentMn(m),
-        color: MEMBER_COLORS[i % MEMBER_COLORS.length],
-    }));
+    const chartData = useMemo(
+        () =>
+            workload.map((m, i) => ({
+                name: m.name.split(" ")[0],
+                fullName: m.name,
+                hours: Math.round((memberTimeSpentMn(m) / 60) * 10) / 10,
+                tasks: memberTaskCount(m),
+                rawMinutes: memberTimeSpentMn(m),
+                color: MEMBER_COLORS[i % MEMBER_COLORS.length],
+            })),
+        [workload]
+    );
 
-    const chartDataTaskCount = workload.map((m, i) => ({
-        name: m.name.split(" ")[0],
-        fullName: m.name,
-        value: memberTaskCount(m),
-        color: MEMBER_COLORS[i % MEMBER_COLORS.length],
-    }));
+    const chartDataHours = useMemo(
+        () =>
+            chartData.map(({ name, fullName, hours, rawMinutes, color }) => ({
+                name,
+                fullName,
+                value: hours,
+                rawMinutes,
+                color,
+            })),
+        [chartData]
+    );
+
+    const chartDataTaskCount = useMemo(
+        () =>
+            chartData.map(({ name, fullName, tasks, color }) => ({
+                name,
+                fullName,
+                value: tasks,
+                color,
+            })),
+        [chartData]
+    );
 
     const selectedMemberData = useMemo(
         () => (selectedMember ? workload.find((m) => m.name === selectedMember) : null),
@@ -99,7 +126,7 @@ export const TeamCompletedTasksContent = ({ selectedTypes }: TeamCompletedTasksC
     );
 
     const handleBarClick = useCallback(
-        (item: MemberBarChartDataItem) => {
+        (item: MemberSingleBarChartDataItem | MemberDualBarChartDataItem) => {
             setSelectedMember(selectedMember === item.fullName ? null : item.fullName);
         },
         [selectedMember, setSelectedMember]
@@ -109,10 +136,13 @@ export const TeamCompletedTasksContent = ({ selectedTypes }: TeamCompletedTasksC
         <Box flex={1} minH={0} overflowY="auto" px={6} py={4}>
             <VStack gap={6} align="stretch">
                 {/* Header */}
-                <HStack gap={3}>
-                    <Text fontWeight="bold" fontSize="xl">
-                        Completed Tasks
-                    </Text>
+                <HStack gap={3} justify="space-between" wrap="wrap">
+                    <HStack gap={3}>
+                        <Text fontWeight="bold" fontSize="xl">
+                            Completed Tasks
+                        </Text>
+                        <MemberBarChartModeSelector />
+                    </HStack>
                     <Tooltip content="Refresh from Orange Logic">
                         <IconButton
                             aria-label="Force refresh"
@@ -178,22 +208,34 @@ export const TeamCompletedTasksContent = ({ selectedTypes }: TeamCompletedTasksC
                                 color={accentColor}
                             />
                         </HStack>
-                        <HStack gap={6} align="start">
-                            <MemberBarChart
-                                title="Time Spent (hours)"
-                                data={chartDataHours}
-                                tooltipFormat="time"
-                                tooltipSuffix="spent"
+                        {chartMode === "dual" ? (
+                            <MemberDualBarChart
+                                title="Completed Workload"
+                                data={chartData}
+                                leftLabel="Hours"
+                                rightLabel="Tasks"
+                                tooltipTimeSuffix="spent"
                                 onBarClick={handleBarClick}
+                                width="800px"
                             />
-                            <MemberBarChart
-                                title="Completed Tasks"
-                                data={chartDataTaskCount}
-                                tooltipFormat="tasks"
-                                allowDecimals={false}
-                                onBarClick={handleBarClick}
-                            />
-                        </HStack>
+                        ) : (
+                            <HStack gap={6} align="start">
+                                <MemberSingleBarChart
+                                    title="Time Spent (hours)"
+                                    data={chartDataHours}
+                                    tooltipFormat="time"
+                                    tooltipSuffix="spent"
+                                    onBarClick={handleBarClick}
+                                />
+                                <MemberSingleBarChart
+                                    title="Completed Tasks"
+                                    data={chartDataTaskCount}
+                                    tooltipFormat="tasks"
+                                    allowDecimals={false}
+                                    onBarClick={handleBarClick}
+                                />
+                            </HStack>
+                        )}
                         {selectedMemberData && (
                             <TeamMemberTaskList
                                 memberData={selectedMemberData}

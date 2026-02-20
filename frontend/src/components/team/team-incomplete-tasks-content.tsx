@@ -2,7 +2,13 @@ import { Box, VStack, HStack, Text, Spinner, IconButton } from "@chakra-ui/react
 import { useMemo } from "react";
 import { FaSyncAlt } from "react-icons/fa";
 import { Tooltip } from "@/components/ui/tooltip";
-import { MemberBarChart, type MemberBarChartDataItem } from "@/components/ui/member-bar-chart";
+import {
+    MemberDualBarChart,
+    MemberSingleBarChart,
+    MemberBarChartModeSelector,
+    type MemberDualBarChartDataItem,
+    type MemberSingleBarChartDataItem,
+} from "./member-bar-charts";
 import { formatMinutes, ACCENT_COLOR } from "@/components/work/work-utils";
 import { SummaryCard } from "@/components/ui/summary-card";
 import { useColorModeValue } from "@/components/ui/color-mode";
@@ -22,7 +28,7 @@ export const TeamIncompleteTasksContent = ({
     loading,
     onRefresh,
 }: TeamIncompleteTasksContentProps) => {
-    const { selectedMember, setSelectedMember } = useTeamContext();
+    const { selectedMember, setSelectedMember, chartMode } = useTeamContext();
     const accentColor = useColorModeValue(ACCENT_COLOR.light, ACCENT_COLOR.dark);
 
     const selectedMemberData = useMemo(
@@ -41,30 +47,43 @@ export const TeamIncompleteTasksContent = ({
         selectedMemberColor ? selectedMemberColor.replace(/\.\d+$/, ".800") : "gray.800"
     );
 
-    const chartDataRemaining = useMemo(
+    const chartData = useMemo(
         () =>
             workload.map((m, i) => ({
                 name: m.name.split(" ")[0],
                 fullName: m.name,
-                value: Math.round((memberTimeLeftMn(m) / 60) * 10) / 10,
+                hours: Math.round((memberTimeLeftMn(m) / 60) * 10) / 10,
+                tasks: memberTaskCount(m),
                 rawMinutes: memberTimeLeftMn(m),
                 color: MEMBER_COLORS[i % MEMBER_COLORS.length],
             })),
         [workload]
     );
 
-    const chartDataTaskCount = useMemo(
+    const chartDataHours = useMemo(
         () =>
-            workload.map((m, i) => ({
-                name: m.name.split(" ")[0],
-                fullName: m.name,
-                value: memberTaskCount(m),
-                color: MEMBER_COLORS[i % MEMBER_COLORS.length],
+            chartData.map(({ name, fullName, hours, rawMinutes, color }) => ({
+                name,
+                fullName,
+                value: hours,
+                rawMinutes,
+                color,
             })),
-        [workload]
+        [chartData]
     );
 
-    const handleBarClick = (item: MemberBarChartDataItem) => {
+    const chartDataTasks = useMemo(
+        () =>
+            chartData.map(({ name, fullName, tasks, color }) => ({
+                name,
+                fullName,
+                value: tasks,
+                color,
+            })),
+        [chartData]
+    );
+
+    const handleBarClick = (item: MemberDualBarChartDataItem | MemberSingleBarChartDataItem) => {
         setSelectedMember(selectedMember === item.fullName ? null : item.fullName);
     };
 
@@ -89,10 +108,13 @@ export const TeamIncompleteTasksContent = ({
         <Box flex={1} minH={0} overflowY="auto" px={6} py={4}>
             <VStack gap={6} align="stretch">
                 {/* Header */}
-                <HStack gap={3}>
-                    <Text fontWeight="bold" fontSize="xl">
-                        Team Workload
-                    </Text>
+                <HStack gap={3} justify="space-between" wrap="wrap">
+                    <HStack gap={3}>
+                        <Text fontWeight="bold" fontSize="xl">
+                            Team Workload
+                        </Text>
+                        <MemberBarChartModeSelector />
+                    </HStack>
                     <Tooltip content="Refresh from Orange Logic">
                         <IconButton
                             aria-label="Force refresh"
@@ -114,23 +136,35 @@ export const TeamIncompleteTasksContent = ({
                     <SummaryCard label="Time remaining" value={formatMinutes(totalRemaining)} />
                 </HStack>
 
-                {/* Charts */}
-                <HStack gap={6} align="start">
-                    <MemberBarChart
-                        title="Time Remaining (hours)"
-                        data={chartDataRemaining}
-                        tooltipFormat="time"
-                        tooltipSuffix="remaining"
+                {/* Chart */}
+                {chartMode === "dual" ? (
+                    <MemberDualBarChart
+                        title="Remaining Workload"
+                        data={chartData}
+                        leftLabel="Hours"
+                        rightLabel="Tasks"
+                        tooltipTimeSuffix="remaining"
                         onBarClick={handleBarClick}
+                        width="800px"
                     />
-                    <MemberBarChart
-                        title="Remaining Tasks"
-                        data={chartDataTaskCount}
-                        tooltipFormat="tasks"
-                        allowDecimals={false}
-                        onBarClick={handleBarClick}
-                    />
-                </HStack>
+                ) : (
+                    <HStack gap={6} align="start">
+                        <MemberSingleBarChart
+                            title="Time Remaining (hours)"
+                            data={chartDataHours}
+                            tooltipFormat="time"
+                            tooltipSuffix="remaining"
+                            onBarClick={handleBarClick}
+                        />
+                        <MemberSingleBarChart
+                            title="Remaining Tasks"
+                            data={chartDataTasks}
+                            tooltipFormat="tasks"
+                            allowDecimals={false}
+                            onBarClick={handleBarClick}
+                        />
+                    </HStack>
+                )}
 
                 {/* Task list for selected member */}
                 {selectedMemberData && (

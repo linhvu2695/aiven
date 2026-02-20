@@ -12,7 +12,7 @@ import {
 import { Chart, useChart } from "@chakra-ui/charts";
 import { formatMinutes } from "@/components/work/work-utils";
 
-export interface MemberBarChartDataItem {
+export interface MemberSingleBarChartDataItem {
     name: string;
     fullName: string;
     value: number;
@@ -20,19 +20,19 @@ export interface MemberBarChartDataItem {
     rawMinutes?: number;
 }
 
-export type MemberBarChartTooltipFormat = "time" | "tasks";
+export type MemberSingleBarChartTooltipFormat = "time" | "tasks";
 
-export interface MemberBarChartProps {
+export interface MemberSingleBarChartProps {
     title: string;
-    data: MemberBarChartDataItem[];
-    tooltipFormat: MemberBarChartTooltipFormat;
+    data: MemberSingleBarChartDataItem[];
+    tooltipFormat: MemberSingleBarChartTooltipFormat;
     tooltipSuffix?: string;
     allowDecimals?: boolean;
-    onBarClick?: (item: MemberBarChartDataItem) => void;
+    onBarClick?: (item: MemberSingleBarChartDataItem) => void;
     height?: number;
 }
 
-export const MemberBarChart = ({
+export const MemberSingleBarChart = ({
     title,
     data,
     tooltipFormat,
@@ -40,7 +40,7 @@ export const MemberBarChart = ({
     allowDecimals = true,
     onBarClick,
     height = 200,
-}: MemberBarChartProps) => {
+}: MemberSingleBarChartProps) => {
     const chart = useChart({
         data,
         series: [{ name: "value" as const, color: "teal.400" }],
@@ -48,7 +48,7 @@ export const MemberBarChart = ({
 
     const renderTooltipContent = (payload: unknown) => {
         const items = Array.isArray(payload) ? payload : [];
-        const d = items[0]?.payload as MemberBarChartDataItem | undefined;
+        const d = items[0]?.payload as MemberSingleBarChartDataItem | undefined;
         if (!d) return null;
         const valueText =
             tooltipFormat === "time"
@@ -76,7 +76,7 @@ export const MemberBarChart = ({
 
     const handleBarClick = onBarClick
         ? (ev: unknown) => {
-              const e = ev as { payload?: MemberBarChartDataItem };
+              const e = ev as { payload?: MemberSingleBarChartDataItem };
               const item = e?.payload;
               if (item) onBarClick(item);
           }
