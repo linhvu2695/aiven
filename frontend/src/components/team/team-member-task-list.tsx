@@ -1,6 +1,7 @@
 import { Box, HStack, VStack, Text, CloseButton } from "@chakra-ui/react";
 import { TeamMemberTaskItem } from "./team-member-task-item";
-import type { MemberWorkload, TeamTask } from "./team-types";
+import { formatMinutes } from "@/components/work/work-utils";
+import { isObsoleteTask, type MemberWorkload, type TeamTask } from "./team-types";
 
 export type TeamMemberTaskListVariant = "incomplete" | "completed";
 
@@ -43,6 +44,12 @@ export const TeamMemberTaskList = ({
     const headerLabel = variant === "completed" ? "completed" : "remaining";
     const count = memberData.tasks.length;
 
+    const nonObsoleteTasks = memberData.tasks.filter((t) => !isObsoleteTask(t));
+    const avgTimeSpentMn =
+        nonObsoleteTasks.length > 0
+            ? nonObsoleteTasks.reduce((s, t) => s + t.time_spent_mn, 0) / nonObsoleteTasks.length
+            : 0;
+
     return (
         <Box
             borderWidth="1px"
@@ -59,10 +66,15 @@ export const TeamMemberTaskList = ({
                 borderBottomWidth="1px"
                 borderColor="border.default"
             >
-                <Text fontSize="sm" fontWeight="semibold">
-                    {memberData.name} — {count} {headerLabel} task
-                    {count !== 1 ? "s" : ""}
-                </Text>
+                <VStack align="start" gap={0}>
+                    <Text fontSize="sm" fontWeight="semibold">
+                        {memberData.name} — {count} {headerLabel} task
+                        {count !== 1 ? "s" : ""}
+                    </Text>
+                    <Text fontSize="2xs" color="fg.muted">
+                        Spent average: {formatMinutes(Math.round(avgTimeSpentMn))}/task
+                    </Text>
+                </VStack>
                 <CloseButton size="sm" onClick={onClose} />
             </HStack>
             <VStack align="stretch" gap={0} maxH="400px" overflowY="auto" p={2}>

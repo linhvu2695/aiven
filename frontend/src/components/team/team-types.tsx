@@ -19,6 +19,9 @@ export const TEAM_VIEW_MODE_ICONS: Record<TeamViewMode, ReactNode> = {
     completed_tasks: <FaCalendarCheck />,
 };
 
+export const isObsoleteTask = (task: TeamTask) =>
+    (task.status || "").toLowerCase().includes("obsolete");
+
 export interface TeamTask {
     title: string;
     identifier: string;

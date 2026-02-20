@@ -1,7 +1,7 @@
 import { Box, HStack, Text, Badge, Link } from "@chakra-ui/react";
 import { docSubTypeIcon, statusColor } from "@/components/work/work-utils";
 import { WorkTaskProgressBar } from "@/components/work/work-task-progress-bar";
-import type { TeamTask } from "./team-types";
+import { isObsoleteTask, type TeamTask } from "./team-types";
 
 interface TeamMemberTaskItemProps {
     task: TeamTask;
@@ -9,7 +9,7 @@ interface TeamMemberTaskItemProps {
 }
 
 export const TeamMemberTaskItem = ({ task, maxTime }: TeamMemberTaskItemProps) => {
-    const obsolete = (task.status || "").toLowerCase().includes("obsolete");
+    const obsolete = isObsoleteTask(task);
     const { icon, color } = docSubTypeIcon(task.doc_sub_type || "");
 
     return (
