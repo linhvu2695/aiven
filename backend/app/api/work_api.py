@@ -1,3 +1,5 @@
+from datetime import date, datetime, time, timezone
+
 from fastapi import APIRouter, HTTPException, Query
 from app.services.work.work_service import WorkService
 from app.classes.work.work import SetMonitorRequest, SetAuthTokenRequest
@@ -55,6 +57,28 @@ async def get_incomplete_tasks_for_assignee(
     if results is None:
         return []
     return results
+
+
+@router.get("/assignee/{assignee}/completed")
+async def get_completed_tasks_for_assignee(
+    assignee: str,
+    subtypes: list[TaskType] = Query(default=[]),
+    start_date: date | None = Query(default=None, description="Filter by completion date (inclusive)"),
+    end_date: date | None = Query(default=None, description="Filter by completion date (inclusive)"),
+    force_refresh: bool = False,
+):
+    """Get completed tasks assigned to a given person, optionally filtered by subtypes and completion date range."""
+    tz = timezone.utc
+    start_dt = datetime.combine(start_date, time.min, tzinfo=tz) if start_date else None
+    end_dt = datetime.combine(end_date, time.max, tzinfo=tz) if end_date else None
+    results = await WorkService().get_completed_tasks_assigned_to(
+        assignee,
+        subtypes=subtypes,
+        start_date=start_dt,
+        end_date=end_dt,
+        force_refresh=force_refresh,
+    )
+    return results or []
 
 
 @router.get("/team/workload")

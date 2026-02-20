@@ -153,6 +153,73 @@ class WorkService:
 
         return results
 
+    async def get_completed_tasks_assigned_to(
+        self, 
+        assignee: str, 
+        subtypes: list[TaskType] = [], 
+        start_date: datetime | None = None, 
+        end_date: datetime | None = None, 
+        force_refresh: bool = False
+        ) -> list[TaskDetail] | None:
+        """
+        Get completed tasks assigned to a user.
+        Reads from MongoDB first (filtered by assignee, completion_date range, subtypes).
+        Only fetches from Orange Logic API when force_refresh=True; then upserts into MongoDB.
+        """
+        db = MongoDB()
+
+        if not force_refresh:
+            # 1. Try to get from MongoDB
+            filters: dict = {"assigned_to": assignee}
+            filters["status"] = {"$in": [s.value for s in COMPLETE_STATUSES]}
+            if start_date is not None or end_date is not None:
+                date_cond: dict = {}
+                if start_date is not None:
+                    date_cond["$gte"] = start_date
+                if end_date is not None:
+                    date_cond["$lte"] = end_date
+                filters["completion_date"] = date_cond
+            if subtypes:
+                filters["doc_sub_type"] = {"$in": [s.value for s in subtypes]}
+            
+            self.logger.info(f"Getting completed tasks assigned to {assignee} with filters: {filters}")
+
+            docs = await db.find_documents_with_filters(
+                TASK_COLLECTION_NAME,
+                filters,
+                collation={"locale": "en", "strength": 2},
+            )
+            if docs:
+                results: list[TaskDetail] = []
+                for doc in docs:
+                    doc.pop("_id", None)
+                    doc.pop("updated_at", None)
+                    doc.pop("created_at", None)
+                    results.append(TaskDetail(**doc))
+                return results
+            return []
+
+        # 2. Fetch from API if force refresh
+        query = f'participant("Assigned to"):("{assignee}") AND WorkflowStatus:({" OR ".join(COMPLETE_STATUSES)})'
+        if subtypes:
+            string_subtypes = [f'"{s.value}"' for s in subtypes]
+            query += f' AND DocSubType:({" OR ".join(string_subtypes)})'
+        if start_date is not None:
+            start_iso = start_date.strftime("%Y-%m-%d")
+            query += f" AND Completiondate>:{start_iso}"
+        if end_date is not None:
+            end_iso = end_date.strftime("%Y-%m-%d")
+            query += f" AND Completiondate<:{end_iso}"
+
+        results = await self._query_tasks_from_api(query) or []
+        if not results:
+            return []
+
+        for task in results:
+            await self._upsert_task(task)
+
+        return results
+
     async def get_team_workload(self, subtypes: list[TaskType] = [], force_refresh: bool = False) -> list[dict]:
         """
         Fetch incomplete tasks for every team member in parallel

@@ -110,16 +110,17 @@ class MongoDB:
 
     async def find_documents_with_filters(
         self,
-        collection_name: str, 
-        filters: Dict[str, Any], 
-        skip: int = 0, 
+        collection_name: str,
+        filters: Dict[str, Any],
+        skip: int = 0,
         limit: Optional[int] = None,
         sort_by: Optional[str] = None,
-        asc: bool = True
+        asc: bool = True,
+        collation: Optional[Dict[str, Any]] = None,
     ) -> list[dict]:
         """
         Find documents with multiple field filters and optional pagination/sorting.
-        
+
         Args:
             collection_name: Name of the MongoDB collection
             filters: Dictionary of field-value pairs to filter by
@@ -127,10 +128,11 @@ class MongoDB:
             limit: Maximum number of documents to return
             sort_by: Field name to sort by
             asc: True for ascending, False for descending
-        
+            collation: Optional MongoDB collation (e.g. {"locale": "en", "strength": 2} for case-insensitive)
+
         Returns:
             List of matching documents
-            
+
         Example:
             # Find images that are plant photos, not deleted, for a specific entity
             filters = {
@@ -140,7 +142,10 @@ class MongoDB:
             }
             docs = await MongoDB().find_documents_with_filters("images", filters, limit=10)
         """
-        cursor = self.database[collection_name].find(filters)
+        find_kwargs: Dict[str, Any] = {}
+        if collation is not None:
+            find_kwargs["collation"] = collation
+        cursor = self.database[collection_name].find(filters, **find_kwargs)
         
         # Apply sorting if specified
         if sort_by:
