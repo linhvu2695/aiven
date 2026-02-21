@@ -16,4 +16,5 @@ export interface TaskDetail {
     completion_date: string | null;
     parent_folder_identifier: string;
     monitor: boolean;
+    module: string;
 }

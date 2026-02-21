@@ -1,5 +1,6 @@
 import { Box, VStack, HStack, Text, Spinner, IconButton, Button } from "@chakra-ui/react";
 import { useCallback, useMemo, useState } from "react";
+import { useChart } from "@chakra-ui/charts";
 import { FaSyncAlt } from "react-icons/fa";
 import { Tooltip } from "@/components/ui/tooltip";
 import { DateRangeSelector, formatDateForInput } from "@/components/ui/date-range-selector";
@@ -12,12 +13,13 @@ import {
 } from "./member-bar-charts";
 import { useTeamContext } from "@/context/team-ctx";
 import { TeamMemberTaskList } from "./team-member-task-list";
+import { DonutChart } from "@/components/ui/donut-chart";
 import { formatMinutes, ACCENT_COLOR } from "@/components/work/work-utils";
 import { SummaryCard } from "@/components/ui/summary-card";
 import { useColorModeValue } from "@/components/ui/color-mode";
 import { BASE_URL } from "@/App";
 import type { MemberWorkload } from "./team-types";
-import { MEMBER_COLORS, memberTaskCount, memberTimeSpentMn } from "./team-types";
+import { MEMBER_COLORS, MODULE_COLORS, memberTaskCount, memberTimeSpentMn } from "./team-types";
 import { toaster } from "../ui/toaster";
 
 interface TeamCompletedTasksContentProps {
@@ -113,6 +115,28 @@ export const TeamCompletedTasksContent = ({ selectedTypes }: TeamCompletedTasksC
         () => (selectedMember ? workload.find((m) => m.name === selectedMember) : null),
         [selectedMember, workload]
     );
+
+    const modulePieData = useMemo(() => {
+        if (!selectedMemberData?.tasks.length) return [];
+        const counts: Record<string, number> = {};
+        for (const t of selectedMemberData.tasks) {
+            const mod = (t.module || "").trim() || "Uncategorized";
+            counts[mod] = (counts[mod] ?? 0) + 1;
+        }
+        return Object.entries(counts)
+            .sort(([, a], [, b]) => b - a)
+            .map(([name, value], i) => ({
+                name,
+                value,
+                label: `${value} task${value !== 1 ? "s" : ""}`,
+                color: MODULE_COLORS[i % MODULE_COLORS.length] as `${string}.${string}`,
+            }));
+    }, [selectedMemberData]);
+
+    const moduleChart = useChart({
+        data: modulePieData,
+        series: modulePieData.map((d) => ({ name: "value" as const, color: d.color })),
+    });
 
     const selectedMemberColor = useMemo(() => {
         if (!selectedMemberData) return null;
@@ -237,12 +261,33 @@ export const TeamCompletedTasksContent = ({ selectedTypes }: TeamCompletedTasksC
                             </HStack>
                         )}
                         {selectedMemberData && (
-                            <TeamMemberTaskList
-                                memberData={selectedMemberData}
-                                headerBg={selectedMemberBg}
-                                onClose={() => setSelectedMember(null)}
-                                variant="completed"
-                            />
+                            <HStack align="start" gap={6} wrap="wrap">
+                                {modulePieData.length > 0 && (
+                                    <VStack gap={2} align="center">
+                                        <Text fontSize="sm" fontWeight="semibold" color="fg.muted">
+                                            Module distribution
+                                        </Text>
+                                        <DonutChart
+                                            data={modulePieData}
+                                            chartHook={moduleChart}
+                                            total={selectedMemberData.tasks.length}
+                                            centerLabel={String(selectedMemberData.tasks.length)}
+                                            centerSublabel="tasks"
+                                            size={200}
+                                            innerRadius={50}
+                                            outerRadius={80}
+                                        />
+                                    </VStack>
+                                )}
+                                <Box flex={1} minW="280px">
+                                    <TeamMemberTaskList
+                                        memberData={selectedMemberData}
+                                        headerBg={selectedMemberBg}
+                                        onClose={() => setSelectedMember(null)}
+                                        variant="completed"
+                                    />
+                                </Box>
+                            </HStack>
                         )}
                     </>
                 )}

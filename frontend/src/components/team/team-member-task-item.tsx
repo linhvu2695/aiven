@@ -1,10 +1,11 @@
 import { Box, HStack, Text, Badge, Link } from "@chakra-ui/react";
 import { docSubTypeIcon, statusColor } from "@/components/work/work-utils";
 import { WorkTaskProgressBar } from "@/components/work/work-task-progress-bar";
-import { isObsoleteTask, type TeamTask } from "./team-types";
+import { isObsoleteTask } from "./team-types";
+import type { TaskDetail } from "@/components/work/work-types";
 
 interface TeamMemberTaskItemProps {
-    task: TeamTask;
+    task: TaskDetail;
     maxTime: number;
 }
 

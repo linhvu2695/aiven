@@ -15,6 +15,7 @@ import {
     FaInfoCircle,
     FaUser,
     FaUsers,
+    FaBox,
     FaCalendarAlt,
     FaLink,
     FaProjectDiagram,
@@ -200,6 +201,9 @@ export const WorkTaskDetailPopover = ({ task }: WorkTaskDetailPopoverProps) => {
                                             <Text fontSize="xs" color="fg.muted">—</Text>
                                         )}
                                     </HStack>
+                                </DetailRow>
+                                <DetailRow icon={<FaBox size={10} />} label="Module">
+                                    <Text fontSize="xs">{task.module || "—"}</Text>
                                 </DetailRow>
                                 <DetailRow icon={<FaExclamationTriangle size={10} />} label="Priority">
                                     <Text fontSize="xs">{task.importance_for_next_release || "—"}</Text>

@@ -1,7 +1,8 @@
 import { Box, HStack, VStack, Text, CloseButton } from "@chakra-ui/react";
 import { TeamMemberTaskItem } from "./team-member-task-item";
 import { formatMinutes } from "@/components/work/work-utils";
-import { isObsoleteTask, type MemberWorkload, type TeamTask } from "./team-types";
+import { isObsoleteTask, type MemberWorkload } from "./team-types";
+import type { TaskDetail } from "@/components/work/work-types";
 
 export type TeamMemberTaskListVariant = "incomplete" | "completed";
 
@@ -12,7 +13,7 @@ interface TeamMemberTaskListProps {
     variant?: TeamMemberTaskListVariant;
 }
 
-const sortIncomplete = (a: TeamTask, b: TeamTask) => {
+const sortIncomplete = (a: TaskDetail, b: TaskDetail) => {
     const da = a.estimated_completion_date
         ? new Date(a.estimated_completion_date as string).getTime()
         : Infinity;
@@ -22,7 +23,7 @@ const sortIncomplete = (a: TeamTask, b: TeamTask) => {
     return da - db;
 };
 
-const sortCompleted = (a: TeamTask, b: TeamTask) => {
+const sortCompleted = (a: TaskDetail, b: TaskDetail) => {
     const dateA = a.completion_date || a.estimated_completion_date;
     const dateB = b.completion_date || b.estimated_completion_date;
     const da = dateA ? new Date(dateA as string).getTime() : 0;

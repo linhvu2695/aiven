@@ -21,7 +21,8 @@ TASK_DETAIL_FIELDS = [
     "Document.CurrentEstimatedStartDate",
     "Document.CurrentEstimatedEndDate",
     "Completiondate",
-    "ParentFolderIdentifier"
+    "ParentFolderIdentifier",
+    "link.Product-Module",
 ]
 
 class SetMonitorRequest(BaseModel):
@@ -51,6 +52,7 @@ class TaskDetail(BaseModel):
     completion_date: Optional[datetime] = None
     parent_folder_identifier: str = ""
     monitor: bool = False
+    module: str = ""
 
     @staticmethod
     def from_api_response(data: dict) -> "TaskDetail":
@@ -72,4 +74,5 @@ class TaskDetail(BaseModel):
             estimated_end_date=parse_datetime(data.get("Document.CurrentEstimatedEndDate")),
             completion_date=parse_datetime(data.get("Completiondate")),
             parent_folder_identifier=data.get("ParentFolderIdentifier", ""),
+            module=extract_value(data.get("link.Product-Module", "")),
         )

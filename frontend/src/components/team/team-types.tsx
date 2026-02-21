@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import { FaBars, FaCalendarCheck } from "react-icons/fa6";
+import type { TaskDetail } from "@/components/work/work-types";
 
 /** View modes for the team page content area */
 export type TeamViewMode = "incomplete_tasks" | "completed_tasks";
@@ -19,25 +20,12 @@ export const TEAM_VIEW_MODE_ICONS: Record<TeamViewMode, ReactNode> = {
     completed_tasks: <FaCalendarCheck />,
 };
 
-export const isObsoleteTask = (task: TeamTask) =>
+export const isObsoleteTask = (task: TaskDetail) =>
     (task.status || "").toLowerCase().includes("obsolete");
-
-export interface TeamTask {
-    title: string;
-    identifier: string;
-    doc_sub_type?: string;
-    status: string;
-    time_spent_mn: number;
-    time_left_mn: number;
-    cortex_share_link?: string;
-    estimated_completion_date?: string | null;
-    completion_date?: string | null;
-    [key: string]: unknown;
-}
 
 export interface MemberWorkload {
     name: string;
-    tasks: TeamTask[];
+    tasks: TaskDetail[];
 }
 
 export const memberTaskCount = (m: MemberWorkload) => m.tasks.length;
@@ -57,4 +45,17 @@ export const MEMBER_COLORS = [
     "red.400",
     "green.400",
     "gray.400",
+];
+
+/** Colors for module pie chart slices */
+export const MODULE_COLORS = [
+    "teal.400",
+    "blue.400",
+    "purple.400",
+    "orange.400",
+    "cyan.400",
+    "pink.400",
+    "yellow.400",
+    "red.400",
+    "green.400",
 ];
