@@ -111,7 +111,7 @@ export const TeamIncompleteTasksContent = ({
                 <HStack gap={3} justify="space-between" wrap="wrap">
                     <HStack gap={3}>
                         <Text fontWeight="bold" fontSize="xl">
-                            Team Workload
+                            Work Queue
                         </Text>
                         <MemberBarChartModeSelector />
                     </HStack>

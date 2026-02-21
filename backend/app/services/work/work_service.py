@@ -324,21 +324,14 @@ class WorkService:
 
     async def _fetch_and_store_descendants(self, task_id: str) -> list[TaskDetail]:
         """
-        Recursively fetch all descendants from the API and upsert each into MongoDB.
+        Fetch all descendants from the API and upsert each into MongoDB.
         """
-        descendants: list[TaskDetail] = []
+        descendants = await self._fetch_descendants_tasks_from_api(task_id)
+        if not descendants:
+            return []
 
-        # Fetch direct children from API
-        children = await self._fetch_descendants_tasks_from_api(task_id)
-        if not children:
-            return descendants
-
-        for child in children:
-            await self._upsert_task(child)
-            descendants.append(child)
-            # Recurse into each child's subtree
-            child_descendants = await self._fetch_and_store_descendants(child.identifier)
-            descendants.extend(child_descendants)
+        for task in descendants:
+            await self._upsert_task(task)
 
         return descendants
 
