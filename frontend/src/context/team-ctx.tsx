@@ -1,6 +1,6 @@
 import { createContext, useContext, useState, type ReactNode } from "react";
 
-export type MemberBarChartMode = "single" | "dual";
+export type MemberBarChartMode = "single" | "dual" | "timeline";
 
 interface TeamContextValue {
     selectedMember: string | null;

@@ -22,6 +22,7 @@ import { useWorkContext } from "@/context/work-ctx";
 export const WorkKanbanPanel = () => {
     const { selectedRootTask: rootTask, selectedDescendants: descendants, isLoadingTree: isLoading } = useWorkContext();
     const accentColor = useColorModeValue(ACCENT_COLOR.light, ACCENT_COLOR.dark);
+    const columnHeaderShade = useColorModeValue("100", "800");
 
     // All tasks except root (root is shown as header)
     const allTasks = useMemo(() => {
@@ -126,10 +127,11 @@ export const WorkKanbanPanel = () => {
                             borderColor="border.default"
                             gap={2}
                             flexShrink={0}
+                            bg={`${col.colorPalette}.${columnHeaderShade}`}
                         >
-                            <Badge colorPalette={col.colorPalette} variant="subtle" size="sm">
+                            <Text fontSize="sm" fontWeight="semibold">
                                 {col.label}
-                            </Badge>
+                            </Text>
                             <Text fontSize="xs" color="fg.muted">
                                 {col.tasks.length}
                             </Text>

@@ -10,3 +10,7 @@ export {
     type MemberDualBarChartProps,
 } from "./member-dual-bar-chart";
 export { MemberBarChartModeSelector } from "./member-bar-chart-mode-selector";
+export {
+    CompletedTasksTimelineChart,
+    type CompletedTasksTimelineChartProps,
+} from "./completed-tasks-timeline-chart";

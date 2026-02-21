@@ -8,8 +8,7 @@ import {
     MemberSingleBarChart,
     MemberDualBarChart,
     MemberBarChartModeSelector,
-    type MemberSingleBarChartDataItem,
-    type MemberDualBarChartDataItem,
+    CompletedTasksTimelineChart,
 } from "./member-bar-charts";
 import { useTeamContext } from "@/context/team-ctx";
 import { TeamMemberTaskList } from "./team-member-task-list";
@@ -149,9 +148,9 @@ export const TeamCompletedTasksContent = ({ selectedTypes }: TeamCompletedTasksC
         selectedMemberColor ? selectedMemberColor.replace(/\.\d+$/, ".800") : "gray.800"
     );
 
-    const handleBarClick = useCallback(
-        (item: MemberSingleBarChartDataItem | MemberDualBarChartDataItem) => {
-            setSelectedMember(selectedMember === item.fullName ? null : item.fullName);
+    const handleMemberClick = useCallback(
+        (memberName: string) => {
+            setSelectedMember(selectedMember === memberName ? null : memberName);
         },
         [selectedMember, setSelectedMember]
     );
@@ -165,7 +164,7 @@ export const TeamCompletedTasksContent = ({ selectedTypes }: TeamCompletedTasksC
                         <Text fontWeight="bold" fontSize="xl">
                             Completed Tasks
                         </Text>
-                        <MemberBarChartModeSelector />
+                        <MemberBarChartModeSelector enableTimeline={true} />
                     </HStack>
                     <Tooltip content="Refresh from Orange Logic">
                         <IconButton
@@ -232,14 +231,22 @@ export const TeamCompletedTasksContent = ({ selectedTypes }: TeamCompletedTasksC
                                 color={accentColor}
                             />
                         </HStack>
-                        {chartMode === "dual" ? (
+                        {chartMode === "timeline" ? (
+                            <CompletedTasksTimelineChart
+                                workload={workload}
+                                startDate={startDate}
+                                endDate={endDate}
+                                width="800px"
+                                onMemberClick={handleMemberClick}
+                            />
+                        ) : chartMode === "dual" ? (
                             <MemberDualBarChart
                                 title="Completed Workload"
                                 data={chartData}
                                 leftLabel="Hours"
                                 rightLabel="Tasks"
                                 tooltipTimeSuffix="spent"
-                                onBarClick={handleBarClick}
+                                onBarClick={(item) => handleMemberClick(item.fullName)}
                                 width="800px"
                             />
                         ) : (
@@ -249,14 +256,14 @@ export const TeamCompletedTasksContent = ({ selectedTypes }: TeamCompletedTasksC
                                     data={chartDataHours}
                                     tooltipFormat="time"
                                     tooltipSuffix="spent"
-                                    onBarClick={handleBarClick}
+                                    onBarClick={(item) => handleMemberClick(item.fullName)}
                                 />
                                 <MemberSingleBarChart
                                     title="Completed Tasks"
                                     data={chartDataTaskCount}
                                     tooltipFormat="tasks"
                                     allowDecimals={false}
-                                    onBarClick={handleBarClick}
+                                    onBarClick={(item) => handleMemberClick(item.fullName)}
                                 />
                             </HStack>
                         )}

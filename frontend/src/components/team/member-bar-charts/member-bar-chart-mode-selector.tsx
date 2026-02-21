@@ -1,9 +1,13 @@
 import { IconButton, ButtonGroup } from "@chakra-ui/react";
-import { FaChartBar, FaColumns } from "react-icons/fa";
+import { FaChartBar, FaChartLine, FaColumns } from "react-icons/fa";
 import { Tooltip } from "@/components/ui/tooltip";
 import { useTeamContext } from "@/context/team-ctx";
 
-export const MemberBarChartModeSelector = () => {
+interface MemberBarChartModeSelectorProps {
+    enableTimeline?: boolean;
+}
+
+export const MemberBarChartModeSelector = ({ enableTimeline = false }: MemberBarChartModeSelectorProps) => {
     const { chartMode, setChartMode } = useTeamContext();
 
     return (
@@ -26,6 +30,17 @@ export const MemberBarChartModeSelector = () => {
                     <FaChartBar />
                 </IconButton>
             </Tooltip>
+            {enableTimeline && (
+                <Tooltip content="Timeline view (cumulative completed tasks over time)">
+                    <IconButton
+                        aria-label="Timeline chart view"
+                        variant={chartMode === "timeline" ? "solid" : "outline"}
+                        onClick={() => setChartMode("timeline")}
+                    >
+                        <FaChartLine />
+                    </IconButton>
+                </Tooltip>
+            )}
         </ButtonGroup>
     );
 };
