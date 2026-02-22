@@ -3,7 +3,7 @@ from typing import Optional
 from datetime import datetime
 from pydantic import BaseModel, Field
 
-from app.utils.string.string_utils import parse_int, parse_datetime, parse_list, extract_value
+from app.utils.string.string_utils import parse_int, parse_float, parse_datetime, parse_list, extract_value
 
 TASK_DETAIL_FIELDS = [
     "CoreField.Title",
@@ -23,6 +23,7 @@ TASK_DETAIL_FIELDS = [
     "Completiondate",
     "ParentFolderIdentifier",
     "link.Product-Module",
+    "dev.Complexity",
 ]
 
 class SetMonitorRequest(BaseModel):
@@ -53,6 +54,7 @@ class TaskDetail(BaseModel):
     parent_folder_identifier: str = ""
     monitor: bool = False
     module: str = ""
+    complexity: Optional[float] = None
 
     @staticmethod
     def from_api_response(data: dict) -> "TaskDetail":
@@ -75,4 +77,5 @@ class TaskDetail(BaseModel):
             completion_date=parse_datetime(data.get("Completiondate")),
             parent_folder_identifier=data.get("ParentFolderIdentifier", ""),
             module=extract_value(data.get("link.Product-Module", "")),
+            complexity=parse_float(data.get("dev.Complexity", "0.0")),
         )

@@ -13,8 +13,9 @@ import {
     FaTerminal,
     FaSignal,
     FaBars,
+    FaWrench,
 } from "react-icons/fa";
-import { FaPeopleGroup } from "react-icons/fa6";
+import { FaCodeMerge, FaPeopleGroup } from "react-icons/fa6";
 
 /** Accent color pair used across the work page (light / dark mode) */
 export const ACCENT_COLOR = { light: "green.600", dark: "green.400" };
@@ -146,6 +147,9 @@ export const DOC_SUB_TYPES = [
     "Defect - UX",
     "Defect - Infrastructure",
     "Question",
+    "Configuration Request",
+    "Merge Request Evaluation",
+    "Merge Request Execution",
     "Code Review",
     "Meeting",
     "Technical Vetting",
@@ -170,6 +174,9 @@ export const docSubTypeIcon = (docSubType: string): { icon: React.ReactNode; col
     if (s.includes("document")) return { icon: <FaFileAlt size={12} />, color: "purple.400" };
     if (s.includes("research") || s.includes("analysis")) return { icon: <FaFlask size={12} />, color: "cyan.400" };
     if (s.includes("code review")) return { icon: <FaSearchPlus size={12} />, color: "orange.400" };
+    if (s.includes("configuration request")) return { icon: <FaWrench size={12} />, color: "pink.400" };
+    if (s.includes("merge request evaluation")) return { icon: <FaCodeMerge size={12} />, color: "pink.400" };
+    if (s.includes("merge request execution")) return { icon: <FaCodeMerge size={12} />, color: "pink.400" };
     if (s.includes("defect")) return { icon: <FaBug size={12} />, color: "red.400" };
     if (s.includes("enhancement")) return { icon: <FaSignal size={12} />, color: "blue.400" };
     if (s.includes("qa")) return { icon: <FaVial size={12} />, color: "cyan.400" };

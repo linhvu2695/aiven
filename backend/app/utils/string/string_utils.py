@@ -71,6 +71,13 @@ def parse_int(value, default: int = 0) -> int:
         return default
 
 
+def parse_float(value, default: float = 0.0) -> float:
+    try:
+        return float(value)
+    except (ValueError, TypeError):
+        return default
+
+
 def parse_datetime(value) -> Optional[datetime]:
     if not value or value == "":
         return None

@@ -5,6 +5,7 @@ from app.utils.string.string_utils import (
     validate_exactly_one_field,
     is_empty_string,
     parse_int,
+    parse_float,
     parse_datetime,
     extract_value,
     parse_list,
@@ -259,6 +260,37 @@ class TestParseInt:
         """Test None returns default"""
         assert parse_int(None) == 0
         assert parse_int(None, default=5) == 5
+
+
+class TestParseFloat:
+    """Test cases for parse_float function"""
+
+    def test_valid_float_string(self):
+        """Test parsing valid float string"""
+        assert parse_float("42.5") == 42.5
+        assert parse_float("0") == 0.0
+        assert parse_float("0.0") == 0.0
+        assert parse_float("-10.5") == -10.5
+
+    def test_valid_float(self):
+        """Test passing float returns as-is"""
+        assert parse_float(42.5) == 42.5
+        assert parse_float(0.0) == 0.0
+
+    def test_invalid_string_returns_default(self):
+        """Test invalid string returns default"""
+        assert parse_float("abc") == 0.0
+        assert parse_float("") == 0.0
+
+    def test_custom_default(self):
+        """Test custom default value"""
+        assert parse_float("abc", default=-1.5) == -1.5
+        assert parse_float(None, default=99.9) == 99.9
+
+    def test_none_returns_default(self):
+        """Test None returns default"""
+        assert parse_float(None) == 0.0
+        assert parse_float(None, default=5.5) == 5.5
 
 
 class TestParseDatetime:

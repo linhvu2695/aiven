@@ -17,4 +17,5 @@ export interface TaskDetail {
     parent_folder_identifier: string;
     monitor: boolean;
     module: string;
+    complexity: number | null;
 }

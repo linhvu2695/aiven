@@ -68,6 +68,34 @@ export const WorkTaskListItem = ({ task, isSelected }: WorkTaskListItemProps) =>
                     )}
                 </HStack>
             </VStack>
+
+            {/* Complexity tag */}
+            {task.complexity != null && task.complexity > 0 && (
+                <Box
+                    display="inline-flex"
+                    alignItems="center"
+                    px={2}
+                    py={0.5}
+                    clipPath="polygon(0 50%, 6px 0, 100% 0, 100% 100%, 6px 100%)"
+                    bg={
+                        task.complexity >= 100 ? "red.100"
+                        : task.complexity >= 50 ? "orange.100"
+                        : "green.100"
+                    }
+                    color={
+                        task.complexity >= 100 ? "red.700"
+                        : task.complexity >= 50 ? "orange.700"
+                        : "green.700"
+                    }
+                    title="Complexity"
+                >
+                    <Text fontSize="xs" fontWeight="bold">
+                        {task.complexity % 1 === 0 ? task.complexity : task.complexity.toFixed(1)}
+                    </Text>
+                </Box>
+            )}
+
+            {/* Remove task button */}
             <IconButton
                 aria-label="Remove task"
                 variant="ghost"

@@ -19,6 +19,9 @@ class TaskType(str, Enum):
     DEFECT_INFRASTRUCTURE = "defect - infrastructure"
     
     QUESTION = "question"
+    CONFIGURATION_REQUEST = "configuration request"
+    MERGE_REQUEST_EVALUATION = "merge request evaluation"
+    MERGE_REQUEST_EXECUTION = "merge request execution"
     CODE_REVIEW = "code review"
     MEETING = "meeting"
 
