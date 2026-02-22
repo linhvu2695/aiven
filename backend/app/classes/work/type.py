@@ -13,7 +13,7 @@ class TaskType(str, Enum):
 
     DEFECT_APPLICATION = "defect - application"
     DEFECT_CONFIGURATION = "defect - configuration"
-    DEFECT_QA = "defect - qa"
+    DEFECT_QA_VIETNAM = "defect - qa vietnam"
     DEFECT_LOGS = "defect - logs"
     DEFECT_UX = "defect - ux"
     DEFECT_INFRASTRUCTURE = "defect - infrastructure"
@@ -30,7 +30,6 @@ class TaskType(str, Enum):
     TASK_MANAGEMENT = "task management"
     DEV_PLANNING = "dev planning"
     FINAL_DEV_REVIEW = "final dev review"
-    PRODUCT_REVIEW = "product review"
     UX_REVIEW = "ux review"
     FINAL_REVIEW = "final review"
 

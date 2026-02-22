@@ -7,14 +7,12 @@ class TaskStatus(str, Enum):
     IMPLEMENTED_ON_TEST = "implemented on test"
     IMPLEMENTED_ON_PROD = "implemented on prod"
     OBSOLETE = "obsolete"
-    CANCELLED = "cancelled"
     COMPLETED = "completed"
     DUPLICATE = "duplicate"
     REJECTED = "rejected"
     ANSWERED = "answered"
     APPROVED = "approved"
     VALIDATED_ON_TEST = "validated on test"
-    VALIDATED_ON_PROD = "validated on prod"
 
     IN_PROGRESS = "in progress"
     NEEDS_PEER_REVIEW = "needs peer review"
@@ -36,12 +34,10 @@ COMPLETE_STATUSES = {
     TaskStatus.IMPLEMENTED_ON_TEST,
     TaskStatus.IMPLEMENTED_ON_PROD,
     TaskStatus.OBSOLETE,
-    TaskStatus.CANCELLED,
     TaskStatus.COMPLETED,
     TaskStatus.DUPLICATE,
     TaskStatus.REJECTED,
     TaskStatus.ANSWERED,
     TaskStatus.APPROVED,
     TaskStatus.VALIDATED_ON_TEST,
-    TaskStatus.VALIDATED_ON_PROD,
 }

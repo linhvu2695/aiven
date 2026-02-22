@@ -389,15 +389,28 @@ class WorkService:
 
         try:
             async with httpx.AsyncClient(timeout=30) as client:
-                response = await client.get(LINK_SEARCH_API_URL, params=params)
+                all_items: list[TaskDetail] = []
+                page = 1
 
-                # 1. TODO: Handle 401 Unauthorized
+                while True:
+                    params["pagenumber"] = page
+                    response = await client.get(LINK_SEARCH_API_URL, params=params)
 
-                # 2. Normal case
-                response.raise_for_status()
-                data = response.json()
-                items = data.get("APIResponse", {}).get("Items", [])
-                return [TaskDetail.from_api_response(item) for item in items]
+                    # 1. TODO: Handle 401 Unauthorized
+
+                    # 2. Normal case
+                    response.raise_for_status()
+                    data = response.json()
+                    api_response = data.get("APIResponse", {})
+                    items = api_response.get("Items", [])
+                    all_items.extend(TaskDetail.from_api_response(item) for item in items)
+
+                    next_page = api_response.get("GlobalInfo", {}).get("NextPage")
+                    if not next_page or len(items) < COUNT_PER_PAGE:
+                        break
+                    page += 1
+
+                return all_items
         except httpx.HTTPStatusError as e:
             self.logger.error(f"Link API returned {e.response.status_code} for query {query}: {e.response.text}")
             return None

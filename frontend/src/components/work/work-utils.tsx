@@ -142,7 +142,7 @@ export const DOC_SUB_TYPES = [
     "QA",
     "Defect - Application",
     "Defect - Configuration",
-    "Defect - QA",
+    "Defect - QA Vietnam",
     "Defect - Logs",
     "Defect - UX",
     "Defect - Infrastructure",

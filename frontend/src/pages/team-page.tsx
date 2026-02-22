@@ -22,7 +22,7 @@ const TeamPageContent = () => {
             new Set([
                 "Defect - Application",
                 "Defect - Configuration",
-                "Defect - QA",
+                "Defect - QA Vietnam",
                 "Defect - Logs",
                 "Defect - UX",
                 "Defect - Infrastructure",
